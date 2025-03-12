@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/">
+        <file>image/history.png</file>
+        <file>image/start.png</file>
+        <file>image/stop.png</file>
+        <file>image/updata.png</file>
+        <file>image/search.png</file>
+        <file>image/delete.png</file>
+        <file>image/exclamation_mark.png</file>
+        <file>image/hide.png</file>
+        <file>image/background.png</file>
+    </qresource>
+</RCC>
