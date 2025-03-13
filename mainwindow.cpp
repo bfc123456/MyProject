@@ -33,7 +33,8 @@ MainWindow::MainWindow(QWidget *parent)
       isMeasuring(false),
       currentTime(0),
       maxPressure(25.0),
-      minPressure(6.0)
+      minPressure(6.0),
+      serialManager(new SerialPortManager(this))
 {
     // 检查是否成功连接数据库
     if (dbManager.connectDatabase()) {
@@ -46,6 +47,12 @@ MainWindow::MainWindow(QWidget *parent)
     this->setWindowTitle("主操作界面");
     this->setFixedSize(1024, 600);  // 固定窗口大小
     this->setStyleSheet("background-color:#000000;");  // **整体背景哑光黑**
+
+    //配置串口信息
+    connect(serialManager, &SerialPortManager::dataReceived, this, &MainWindow::onDataReceived);
+    connect(serialManager, &SerialPortManager::errorOccurred, this, &MainWindow::onErrorOccurred);
+
+    serialManager->openPort("COM3", QSerialPort::Baud115200);//配置串口
 
 
     //plot数据设定及框图
@@ -255,6 +262,8 @@ MainWindow::MainWindow(QWidget *parent)
     buttonContainer->setLayout(buttonContainerLayout);
 
     // 设置按钮点击事件
+    connect(measureButton, &QPushButton::clicked, this, &MainWindow::on_pushButtonSend_clicked);//测试串口通信
+
     connect(measureButton, &QPushButton::clicked, this, &MainWindow::onStartClicked);
     connect(uploadButton, &QPushButton::clicked, this, &MainWindow::onUploadDataClicked);
     connect(historyButton, &QPushButton::clicked, this, &MainWindow::onHistoryButtonClicked);
@@ -638,3 +647,24 @@ void MainWindow::onHistoryButtonClicked()
         historyWindow->show();
     }
 }
+
+
+void MainWindow::onDataReceived(QByteArray data)
+{
+    qDebug() << "Received Data (Hex): " << data.toHex();  // 以十六进制格式打印接收到的数据
+}
+
+
+void MainWindow::on_pushButtonSend_clicked()
+{
+    QByteArray command = QByteArray::fromHex("AA550102030455AA"); // 发送指令
+    serialManager->sendCommand(command);
+    qDebug() << "[Serial Sent] (Hex):" << command.toHex();
+}
+
+void MainWindow::onErrorOccurred(QString errorMsg)
+{
+    qDebug() << "[Serial Error]: " << errorMsg;
+}
+
+

@@ -17,6 +17,7 @@
 #include <QFormLayout>
 #include <QSplitter>
 #include "databasemanager.h"
+#include "SerialPortManager.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -39,6 +40,10 @@ private slots:
     void onUploadDataClicked();
     void onHistoryButtonClicked();
     void resetMeasurementData();
+    void onDataReceived(QByteArray data);
+    void onErrorOccurred(QString errorMsg);
+    void on_pushButtonSend_clicked();
+
 
 private:
     Ui::MainWindow *ui;
@@ -69,6 +74,7 @@ private:
     QVector<QPointF> generateData();
 
     databasemanager dbManager;  // 声明数据库管理对象
+    SerialPortManager *serialManager;   //声明串口管理对象
 
 
 };
