@@ -52,7 +52,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(serialManager, &SerialPortManager::dataReceived, this, &MainWindow::onDataReceived);
     connect(serialManager, &SerialPortManager::errorOccurred, this, &MainWindow::onErrorOccurred);
 
-    serialManager->openPort("COM3", QSerialPort::Baud115200);//配置串口
+    //配置串口
+    serialManager->openPort("COM3", QSerialPort::Baud115200);
 
 
     //plot数据设定及框图
@@ -386,12 +387,6 @@ void MainWindow::onStartClicked() {
         // 如果量测被暂停，恢复量测
         qDebug() << "Resuming measurement from time " << currentTime;
 
-        // 设置模拟量初始值
-        diastolicValue->setText("---");
-        systolicValue->setText("---");
-        avgValue->setText("---");
-        heartbeatValue->setText("---");
-
         // 开始定时器，继续从暂停的地方量测
         timer->start(1000);  // 每秒更新一次
 
@@ -441,11 +436,11 @@ void MainWindow::resetMeasurementData() {
     xData.clear();
     yData.clear();
 
-    // 设置模拟量初始值
-    diastolicValue->setText("---");
-    systolicValue->setText("---");
-    avgValue->setText("---");
-    heartbeatValue->setText("---");
+//    // 设置模拟量初始值
+//    diastolicValue->setText("---");
+//    systolicValue->setText("---");
+//    avgValue->setText("---");
+//    heartbeatValue->setText("---");
 }
 
 void MainWindow::onStopClicked() {
@@ -472,7 +467,7 @@ void MainWindow::onStopClicked() {
             heartbeatValue->setText("---");
 
             // 更新按钮图标和文本
-//            measureButton->setIcon(QIcon(":/image/start.png"));
+            measureButton->setIcon(QIcon(":/image/start.png"));
             measureButton->setText("开始量测");
 
             qDebug() << "Measurement stopped, displaying results.";
@@ -528,7 +523,7 @@ void MainWindow::onFinishMeasurement()
     qDebug() << "Measurement completed. Final values displayed.";
 
     // 切换按钮状态回默认状态“开始量测”
-//    measureButton->setIcon(QIcon(":/image/start.png"));  // 设置按钮图标为开始量测
+   measureButton->setIcon(QIcon(":/image/start.png"));  // 设置按钮图标为开始量测
     measureButton->setText("开始量测");  // 设置按钮文本为“开始量测”
 
 }
@@ -590,6 +585,14 @@ QVector<QPointF> MainWindow::generateData() {
 
 //上传数据到数据库
 void MainWindow::onUploadDataClicked() {
+    //量测过程中提示非法行为
+    if (isMeasuring) {
+        // 如果正在量测，弹出提示框告知用户无法上传数据
+        CustomMessageBox msgBox(this, "错误", "正在量测，无法上传数据！", {"确定"}, 200);
+        msgBox.exec();  // 显示自定义弹窗
+        return;  // 阻止继续执行上传操作
+    }
+
     // 获取显示的值
     QString diastolicText = diastolicValue->text();
     QString systolicText = systolicValue->text();
