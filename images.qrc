@@ -9,5 +9,15 @@
         <file>image/exclamation_mark.png</file>
         <file>image/hide.png</file>
         <file>image/background.png</file>
+        <file>image/setting.png</file>
+        <file>image/icons8-reset.png</file>
+        <file>image/icons8-shutdown.png</file>
+        <file>image/icons8-edit.png</file>
+        <file>image/icons-pulldown.png</file>
+        <file>image/icons8-pushdown.png</file>
+    </qresource>
+    <qresource prefix="/translations">
+        <file>translations/en_US.qm</file>
+        <file>translations/zh_CN.qm</file>
     </qresource>
 </RCC>

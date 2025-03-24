@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include "historycheck.h"
 #include "CustomMessageBox.h"
+#include "settingswidget.h"
 #include <QApplication>
 #include <QStyle>
 #include <QScreen>
@@ -19,6 +20,8 @@
 #include <random> //生成随机数的标注库
 #include <qwt_plot_grid.h>
 #include <QHeaderView>
+#include <QSettings>
+#include <atomic>
 #include <qwt_scale_widget.h>
 #include <qwt_plot_canvas.h>
 
@@ -44,7 +47,16 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
     ui->setupUi(this);
-    this->setWindowTitle("主操作界面");
+
+    // ✅ 读取用户上次选择的语言
+    QSettings settings("MyCompany", "MyApp");
+    QString languageCode = settings.value("language", "zh_CN").toString();  // 默认中文
+    qDebug() << "MainWindow: Loaded language:" << languageCode;
+
+    // ✅ 设置软件语言
+    changeLanguage(languageCode);
+
+    this->setWindowTitle(tr("主操作界面"));
     this->setFixedSize(1024, 600);  // 固定窗口大小
     this->setStyleSheet("background-color:#000000;");  // **整体背景哑光黑**
 
@@ -92,8 +104,8 @@ MainWindow::MainWindow(QWidget *parent)
     curve->attach(plot);
 
     // **设置 X/Y 轴标题**
-    QwtText xAxisTitle("时间 (s)");
-    QwtText yAxisTitle("压力 (mmHg)");
+    QwtText xAxisTitle(tr("时间 (s)"));
+    QwtText yAxisTitle(tr("压力 (mmHg)"));
 
     // **设置字体**
     QFont axisFont("黑体", 16, QFont::Bold);
@@ -202,12 +214,15 @@ MainWindow::MainWindow(QWidget *parent)
     buttonFrame->setStyleSheet("background-color: transparent; border: none;"); // **确保隐藏边框**
     QHBoxLayout *buttonLayout = new QHBoxLayout(buttonFrame);
 
-    measureButton = new QPushButton("开始量测", buttonFrame);
+    measureButton = new QPushButton(tr("开始量测"), buttonFrame);
     measureButton->setIcon(QIcon(":/image/start.png"));
-    uploadButton = new QPushButton("上传数据", buttonFrame);
+    uploadButton = new QPushButton(tr("上传数据"), buttonFrame);
     uploadButton->setIcon(QIcon(":/image/updata.png"));
-    historyButton = new QPushButton("历史查询", buttonFrame);
+    historyButton = new QPushButton(tr("历史查询"), buttonFrame);
     historyButton->setIcon(QIcon(":/image/history.png"));
+    settingsButton = new QPushButton(tr("参数调节"), buttonFrame);
+    settingsButton->setIcon(QIcon(":/image/setting.png"));
+    settingsButton->setIconSize(QSize(32, 32));  // 调整图标大小
 
     //创建定时器并初始化
     timer = new QTimer(this);
@@ -219,32 +234,36 @@ MainWindow::MainWindow(QWidget *parent)
         currentTime = 0;
 
 
-    measureButton->setMinimumSize(100, 60);
-    uploadButton->setMinimumSize(100, 60);
-    historyButton->setMinimumSize(100, 60);
+    measureButton->setMinimumSize(75, 60);
+    uploadButton->setMinimumSize(75, 60);
+    historyButton->setMinimumSize(75, 60);
+    settingsButton->setMinimumSize(75, 60);
 
-    // **按钮样式**
     QString buttonStyle = R"(
         QPushButton {
-            background-color: #616161;  /* 按钮主色 */
-            color: white;               /* 文字颜色 */
+            background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #757575, stop: 1 #616161);  /* 立体渐变 */
+            color: white;  /* 文字颜色 */
             font-size: 18px;
-            font-family: "黑体";        /* 设置字体为黑体 */
+            font-family: "黑体";  /* 设置字体为黑体 */
             font-weight: bold;
             border: 2px solid #666666;  /* 默认边框 */
             border-radius: 8px;
             padding: 8px 16px;
-            icon-size: 24px;            /* 调整图标大小 */
+            icon-size: 24px;  /* 调整图标大小 */
         }
-        QPushButton:hover {
-            background-color: #32CD32;  /* 鼠标悬停时变亮 */
-            border: 2px solid #145214;  /* 更深的边框 */
-        }
+
         QPushButton:pressed {
-            background-color: #1A661A;  /* 按下时变深绿 */
+            background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #4A4A4A, stop: 1 #383838);  /* 按下时颜色稍深 */
             border: 2px solid white;
         }
+
+        QPushButton:disabled {
+            background: #444;  /* 禁用时颜色变暗 */
+            color: #888;
+            border: 2px solid #555;
+        }
     )";
+
 
 
 
@@ -253,21 +272,26 @@ MainWindow::MainWindow(QWidget *parent)
     measureButton->setStyleSheet(buttonStyle);
     uploadButton->setStyleSheet(buttonStyle);
     historyButton->setStyleSheet(buttonStyle);
+    settingsButton->setStyleSheet(buttonStyle);
 
     buttonLayout->addWidget(measureButton);
     buttonLayout->addWidget(uploadButton);
     buttonLayout->addWidget(historyButton);
+    buttonLayout->addWidget(settingsButton);
     buttonFrame->setLayout(buttonLayout);
 
     buttonContainerLayout->addWidget(buttonFrame);
     buttonContainer->setLayout(buttonContainerLayout);
 
     // 设置按钮点击事件
-    connect(measureButton, &QPushButton::clicked, this, &MainWindow::on_pushButtonSend_clicked);//测试串口通信
+//    connect(measureButton, &QPushButton::clicked, this, &MainWindow::on_pushButtonSend_clicked);//测试串口通信
 
     connect(measureButton, &QPushButton::clicked, this, &MainWindow::onStartClicked);
     connect(uploadButton, &QPushButton::clicked, this, &MainWindow::onUploadDataClicked);
     connect(historyButton, &QPushButton::clicked, this, &MainWindow::onHistoryButtonClicked);
+    connect(settingsButton, &QPushButton::clicked, this, &MainWindow::onSettingClicked);
+
+    clickTimer.start();  //初始化计时器，记录首次点击时间
 
     leftLayout->addWidget(plotContainer, 3);
     leftLayout->addWidget(buttonContainer, 1);
@@ -291,38 +315,53 @@ MainWindow::MainWindow(QWidget *parent)
        QString valueStyle = "color: yellow; font-size: 48px; font-weight: bold; text-align: center; font-family: 黑体;";
        QString smallBoxStyle = "color: white; font-size: 20px; font-weight: bold; border: 2px solid #444444; background-color: #333333; font-family: 黑体;";
 
-       auto createPressurePanel = [&](QString paramName, QString unit, QLabel*& label) -> QFrame* {
-           QFrame *panel = new QFrame();
-           panel->setStyleSheet(panelStyle);
-           panel->setFixedHeight(100);
-           QGridLayout *gridLayout = new QGridLayout(panel);
+       auto createPressurePanel = [&](QString paramName, QString unit, QLabel*& label) -> PressurePanel {
+           PressurePanel pressurePanel;
+
+           pressurePanel.panel = new QFrame();
+           pressurePanel.panel->setStyleSheet(panelStyle);
+           pressurePanel.panel->setFixedHeight(100);
+
+           QGridLayout *gridLayout = new QGridLayout(pressurePanel.panel);
            gridLayout->setContentsMargins(5, 5, 5, 5);
            gridLayout->setSpacing(2);
 
-           QLabel *paramLabel = new QLabel(paramName);
-           paramLabel->setAlignment(Qt::AlignCenter);
-           paramLabel->setStyleSheet(smallBoxStyle);
+           pressurePanel.paramLabel = new QLabel(paramName);
+           pressurePanel.paramLabel->setAlignment(Qt::AlignCenter);
+           pressurePanel.paramLabel->setStyleSheet(smallBoxStyle);
 
-           QLabel *unitLabel = new QLabel(unit);
-           unitLabel->setAlignment(Qt::AlignCenter);
-           unitLabel->setStyleSheet(smallBoxStyle);
+           pressurePanel.unitLabel = new QLabel(unit);
+           pressurePanel.unitLabel->setAlignment(Qt::AlignCenter);
+           pressurePanel.unitLabel->setStyleSheet(smallBoxStyle);
 
-           label = new QLabel("---");  // **使用传递的 QLabel 指针**
-           label->setAlignment(Qt::AlignCenter);
-           label->setStyleSheet(valueStyle);
+           pressurePanel.valueLabel = new QLabel("---");  // **存储 valueLabel**
+           pressurePanel.valueLabel->setAlignment(Qt::AlignCenter);
+           pressurePanel.valueLabel->setStyleSheet(valueStyle);
 
-           gridLayout->addWidget(paramLabel, 0, 0, 1, 1);
-           gridLayout->addWidget(unitLabel, 1, 0, 1, 1);
-           gridLayout->addWidget(label, 0, 1, 2, 1);
+           label = pressurePanel.valueLabel;  // **把 QLabel 指针赋值给外部变量**
 
-           panel->setLayout(gridLayout);
-           return panel;
+           gridLayout->addWidget(pressurePanel.paramLabel, 0, 0, 1, 1);
+           gridLayout->addWidget(pressurePanel.unitLabel, 1, 0, 1, 1);
+           gridLayout->addWidget(pressurePanel.valueLabel, 0, 1, 2, 1);
+
+           pressurePanel.panel->setLayout(gridLayout);
+
+           return pressurePanel;
        };
 
-       rightLayout->addWidget(createPressurePanel("舒张压", "mmHg", diastolicValue));
-       rightLayout->addWidget(createPressurePanel("收缩压", "mmHg", systolicValue));
-       rightLayout->addWidget(createPressurePanel("平均值", "mmHg", avgValue));
-       rightLayout->addWidget(createPressurePanel("心率", "次/分钟", heartbeatValue));
+       diastolicPanel = createPressurePanel(tr("舒张压"), "mmHg", diastolicValue);
+       rightLayout->addWidget(diastolicPanel.panel);
+
+       systolicPanel = createPressurePanel(tr("收缩压"), "mmHg", systolicValue);
+       rightLayout->addWidget(systolicPanel.panel);
+
+       avgPanel = createPressurePanel(tr("平均值"), "mmHg", avgValue);
+       rightLayout->addWidget(avgPanel.panel);
+
+       heartbeatPanel = createPressurePanel(tr("心率"), tr("次/分钟"), heartbeatValue);
+       rightLayout->addWidget(heartbeatPanel.panel);
+
+
 
        rightFrame->setLayout(rightLayout);
 
@@ -360,18 +399,18 @@ void MainWindow::onStartClicked() {
         qDebug() << "Measurement is already in progress.";
 
         // 使用自定义提示窗口来询问是否暂停量测
-        CustomMessageBox msgBox(this, "量测正在进行", "量测正在进行，是否暂停量测？", {"是", "否"}, 200);
+        CustomMessageBox msgBox(this, tr("量测正在进行"), tr("量测正在进行，是否暂停量测？"), {tr("是"), tr("否")}, 200);
         msgBox.exec();  // 执行自定义消息框
 
         QString response = msgBox.getUserResponse();  // 获取用户响应
 
-        if (response == "是") {
+        if (response == tr("是")) {
             // 用户点击了 "是"，暂停量测
             qDebug() << "Pausing measurement...";
 
             // 切换量测按钮的文本和图标
             measureButton->setIcon(QIcon(":/image/start.png"));
-            measureButton->setText("开始量测");
+            measureButton->setText(tr("开始量测"));
 
             // 停止量测
             timer->stop();
@@ -396,7 +435,7 @@ void MainWindow::onStartClicked() {
 
         // 切换量测按钮的文本和图标
         measureButton->setIcon(QIcon(":/image/stop.png"));
-        measureButton->setText("暂停量测");
+        measureButton->setText(tr("暂停量测"));
 
         qDebug() << "Measurement resumed.";
     } else {
@@ -420,7 +459,7 @@ void MainWindow::onStartClicked() {
         qDebug() << "updata measure status...";
 
         // 切换量测按钮的文本
-        measureButton->setText("暂停量测");
+        measureButton->setText(tr("暂停量测"));
         measureButton->setIcon(QIcon(":/image/stop.png"));
 
 
@@ -446,13 +485,13 @@ void MainWindow::resetMeasurementData() {
 void MainWindow::onStopClicked() {
     if (isMeasuring) {
         // 弹出确认框，询问是否停止量测
-        CustomMessageBox msgBox(this, "提示", "量测正在进行，确定停止吗？", {"是", "否"}, 200);
+        CustomMessageBox msgBox(this, tr("提示"), tr("量测正在进行，确定停止吗？"), {tr("是"), tr("否")}, 200);
 
         msgBox.exec();  // 显示提示框
 
         QString response = msgBox.getUserResponse();
 
-        if (response == "是") {
+        if (response == tr("是")) {
             qDebug() << "Measurement stopped by user.";
 
             // 停止计时器
@@ -468,7 +507,7 @@ void MainWindow::onStopClicked() {
 
             // 更新按钮图标和文本
             measureButton->setIcon(QIcon(":/image/start.png"));
-            measureButton->setText("开始量测");
+            measureButton->setText(tr("开始量测"));
 
             qDebug() << "Measurement stopped, displaying results.";
         } else {
@@ -477,7 +516,7 @@ void MainWindow::onStopClicked() {
         }
     } else {
         // 如果量测未进行，提示用户
-        CustomMessageBox msgBox(this, "提示", "量测尚未开始，无法停止。", {"确定"}, 200);
+        CustomMessageBox msgBox(this, tr("提示"), tr("量测尚未开始，无法停止。"), {tr("确定")}, 200);
         msgBox.exec();  // 执行消息框并显示
     }
 }
@@ -517,14 +556,14 @@ void MainWindow::onFinishMeasurement()
     isMeasuring = false;
 
     // 显示完成提示框
-    CustomMessageBox msgBox(this, "测量已完成", "测量已完成，点击确认查看结果", {"确定"}, 200);
+    CustomMessageBox msgBox(this, tr("测量已完成"), tr("测量已完成，点击确认查看结果"), {tr("确定")}, 200);
     msgBox.exec();  // 显示提示框
 
     qDebug() << "Measurement completed. Final values displayed.";
 
     // 切换按钮状态回默认状态“开始量测”
    measureButton->setIcon(QIcon(":/image/start.png"));  // 设置按钮图标为开始量测
-    measureButton->setText("开始量测");  // 设置按钮文本为“开始量测”
+    measureButton->setText(tr("开始量测"));  // 设置按钮文本为“开始量测”
 
 }
 
@@ -588,7 +627,7 @@ void MainWindow::onUploadDataClicked() {
     //量测过程中提示非法行为
     if (isMeasuring) {
         // 如果正在量测，弹出提示框告知用户无法上传数据
-        CustomMessageBox msgBox(this, "错误", "正在量测，无法上传数据！", {"确定"}, 200);
+        CustomMessageBox msgBox(this, tr("错误"), tr("正在量测，无法上传数据！"), {tr("确定")}, 200);
         msgBox.exec();  // 显示自定义弹窗
         return;  // 阻止继续执行上传操作
     }
@@ -618,7 +657,7 @@ void MainWindow::onUploadDataClicked() {
     // 判断数据是否合法
     if (!diastolicOk || !systolicOk || !avgOk || !heartbeatOk) {
         // 如果其中有任何一个参数不是数字，弹出提示框
-        CustomMessageBox msgBox(this, "错误", "数据不合法，请检查输入！", {"确定"}, 200);
+        CustomMessageBox msgBox(this, tr("错误"), tr("数据不合法，请检查输入！"), {tr("确定")}, 200);
         msgBox.exec();  // 显示自定义弹窗
         return;
     }
@@ -627,11 +666,11 @@ void MainWindow::onUploadDataClicked() {
     // 数据合法，插入到数据库
     if (dbManager.insertData(diastolic, systolic, avg, heartbeat)) {
         // 插入成功后，弹出提示框
-        CustomMessageBox msgBox(this, "数据上传成功", "数据上传成功！", {"确定"}, 200);
+        CustomMessageBox msgBox(this, tr("数据上传成功"), tr("数据上传成功！"), {tr("确定")}, 200);
         msgBox.exec();
     } else {
         // 插入失败后，弹出提示框
-        CustomMessageBox msgBox(this, "数据上传失败", "上传数据失败，请稍后再试！", {"确定"}, 200);
+        CustomMessageBox msgBox(this, tr("数据上传失败"), tr("上传数据失败，请稍后再试！"), {tr("确定")}, 200);
         msgBox.exec();
     }
 }
@@ -641,11 +680,12 @@ void MainWindow::onHistoryButtonClicked()
     // 判断是否正在量测
     if (isMeasuring) {
         // 如果正在量测，弹出提示框禁止查询
-        CustomMessageBox msgBox(this, "操作禁止", "量测正在进行，无法进行历史查询！", {"确定"}, 225);
+        CustomMessageBox msgBox(this, tr("操作禁止"), tr("量测正在进行，无法进行历史查询！"), {tr("确定")}, 225);
         msgBox.exec();
     } else {
         // 如果没有量测，可以进行历史查询
         HistoryCheck *historyWindow = new HistoryCheck(&dbManager, this);
+        historyWindow->setAttribute(Qt::WA_DeleteOnClose);
         historyWindow->setGeometry(this->geometry());
         historyWindow->show();
     }
@@ -658,16 +698,186 @@ void MainWindow::onDataReceived(QByteArray data)
 }
 
 
-void MainWindow::on_pushButtonSend_clicked()
-{
-    QByteArray command = QByteArray::fromHex("AA550102030455AA"); // 发送指令
-    serialManager->sendCommand(command);
-    qDebug() << "[Serial Sent] (Hex):" << command.toHex();
-}
+//void MainWindow::on_pushButtonSend_clicked()
+//{
+//    QByteArray command = QByteArray::fromHex("AA550102030455AA"); // 发送指令
+//    serialManager->sendCommand(command);
+//    qDebug() << "[Serial Sent] (Hex):" << command.toHex();
+//}
 
 void MainWindow::onErrorOccurred(QString errorMsg)
 {
     qDebug() << "[Serial Error]: " << errorMsg;
 }
+
+void MainWindow::onSettingClicked()
+{
+         static std::atomic<int> clickCount{0};
+        static QTimer *clickTimer = nullptr;
+
+        const int maxInterval = 2000;       // 每次点击间隔不能超过这个（最大点击窗口）
+        const int decisionDelay = 500;      // 等待下次点击前的决策延迟
+        static QElapsedTimer timer;
+
+        if (!clickTimer) {
+            clickTimer = new QTimer(this);
+            clickTimer->setSingleShot(true);
+            connect(clickTimer, &QTimer::timeout, this, [this]() {
+                if (clickCount < 5) {
+                    qDebug() << "打开设置界面";
+
+                    SettingsWidget *settingswidget = new SettingsWidget(this);
+                    settingswidget->setAttribute(Qt::WA_DeleteOnClose); // 自动销毁
+                    settingswidget->show();//打开正常的设置界面
+                }
+                clickCount = 0;  // 重置点击次数
+            });
+        }
+
+        // 判断时间间隔
+        if (timer.isValid() && timer.elapsed() > maxInterval) {
+            clickCount = 0;  // 超过最大间隔，重置计数
+        }
+
+        clickCount++;
+        timer.restart();
+
+        if (clickCount >= 5) {
+            qDebug() << "触发维护界面";
+            clickTimer->stop();     // 取消打开设置界面的等待
+            showHiddenWidget();     // 显示隐藏界面
+            clickCount = 0;
+        } else {
+            clickTimer->start(decisionDelay);  // 等待是否还有下一次点击
+        }
+
+}
+
+void MainWindow::showHiddenWidget() {
+    if (!hiddenWidget) {  //如果隐藏界面不存在，则创建
+        hiddenWidget = new MaintenanceWidget();
+        hiddenWidget->setFixedSize(1024, 600);
+    }
+    hiddenWidget->show();
+}
+
+
+void MainWindow::changeLanguage(const QString &languageCode)
+{
+    qApp->removeTranslator(&translator);
+
+    QString qmPath = ":/translations/translations/" + languageCode + ".qm";
+
+    if (translator.load(qmPath)) {
+        qApp->installTranslator(&translator);
+        qDebug() << "语言切换成功：" << qmPath;
+
+        // **存储用户选择的语言**
+        QSettings settings("MyCompany", "MyApp");
+        settings.setValue("language", languageCode);
+    } else {
+        qDebug() << "语言加载失败：" << qmPath;
+    }
+
+    // **手动更新 UI**
+    ui->retranslateUi(this);
+
+    // **遍历所有顶级窗口，发送 `LanguageChange` 事件**
+    QEvent event(QEvent::LanguageChange);
+    foreach (QWidget *widget, QApplication::topLevelWidgets()) {
+        QApplication::sendEvent(widget, &event);
+    }
+
+    qDebug() << "语言切换事件已发送，所有界面应该自动更新！";
+}
+
+
+void MainWindow::changeEvent(QEvent *event) {
+    if (event->type() == QEvent::LanguageChange) {
+        qDebug() << "Language Change Event Triggered!";
+
+//        ui->retranslateUi(this);
+//        this->setWindowTitle(tr("主操作界面"));
+
+        //延迟执行 UI 语言更新，避免 UI 未初始化问题
+        QTimer::singleShot(0, this, &MainWindow::applyLanguageChange);
+    }
+
+    QWidget::changeEvent(event);
+}
+
+void MainWindow::applyLanguageChange() {
+    qDebug() << "Applying language change...";
+
+    QSettings settings("MyCompany", "MyApp");
+    QString newLanguageCode = settings.value("language", "zh_CN").toString();  //读取语言
+    qDebug() << "Loaded language from settings:" << newLanguageCode;
+
+    // 避免重复切换
+    static QString currentLanguage = "";
+    if (currentLanguage == newLanguageCode) {
+        qDebug() << "Language is already set to:" << newLanguageCode << ", skipping change.";
+        return;
+    }
+
+    currentLanguage = newLanguageCode;  //更新当前语言
+
+    static QTranslator translator;
+    qApp->removeTranslator(&translator);
+
+    QString translationPath = ":/translations/translations/" + newLanguageCode + ".qm";
+    if (translator.load(translationPath)) {
+        qApp->installTranslator(&translator);
+        qDebug() << "Language switched to:" << newLanguageCode;
+    } else {
+        qDebug() << "Failed to load language file:" << translationPath;
+    }
+
+    //记录语言到 QSettings（但不触发额外事件）
+    settings.setValue("language", newLanguageCode);
+
+
+    // 确保指针有效后再更新 UI
+    if (measureButton) {
+        measureButton->setText(tr("开始测量"));  // **未操作时显示默认文本**
+    } else {
+        measureButton->setText(isMeasuring ? tr("暂停测量") : tr("开始测量"));
+    }
+    if (uploadButton) uploadButton->setText(tr("上传数据"));
+    if (historyButton) historyButton->setText(tr("历史查询"));
+    if (settingsButton) settingsButton->setText(tr("参数调节"));
+
+    // 更新 PressurePanel 里的文字
+    if (diastolicPanel.paramLabel)diastolicPanel.paramLabel->setText(tr("舒张压"));
+    if (systolicPanel.paramLabel)systolicPanel.paramLabel->setText(tr("收缩压"));
+    if (avgPanel.paramLabel)avgPanel.paramLabel->setText(tr("平均值"));
+    if(heartbeatPanel.paramLabel)heartbeatPanel.paramLabel->setText(tr("心率"));
+    if(heartbeatPanel.unitLabel)heartbeatPanel.unitLabel->setText(tr("次/分钟"));
+
+    //更新plot的坐标
+    if (plot) {
+        // **获取当前字体**
+        QFont currentFont = plot->axisTitle(QwtPlot::xBottom).font();
+
+        // **更新 X 轴标题，并应用原来的字体**
+        QwtText xTitle(tr("时间 (s)"));
+        xTitle.setFont(currentFont);
+        plot->setAxisTitle(QwtPlot::xBottom, xTitle);
+
+        // **更新 Y 轴标题，并应用原来的字体**
+        QwtText yTitle(tr("压力 (mmHg)"));
+        yTitle.setFont(currentFont);
+        plot->setAxisTitle(QwtPlot::yLeft, yTitle);
+
+        // 重新绘制
+        plot->replot();
+    }
+
+
+}
+
+
+
+
 
 

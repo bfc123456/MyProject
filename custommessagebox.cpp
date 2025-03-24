@@ -18,7 +18,12 @@ CustomMessageBox::CustomMessageBox(QWidget *parent, const QString &title, const 
     // 创建自定义消息标签
     messageLabel = new QLabel(message, this);
     messageLabel->setAlignment(Qt::AlignCenter);
+    messageLabel->setWordWrap(true);
     messageLabel->setStyleSheet("color: white; font-size: 12px;");  // 确保字体变白
+
+    //限制最大宽度，避免超出窗口
+    messageLabel->setMaximumWidth(width - 40);
+    messageLabel->setMinimumWidth(width - 60);
 
     // 创建按钮，并连接它们的信号
     buttonLayout = new QHBoxLayout();
@@ -36,14 +41,9 @@ CustomMessageBox::CustomMessageBox(QWidget *parent, const QString &title, const 
                 "   padding: 8px 16px;"          // 增加按钮内边距
                 "   border: 2px solid #0056b3;"  // 深蓝色边框，增强对比度
                 "}"
-                "QPushButton:hover { background-color: #0056b3; }"
+
                 "QPushButton:pressed { background-color: #003f7f; }"
             );
-
-            // 悬停时变亮
-            button->setStyleSheet(button->styleSheet() +
-                "QPushButton:hover { background-color: #0056b3; }"
-                "QPushButton:pressed { background-color: #003f7f; }");
 
         connect(button, &QPushButton::clicked, this, [this, buttonText](){
             userResponse = buttonText;  // 获取按钮文本作为响应

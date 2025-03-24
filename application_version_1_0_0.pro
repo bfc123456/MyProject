@@ -16,25 +16,37 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    circularprogressbar.cpp \
     customkeyboard.cpp \
     custommessagebox.cpp \
     databasemanager.cpp \
     historycheck.cpp \
     main.cpp \
+    maintenance.cpp \
     mainwindow.cpp \
-    serialportmanager.cpp
+    serialportmanager.cpp \
+    settingswidget.cpp \
+    signalstrength.cpp
 
 HEADERS += \
+    circularprogressbar.h \
     customkeyboard.h \
     custommessagebox.h \
     databasemanager.h \
     historycheck.h \
+    maintenance.h \
     mainwindow.h \
-    serialportmanager.h
+    serialportmanager.h \
+    settingswidget.h \
+    signalstrength.h
 
 FORMS += \
     historycheck.ui \
     mainwindow.ui
+
+TRANSLATIONS += translations/zh_CN.ts \
+               translations/en_US.ts
+
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -57,3 +69,9 @@ else:unix: LIBS += -L$$PWD/../../qt_5_15/qt_5_12/5.12.9/mingw73_64/lib/ -lqwt
 
 INCLUDEPATH += $$PWD/../../qt_5_15/qt_5_12/5.12.9/mingw73_64/include/Qwt
 DEPENDPATH += $$PWD/../../qt_5_15/qt_5_12/5.12.9/mingw73_64/include/Qwt
+
+DISTFILES += \
+    Lang/zh_CN.ts \
+    translations/en_US.ts \
+    translations/zh_CN.ts
+

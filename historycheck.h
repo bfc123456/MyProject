@@ -40,8 +40,11 @@ private:
     QPushButton *deleteButton;  // 删除按钮
     QPushButton *searchButton;
     databasemanager *dbManager;
+    QLabel *historylabel;
     QLineEdit *searchLineEdit;
     CustomKeyboard *customKeyboard;//新添加代码
+
+    void changeEvent(QEvent *event) override;
 
 };
 

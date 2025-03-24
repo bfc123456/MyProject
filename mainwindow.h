@@ -16,8 +16,11 @@
 #include <QFrame>
 #include <QFormLayout>
 #include <QSplitter>
+#include <QTranslator>
+#include <QElapsedTimer>
 #include "databasemanager.h"
-#include "SerialPortManager.h"
+#include "serialportmanager.h"
+#include "maintenance.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -30,6 +33,8 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    void changeLanguage(const QString &languageCode);
+    void applyLanguageChange();
 
 private slots:
     void onStartClicked();
@@ -42,7 +47,8 @@ private slots:
     void resetMeasurementData();
     void onDataReceived(QByteArray data);
     void onErrorOccurred(QString errorMsg);
-    void on_pushButtonSend_clicked();
+//    void on_pushButtonSend_clicked();
+    void onSettingClicked();
 
 
 private:
@@ -50,6 +56,7 @@ private:
     QPushButton *measureButton;
     QPushButton *uploadButton;
     QPushButton *historyButton;
+    QPushButton *settingsButton;
 
     QwtPlot *plot;
     QwtPlotCurve *curve;
@@ -60,6 +67,18 @@ private:
     int savedTime = 0;  // 用于存储暂停时的时间
 
     // UI 控件
+    struct PressurePanel {
+        QFrame *panel;
+        QLabel *paramLabel;
+        QLabel *unitLabel;
+        QLabel *valueLabel;
+    };
+
+    PressurePanel diastolicPanel;
+    PressurePanel systolicPanel;
+    PressurePanel avgPanel;
+    PressurePanel heartbeatPanel;
+
     QLabel *diastolicValue;
     QLabel *systolicValue;
     QLabel *avgValue;
@@ -75,6 +94,13 @@ private:
 
     databasemanager dbManager;  // 声明数据库管理对象
     SerialPortManager *serialManager;   //声明串口管理对象
+    QTranslator translator;//翻译器
+
+    QElapsedTimer clickTimer; //连续点击记录器
+    MaintenanceWidget  *hiddenWidget;//隐藏界面
+
+    void changeEvent(QEvent *event) override;
+    void showHiddenWidget();
 
 
 };

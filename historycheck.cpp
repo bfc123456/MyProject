@@ -36,21 +36,21 @@ HistoryCheck::HistoryCheck(databasemanager *db, QWidget *parent) :
     // 移动窗口到屏幕中央
     this->move(x, y);
 
-    this->setWindowTitle("历史查询界面");
+    this->setWindowTitle(tr("历史查询界面"));
 
     // 设置窗口整体样式
     this->setStyleSheet("background-color: #222222; color: white;");
 
     // 创建标签
-    QLabel *label = new QLabel("可查询记录", this);  // 创建标签并设置内容
-    label->setAlignment(Qt::AlignCenter);  // 设置标签内容居中
+    historylabel = new QLabel(tr("可查询记录"), this);  // 创建标签并设置内容
+    historylabel->setAlignment(Qt::AlignCenter);  // 设置标签内容居中
 
-    label->setStyleSheet("font-size: 22px; color: white; font-weight: bold; font-family: 'Microsoft YaHei';");
+    historylabel->setStyleSheet("font-size: 22px; color: white; font-weight: bold; font-family: 'Microsoft YaHei';");
 
     // 创建表格 + 滚动区域
     historyTable = new QTableWidget(this);
     historyTable->setColumnCount(6);  // 设置列数为6
-    historyTable->setHorizontalHeaderLabels(QStringList() << "NO." << "舒张压(mmHg)" << "收缩压(mmHg)" << "平均值(mmHg)" << "心率(次/分钟)" << "上传时间");
+    historyTable->setHorizontalHeaderLabels(QStringList() << "NO." << tr("舒张压(mmHg)") << tr("收缩压(mmHg)")<< tr("平均值(mmHg)") << tr("心率(次/分钟)") << tr("上传时间"));
     historyTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
     // **表头样式**
@@ -86,7 +86,7 @@ HistoryCheck::HistoryCheck(databasemanager *db, QWidget *parent) :
 
     // 创建布局并添加滚动区域
     QVBoxLayout *layout = new QVBoxLayout();
-    layout->addWidget(label);  // 将标签添加到布局顶部
+    layout->addWidget(historylabel);  // 将标签添加到布局顶部
     layout->addWidget(scrollArea);  // 添加滚动区域
 
     // 获取所有行数据，增加对“舒张压”行的样式设置
@@ -124,12 +124,12 @@ HistoryCheck::HistoryCheck(databasemanager *db, QWidget *parent) :
 
     // 创建输入框
     searchLineEdit = new QLineEdit(bottomWidget);  // 创建输入框
-    searchLineEdit->setPlaceholderText("输入关键字...");  // 设置占位文本
+    searchLineEdit->setPlaceholderText(tr("输入关键字..."));  // 设置占位文本
     searchLineEdit->setMinimumWidth(180);
     searchLineEdit->installEventFilter(this);  // 安装事件过滤器
 
     // 创建搜索按钮
-    searchButton = new QPushButton("搜索", bottomWidget);
+    searchButton = new QPushButton(tr("搜索"), bottomWidget);
     searchButton->setFixedSize(120, 40);
     searchButton->setIcon(QIcon(":/image/search.png"));  // 设置图标
     searchButton->setIconSize(QSize(24, 24));  // 设置图标的大小
@@ -141,7 +141,7 @@ HistoryCheck::HistoryCheck(databasemanager *db, QWidget *parent) :
     bottomLayout->addStretch(1);
 
     // 创建删除按钮
-    deleteButton = new QPushButton("删除", bottomWidget);
+    deleteButton = new QPushButton(tr("删除"), bottomWidget);
     deleteButton->setFixedSize(120, 40);
     deleteButton->setIcon(QIcon(":/image/delete.png"));  // 设置图标
     deleteButton->setIconSize(QSize(24, 24));  // 设置图标的大小
@@ -159,7 +159,7 @@ HistoryCheck::HistoryCheck(databasemanager *db, QWidget *parent) :
 
     QWidget *topContainer = new QWidget(this);
     QVBoxLayout *topLayout = new QVBoxLayout(topContainer);
-    topLayout->addWidget(label);
+    topLayout->addWidget(historylabel);
     topLayout->addWidget(scrollArea);
     topLayout->addWidget(bottomWidget);
     topLayout->setSpacing(10);
@@ -288,6 +288,7 @@ void HistoryCheck::loadHistoryData() {
 
         row++;
     }
+    query.finish(); //释放结果集
 }
 
 // 搜索数据函数
@@ -330,9 +331,10 @@ void HistoryCheck::searchData() {
 
     // 如果没有找到数据，显示提示框
     if (!found) {
-        CustomMessageBox msgBox(this, "搜索结果", "没有找到匹配的记录。", {"确定"}, 200);
+        CustomMessageBox msgBox(this, tr("搜索结果"), tr("没有找到匹配的记录。"), {tr("确定")}, 200);
         msgBox.exec();
     }
+    query.finish();
 }
 
 
@@ -341,12 +343,12 @@ void HistoryCheck::deleteData() {
     int row = historyTable->currentRow();
     if (row != -1) {
         // 弹出确认窗口，询问是否删除
-        CustomMessageBox confirmBox(this, "确认删除", "确认删除选中的记录？", {"是", "否"}, 200);
+        CustomMessageBox confirmBox(this, tr("确认删除"), tr("确认删除选中的记录？"), {tr("是"), tr("否")}, 200);
         confirmBox.exec();
 
         // 如果用户点击了 "Yes"
         QString response = confirmBox.getUserResponse();
-        if (response == "是") {
+        if (response == tr("是")) {
             // 获取行号对应的ID（根据你的表结构，假设是第1列）
             int number = historyTable->item(row, 0)->text().toInt();
 
@@ -365,7 +367,7 @@ void HistoryCheck::deleteData() {
         }
     } else {
         // 如果没有选中行，提示用户
-        CustomMessageBox warningBox(this, "没有选择", "请选定一行进行删除", {"确定"}, 200);
+        CustomMessageBox warningBox(this, tr("没有选择"), tr("请选定一行进行删除"), {tr("确定")}, 200);
         warningBox.exec();
     }
 }
@@ -414,3 +416,42 @@ void HistoryCheck::onKeyboardKeyPressed(const QString &key)
         }
 //    }
 }
+
+void HistoryCheck::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        qDebug() << "🔄 [HistoryCheck] 语言切换事件触发！";
+
+        // **更新窗口标题**
+        this->setWindowTitle(tr("历史查询界面"));
+
+        // **检查指针是否有效，防止空指针访问**
+        if (historylabel)
+            historylabel->setText(tr("可查询记录"));
+
+        if (deleteButton)
+            deleteButton->setText(tr("删除"));
+
+        if (searchButton)
+            searchButton->setText(tr("搜索"));
+
+        if (searchLineEdit)
+            searchLineEdit->setText(tr("输入关键字..."));
+
+        // **更新表格标题**
+        if (historyTable) {
+            historyTable->setHorizontalHeaderLabels(QStringList()
+                << "NO."
+                << tr("舒张压(mmHg)")
+                << tr("收缩压(mmHg)")
+                << tr("平均值(mmHg)")
+                << tr("心率(次/分钟)")
+                << tr("上传时间"));
+        }
+
+        qDebug() << "✅ [HistoryCheck] UI 语言切换完成！";
+    }
+
+    QWidget::changeEvent(event);
+}
+
