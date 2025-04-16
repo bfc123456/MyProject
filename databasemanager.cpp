@@ -1,6 +1,8 @@
 #include "databasemanager.h"
 #include <QtSql/QSqlError>
 #include <QtSql/QSqlQuery>
+#include <QtSql/QSqlDriver>
+#include <QtSql/QSqlDatabase>
 #include <QDateTime>
 
 databasemanager::databasemanager() {}

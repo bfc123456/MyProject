@@ -1,5 +1,4 @@
 #include "maintenance.h"
-#include "CircularProgressBar.h"
 
 MaintenanceWidget::MaintenanceWidget(QWidget *parent) : QWidget(parent) {
     setWindowTitle(tr("Maintenance"));
@@ -13,30 +12,26 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent) : QWidget(parent) {
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setStyleSheet("font-size: 24px; font-weight: bold; color: white;");
 
-    // **创建关闭按钮**
-    closeButton = new QPushButton(tr("Close"), this);
-    closeButton->setStyleSheet("background-color: #FF4C4C; color: white; border-radius: 6px; font-size: 16px;");
-    connect(closeButton, &QPushButton::clicked, this, &MaintenanceWidget::closeWidget);
-
-    CircularProgressBar *progressBar = new CircularProgressBar(this);
-    progressBar->setGeometry(50, 50, 150, 150); // 设置大小
-    progressBar->setProgress(90); // 设置进度 90%
-
     // **创建主布局**
     QVBoxLayout *layout = new QVBoxLayout(this);
-    layout->addWidget(titleLabel);
-    layout->addWidget(progressBar);
-    layout->addWidget(closeButton);
-    layout->setAlignment(Qt::AlignCenter);
+    layout->addWidget(titleLabel);  // 添加标题标签
+    layout->setAlignment(Qt::AlignCenter);  // 让标题居中
 
-    //防止 `QLayout` 影响窗口大小
-//    layout->setSizeConstraint(QLayout::SetFixedSize);
+    // 设置布局
     setLayout(layout);
 
     // **设置背景样式**
-//    setStyleSheet("background-color: #222222; border-radius: 10px;");
+    setStyleSheet("background-color: qlineargradient("
+                  "x1: 0, y1: 0, x2: 0, y2: 1, "
+                  "stop: 0 rgba(30, 50, 80, 0.9),   /* 顶部：偏亮蓝灰，透明度 0.9 */"
+                  "stop: 1 rgba(10, 25, 50, 0.75)   /* 底部：深蓝，透明度 0.75 */"
+                  ");"
+                  "color: white;"
+                  "font-size: 14px;"
+                  "border-radius: 10px;");
+}
+MaintenanceWidget::~MaintenanceWidget()
+{
+
 }
 
-void MaintenanceWidget::closeWidget() {
-    this->hide();  //让窗口隐藏，而不是销毁
-}

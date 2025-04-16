@@ -167,9 +167,9 @@ HistoryCheck::HistoryCheck(databasemanager *db, QWidget *parent) :
 
     // ============ 自定义虚拟键盘 (底部) ============
 
-    customKeyboard = new CustomKeyboard(this);
-    customKeyboard->setFixedSize(900, 250);  // 限制键盘宽度和高度
-    customKeyboard->setVisible(false);
+//    customKeyboard = new CustomKeyboard(this);
+//    customKeyboard->setFixedSize(900, 250);  // 限制键盘宽度和高度
+//    customKeyboard->setVisible(false);
 
     // 当按键被点击时，触发 onKeyboardKeyPressed
     connect(customKeyboard, &CustomKeyboard::keyPressed,
@@ -420,7 +420,7 @@ void HistoryCheck::onKeyboardKeyPressed(const QString &key)
 void HistoryCheck::changeEvent(QEvent *event)
 {
     if (event->type() == QEvent::LanguageChange) {
-        qDebug() << "🔄 [HistoryCheck] 语言切换事件触发！";
+        qDebug() << "HistoryCheck 语言切换事件触发！";
 
         // **更新窗口标题**
         this->setWindowTitle(tr("历史查询界面"));
@@ -449,7 +449,7 @@ void HistoryCheck::changeEvent(QEvent *event)
                 << tr("上传时间"));
         }
 
-        qDebug() << "✅ [HistoryCheck] UI 语言切换完成！";
+        qDebug() << "HistoryCheck UI 语言切换完成！";
     }
 
     QWidget::changeEvent(event);

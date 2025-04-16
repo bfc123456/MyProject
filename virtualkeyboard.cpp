@@ -1,4 +1,4 @@
-#include "VirtualKeyboard.h"
+#include "virtualkeyboard.h"
 #include <QVBoxLayout>
 #include <QPushButton>
 #include <QDebug>

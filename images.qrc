@@ -15,6 +15,19 @@
         <file>image/icons8-edit.png</file>
         <file>image/icons-pulldown.png</file>
         <file>image/icons8-pushdown.png</file>
+        <file>image/icons8-shezhi.png</file>
+        <file>image/icons8-return.png</file>
+        <file>image/icons8-next.png</file>
+        <file>image/body.png</file>
+        <file>image/OIP.jpg</file>
+        <file>image/icons8-heart.png</file>
+        <file>image/icons8-tingzhen.png</file>
+        <file>image/icons8-signal.png</file>
+        <file>image/icons8-refresh.png</file>
+        <file>image/icons8-save.png</file>
+        <file>image/icons8-calibration.png</file>
+        <file>image/icons8-help.png</file>
+        <file>image/icons8-add.png</file>
     </qresource>
     <qresource prefix="/translations">
         <file>translations/en_US.qm</file>

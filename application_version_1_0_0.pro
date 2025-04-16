@@ -2,7 +2,7 @@ QT       += core gui serialport sql virtualkeyboard serialport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-CONFIG += c++11
+CONFIG += c++14
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -16,33 +16,67 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    calibrationdialog.cpp \
+    cardiacoutputdialog.cpp \
     circularprogressbar.cpp \
+    customdateedit.cpp \
     customkeyboard.cpp \
     custommessagebox.cpp \
     databasemanager.cpp \
-    historycheck.cpp \
+    exitconfirmdialog.cpp \
+    followupform.cpp \
+#    historycheck.cpp \
+    implantationsite.cpp \
+    implantdatabase.cpp \
+    implantinfowidget.cpp \
+    implantmonitor.cpp \
+    languagemanager.cpp \
+    loginwindow.cpp \
     main.cpp \
     maintenance.cpp \
-    mainwindow.cpp \
+    measurewidget.cpp \
+    modernwaveplot.cpp \
+    patientlistwidget.cpp \
+    readoutrecorddialog.cpp \
+    reviewwidget.cpp \
+    rhcinputdialog.cpp \
     serialportmanager.cpp \
     settingswidget.cpp \
-    signalstrength.cpp
+    signalstrength.cpp \
+    toucheventhandler.cpp
 
 HEADERS += \
+    calibrationdialog.h \
+    cardiacoutputdialog.h \
     circularprogressbar.h \
+    customdateedit.h \
     customkeyboard.h \
     custommessagebox.h \
     databasemanager.h \
-    historycheck.h \
+    exitconfirmdialog.h \
+    followupform.h \
+#    historycheck.h \
+    global.h \
+    implantationsite.h \
+    implantdatabase.h \
+    implantinfowidget.h \
+    implantmonitor.h \
+    languagemanager.h \
+    loginwindow.h \
     maintenance.h \
-    mainwindow.h \
+    measurewidget.h \
+    modernwaveplot.h \
+    patientlistwidget.h \
+    readoutrecorddialog.h \
+    reviewwidget.h \
+    rhcinputdialog.h \
     serialportmanager.h \
     settingswidget.h \
-    signalstrength.h
+    signalstrength.h \
+    toucheventhandler.h
 
 FORMS += \
-    historycheck.ui \
-    mainwindow.ui
+#    historycheck.ui \
 
 TRANSLATIONS += translations/zh_CN.ts \
                translations/en_US.ts

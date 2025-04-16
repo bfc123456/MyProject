@@ -6,10 +6,20 @@
 #include <QTranslator>
 #include <QSettings>
 #include "mainwindow.h"
+#include "loginwindow.h"
+#include "implantdatabase.h"
+#include "toucheventhandler.h"
+#include "Global.h"
+
+LoginWindow* globalLoginWindowPointer = nullptr;  // 定义并初始化全局指针，注意全局指针的内存释放，防止内存泄漏！！！
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+
+    // 设置全局字体为黑体
+    QFont font("SimHei");
+    a.setFont(font);
 
     //加载对应语言
     // 读取上次存储的语言，默认 "zh_CN"
@@ -22,12 +32,27 @@ int main(int argc, char *argv[])
         a.installTranslator(&translator);
     }
 
-    // 创建启动画面
-    QSplashScreen splash;
+    //创建数据库并验证数据库是否连接成功
+    // 创建数据库连接
+    ImplantDatabase db("D:/software_install/sqlite/implants.db");
+
+    // 步骤 1：创建渐变 QPixmap 作为启动背景
+    QPixmap pixmap(500, 300);
+    pixmap.fill(Qt::transparent);  // 保证透明背景
+
+    QPainter painter(&pixmap);
+    QLinearGradient gradient(0, 0, 0, pixmap.height());
+    gradient.setColorAt(0.0, QColor("#0f2243"));  // 顶部深蓝
+    gradient.setColorAt(1.0, QColor("#1a2d67"));  // 底部亮蓝
+    painter.fillRect(pixmap.rect(), gradient);
+    painter.end();
+
+    // 步骤 2：创建带渐变背景的 splash
+    QSplashScreen splash(pixmap);
     splash.setWindowFlag(Qt::FramelessWindowHint);
     splash.setWindowFlag(Qt::WindowStaysOnTopHint);
     splash.setFixedSize(500, 300);
-    splash.setStyleSheet("background-color: black;");
+
 
     // 设置轻微圆角
     QRegion region(0, 0, splash.width(), splash.height(), QRegion::Rectangle);
@@ -65,16 +90,20 @@ int main(int argc, char *argv[])
     progressBar.setGeometry(50, 200, 400, 30); // 进度条大小
     progressBar.setStyleSheet(
         "QProgressBar {"
-        "    border: 2px solid white;"
-        "    border-radius: 5px;"
-        "    background: #444444;"  // 进度条背景色（深灰）
+        "    background-color: rgba(255, 255, 255, 0.1);"  // 浅透明背景
+        "    border: 1px solid #1E90FF;"  // 深蓝边框
+        "    border-radius: 8px;"
+        "    text-align: center;"
+        "    color: white;"
+        "    font-weight: bold;"
         "}"
         "QProgressBar::chunk {"
-        "    border-radius: 5px;"
+        "    border-radius: 8px;"
         "    background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, "
-        "        stop:0 #00FF00, stop:1 #007BFF);"
-        "}"  // 渐变色：从绿色 (#00FF00) 到蓝色 (#007BFF)
+        "        stop:0 #4facfe, stop:1 #00f2fe);"  // 更高端蓝系渐变
+        "}"
     );
+
     progressBar.setRange(0, 100);
     progressBar.setValue(0);
 
@@ -86,8 +115,10 @@ int main(int argc, char *argv[])
     splash.show();
 
     // 创建 MainWindow
-    MainWindow w;
-    w.setFixedSize(1024, 600);
+
+    globalLoginWindowPointer = new LoginWindow();
+    globalLoginWindowPointer->setFixedSize(1024, 600);
+    globalLoginWindowPointer->setAttribute(Qt::WA_AcceptTouchEvents);
 
     // QTimer 更新进度条
     QTimer timer;
@@ -99,12 +130,20 @@ int main(int argc, char *argv[])
         if (progress >= 100) {
             timer.stop();
             splash.close();
-            w.show();
+            globalLoginWindowPointer->show();
         }
     });
 
     timer.start(100); // 每 100ms 更新一次进度条
 
-    return a.exec();
+    int result = a.exec();
+
+    // 在程序结束时删除动态分配的对象
+    delete globalLoginWindowPointer;
+    globalLoginWindowPointer = nullptr;  // 避免悬空指针
+
+    return result;
 }
+
+
 

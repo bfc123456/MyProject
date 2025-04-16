@@ -20,8 +20,9 @@
 #include <random> //生成随机数的标注库
 #include <qwt_plot_grid.h>
 #include <QHeaderView>
-#include <QSettings>
 #include <atomic>
+#include <QTranslator>
+#include <QElapsedTimer>
 #include <qwt_scale_widget.h>
 #include <qwt_plot_canvas.h>
 
@@ -47,14 +48,6 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
     ui->setupUi(this);
-
-    // ✅ 读取用户上次选择的语言
-    QSettings settings("MyCompany", "MyApp");
-    QString languageCode = settings.value("language", "zh_CN").toString();  // 默认中文
-    qDebug() << "MainWindow: Loaded language:" << languageCode;
-
-    // ✅ 设置软件语言
-    changeLanguage(languageCode);
 
     this->setWindowTitle(tr("主操作界面"));
     this->setFixedSize(1024, 600);  // 固定窗口大小
@@ -289,9 +282,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(measureButton, &QPushButton::clicked, this, &MainWindow::onStartClicked);
     connect(uploadButton, &QPushButton::clicked, this, &MainWindow::onUploadDataClicked);
     connect(historyButton, &QPushButton::clicked, this, &MainWindow::onHistoryButtonClicked);
-    connect(settingsButton, &QPushButton::clicked, this, &MainWindow::onSettingClicked);
+//    connect(settingsButton, &QPushButton::clicked, this, &MainWindow::onSettingClicked);
 
-    clickTimer.start();  //初始化计时器，记录首次点击时间
+//    clickTimer.start();  //初始化计时器，记录首次点击时间
 
     leftLayout->addWidget(plotContainer, 3);
     leftLayout->addWidget(buttonContainer, 1);
@@ -710,48 +703,48 @@ void MainWindow::onErrorOccurred(QString errorMsg)
     qDebug() << "[Serial Error]: " << errorMsg;
 }
 
-void MainWindow::onSettingClicked()
-{
-         static std::atomic<int> clickCount{0};
-        static QTimer *clickTimer = nullptr;
+//void MainWindow::onSettingClicked()
+//{
+//         static std::atomic<int> clickCount{0};
+//        static QTimer *clickTimer = nullptr;
 
-        const int maxInterval = 2000;       // 每次点击间隔不能超过这个（最大点击窗口）
-        const int decisionDelay = 500;      // 等待下次点击前的决策延迟
-        static QElapsedTimer timer;
+//        const int maxInterval = 2000;       // 每次点击间隔不能超过这个（最大点击窗口）
+//        const int decisionDelay = 500;      // 等待下次点击前的决策延迟
+//        static QElapsedTimer timer;
 
-        if (!clickTimer) {
-            clickTimer = new QTimer(this);
-            clickTimer->setSingleShot(true);
-            connect(clickTimer, &QTimer::timeout, this, [this]() {
-                if (clickCount < 5) {
-                    qDebug() << "打开设置界面";
+//        if (!clickTimer) {
+//            clickTimer = new QTimer(this);
+//            clickTimer->setSingleShot(true);
+//            connect(clickTimer, &QTimer::timeout, this, [this]() {
+//                if (clickCount < 5) {
+//                    qDebug() << "打开设置界面";
 
-                    SettingsWidget *settingswidget = new SettingsWidget(this);
-                    settingswidget->setAttribute(Qt::WA_DeleteOnClose); // 自动销毁
-                    settingswidget->show();//打开正常的设置界面
-                }
-                clickCount = 0;  // 重置点击次数
-            });
-        }
+//                    SettingsWidget *settingswidget = new SettingsWidget(this);
+//                    settingswidget->setAttribute(Qt::WA_DeleteOnClose); // 自动销毁
+//                    settingswidget->show();//打开正常的设置界面
+//                }
+//                clickCount = 0;  // 重置点击次数
+//            });
+//        }
 
-        // 判断时间间隔
-        if (timer.isValid() && timer.elapsed() > maxInterval) {
-            clickCount = 0;  // 超过最大间隔，重置计数
-        }
+//        // 判断时间间隔
+//        if (timer.isValid() && timer.elapsed() > maxInterval) {
+//            clickCount = 0;  // 超过最大间隔，重置计数
+//        }
 
-        clickCount++;
-        timer.restart();
+//        clickCount++;
+//        timer.restart();
 
-        if (clickCount >= 5) {
-            qDebug() << "触发维护界面";
-            clickTimer->stop();     // 取消打开设置界面的等待
-            showHiddenWidget();     // 显示隐藏界面
-            clickCount = 0;
-        } else {
-            clickTimer->start(decisionDelay);  // 等待是否还有下一次点击
-        }
+//        if (clickCount >= 5) {
+//            qDebug() << "触发维护界面";
+//            clickTimer->stop();     // 取消打开设置界面的等待
+//            showHiddenWidget();     // 显示隐藏界面
+//            clickCount = 0;
+//        } else {
+//            clickTimer->start(decisionDelay);  // 等待是否还有下一次点击
+//        }
 
-}
+//}
 
 void MainWindow::showHiddenWidget() {
     if (!hiddenWidget) {  //如果隐藏界面不存在，则创建
@@ -762,34 +755,34 @@ void MainWindow::showHiddenWidget() {
 }
 
 
-void MainWindow::changeLanguage(const QString &languageCode)
-{
-    qApp->removeTranslator(&translator);
+//void MainWindow::changeLanguage(const QString &languageCode)
+//{
+//    qApp->removeTranslator(&translator);
 
-    QString qmPath = ":/translations/translations/" + languageCode + ".qm";
+//    QString qmPath = ":/translations/translations/" + languageCode + ".qm";
 
-    if (translator.load(qmPath)) {
-        qApp->installTranslator(&translator);
-        qDebug() << "语言切换成功：" << qmPath;
+//    if (translator.load(qmPath)) {
+//        qApp->installTranslator(&translator);
+//        qDebug() << "语言切换成功：" << qmPath;
 
-        // **存储用户选择的语言**
-        QSettings settings("MyCompany", "MyApp");
-        settings.setValue("language", languageCode);
-    } else {
-        qDebug() << "语言加载失败：" << qmPath;
-    }
+//        // **存储用户选择的语言**
+//        QSettings settings("MyCompany", "MyApp");
+//        settings.setValue("language", languageCode);
+//    } else {
+//        qDebug() << "语言加载失败：" << qmPath;
+//    }
 
-    // **手动更新 UI**
-    ui->retranslateUi(this);
+//    // **手动更新 UI**
+//    ui->retranslateUi(this);
 
-    // **遍历所有顶级窗口，发送 `LanguageChange` 事件**
-    QEvent event(QEvent::LanguageChange);
-    foreach (QWidget *widget, QApplication::topLevelWidgets()) {
-        QApplication::sendEvent(widget, &event);
-    }
+//    // **遍历所有顶级窗口，发送 `LanguageChange` 事件**
+//    QEvent event(QEvent::LanguageChange);
+//    foreach (QWidget *widget, QApplication::topLevelWidgets()) {
+//        QApplication::sendEvent(widget, &event);
+//    }
 
-    qDebug() << "语言切换事件已发送，所有界面应该自动更新！";
-}
+//    qDebug() << "语言切换事件已发送，所有界面应该自动更新！";
+//}
 
 
 void MainWindow::changeEvent(QEvent *event) {

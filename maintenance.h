@@ -11,13 +11,10 @@ class MaintenanceWidget : public QWidget {
 
 public:
     explicit MaintenanceWidget(QWidget *parent = nullptr);
-
-private slots:
-    void closeWidget();  // 关闭窗口
+    ~MaintenanceWidget();
 
 private:
     QLabel *titleLabel;
-    QPushButton *closeButton;
 };
 
 #endif // MAINTENANCEWIDGET_H

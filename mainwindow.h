@@ -16,8 +16,6 @@
 #include <QFrame>
 #include <QFormLayout>
 #include <QSplitter>
-#include <QTranslator>
-#include <QElapsedTimer>
 #include "databasemanager.h"
 #include "serialportmanager.h"
 #include "maintenance.h"
@@ -33,7 +31,7 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-    void changeLanguage(const QString &languageCode);
+//    void changeLanguage(const QString &languageCode);
     void applyLanguageChange();
 
 private slots:
@@ -94,9 +92,9 @@ private:
 
     databasemanager dbManager;  // 声明数据库管理对象
     SerialPortManager *serialManager;   //声明串口管理对象
-    QTranslator translator;//翻译器
+//    QTranslator translator;//翻译器
 
-    QElapsedTimer clickTimer; //连续点击记录器
+//    QElapsedTimer clickTimer; //连续点击记录器
     MaintenanceWidget  *hiddenWidget;//隐藏界面
 
     void changeEvent(QEvent *event) override;

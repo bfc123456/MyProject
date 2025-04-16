@@ -1,14 +1,21 @@
 #include "customkeyboard.h"
-#include <QPushButton>
-#include <QStackedWidget>
 #include <QSignalMapper>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QDebug>
+#include <QGuiApplication>
+#include <QScreen>
+#include <QTimer>
 
 CustomKeyboard::CustomKeyboard(QWidget *parent)
     : QWidget(parent)
 {
+    this->setFixedSize(470,250);
+
+    //设置无悬浮无边框窗口
+    setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+    setAttribute(Qt::WA_ShowWithoutActivating); // 避免抢夺焦点
+
     // 用 QStackedWidget 来装两个不同的键盘布局
     stackedWidget = new QStackedWidget(this);
 
@@ -27,25 +34,6 @@ CustomKeyboard::CustomKeyboard(QWidget *parent)
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->addWidget(stackedWidget);
     setLayout(mainLayout);
-
-    // 你也可以加一个 QSS 让其更美观
-    setStyleSheet(R"(
-                  QWidget {
-                  background-color: #f0f0f0;
-                  }
-                  QPushButton {
-                  background-color: #ffffff;
-                  color: #333333;
-                  border: 1px solid #dddddd;
-                  border-radius: 4px;
-                  font-size: 16px;
-                  min-width: 40px;
-                  min-height: 40px;
-                  }
-                  QPushButton:pressed {
-                  background-color: #cccccc;
-                  }
-                  )");
 }
 
 QWidget* CustomKeyboard::createNumKeyboard()
@@ -247,12 +235,13 @@ QWidget* CustomKeyboard::createAlphaKeyboard()
         hideBtn->setFocusPolicy(Qt::NoFocus);
 
         hideBtn->setIcon(QIcon(":/image/hide.png"));
-        hideBtn->setIconSize(QSize(24, 24));
+        hideBtn->setIconSize(QSize(15, 15));
 
         // 点击隐藏键盘
-        connect(hideBtn, &QPushButton::clicked, [=](){
-            this->setVisible(false);
+        connect(hideBtn, &QPushButton::clicked, [=]() {
+            emit keyPressed("Hide");
         });
+
         row->addWidget(hideBtn);
 
         vlay->addLayout(row);
@@ -298,5 +287,91 @@ void CustomKeyboard::handleShiftClicked()
     qDebug() << "Shift clicked, isUpperCase=" << isUpperCase;
 }
 
+CustomKeyboard::~CustomKeyboard(){
 
+}
+
+//单例模式实现
+//CustomKeyboard* CustomKeyboard::instance(QWidget *parent)
+//{
+//    if (!globalKeyboardInstance && parent) {
+//        globalKeyboardInstance = new CustomKeyboard(parent);
+//    }
+//    return globalKeyboardInstance;
+//}
+
+//自动弹出绑定逻辑
+void CustomKeyboard::attachTo(QLineEdit *edit, const QPoint &offset)
+{
+    if (!edit) return;
+    currentEdit = edit;
+
+    // 每次弹出键盘之前，确保之前的连接被断开
+    disconnect(this, &CustomKeyboard::keyPressed, nullptr, nullptr);
+
+    // 首次连接按键信号
+    connect(this, &CustomKeyboard::keyPressed, this, [this](const QString &key) {
+        if (!currentEdit) return;
+        if (key == "Del") currentEdit->backspace();
+        else if (key == "Hide") {
+            this->hide();
+            currentEdit->clearFocus();
+        } else {
+            currentEdit->insert(key);
+        }
+    });
+
+    // 计算键盘位置：在输入框的全局位置基础上加 offset
+    QPoint globalPos = edit->mapToGlobal(edit->rect().bottomLeft());
+    globalPos += offset;
+
+    // 屏幕边界检查，仅微调防止越界，但不改变键盘内容布局
+    QSize keyboardSize = this->size();
+    QRect screenRect = QGuiApplication::primaryScreen()->availableGeometry();
+
+    // 若右边越界则左移
+    if (globalPos.x() + keyboardSize.width() > screenRect.right()) {
+        globalPos.setX(screenRect.right() - keyboardSize.width() - 10);
+    }
+
+    // 若下方越界则上移
+    if (globalPos.y() + keyboardSize.height() > screenRect.bottom()) {
+        globalPos.setY(screenRect.bottom() - keyboardSize.height() - 10);
+    }
+
+    // 最终显示
+    this->move(globalPos);
+    this->show();
+
+    currentEdit->setFocus(Qt::OtherFocusReason);
+
+    QTimer::singleShot(0, [=]() {
+        if (currentEdit) {
+            currentEdit->setFocus(Qt::OtherFocusReason);             // 强制恢复焦点
+            currentEdit->setCursorPosition(currentEdit->text().length());
+        }
+    });
+
+
+}
+
+//支持作为全局事件过滤器
+bool CustomKeyboard::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::FocusIn) {
+        QLineEdit *edit = qobject_cast<QLineEdit *>(watched);
+        if (edit) {
+            // 传入偏移量，进行精细调整
+            QPoint offset = editOffsetMap.value(edit,QPoint(-35, 0)); //默认偏移量
+            this->attachTo(edit, offset);  // 使用你刚才优化后的 offset 逻辑
+        }
+    }
+    return QWidget::eventFilter(watched, event);
+}
+
+void CustomKeyboard::registerEdit(QLineEdit *edit, const QPoint &offset){
+    if(!edit)return;
+    editOffsetMap[edit] = offset;
+    edit->installEventFilter(this);
+}
 
