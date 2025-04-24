@@ -8,7 +8,6 @@
 #include <QApplication>
 #include <QEvent>
 #include <QDebug>
-#include <QMessageBox>
 #include <QCloseEvent>
 #include <QGraphicsDropShadowEffect>
 #include "settingswidget.h"
@@ -215,15 +214,10 @@ void LoginWindow::onSettingClicked()
 }
 
 void LoginWindow::showHiddenWidget() {
-    if (!hiddenWidget) {  // 如果隐藏界面不存在，则创建
-        hiddenWidget = new MaintenanceWidget(this);  // 确保使用 parent 来管理内存
-        hiddenWidget->setFixedSize(1024, 600);
-        qDebug() << "Hidden widget created!";
-    } else {
-        qDebug() << "Hidden widget already exists!";
+    if (!maintenancewidget) {
+        maintenancewidget = std::make_unique<MaintenanceWidget>();
     }
-
-    hiddenWidget->show();  // 显示维护界面
+    maintenancewidget->show();
 }
 
 

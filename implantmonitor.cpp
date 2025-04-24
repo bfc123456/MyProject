@@ -6,7 +6,7 @@
 #include <QStackedLayout>
 #include <QTimer>
 #include <QGraphicsBlurEffect>
-#include "CircularProgressBar.h"
+#include "circularprogressbar.h"
 #include "rhcinputdialog.h"
 #include "measurewidget.h"
 #include "reviewwidget.h"
@@ -95,10 +95,6 @@ ImplantMonitor::ImplantMonitor(QWidget *parent) : QWidget(parent) {
         border: 1px solid rgba(255, 255, 255, 0.08);      /* 柔和外边框 */
         border-radius: 12px;
         padding: 8px;
-
-        /* 模拟内阴影：靠边暗线条 */
-        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.06),
-                    0 2px 6px rgba(0, 0, 0, 0.3);         /* 外部阴影效果 */
     }
     )");
 
@@ -429,6 +425,11 @@ void ImplantMonitor::openReviewClicked()
 {
    qDebug()<<"test";
    ReviewWidget *reviewwidget = new ReviewWidget();
+   connect(reviewwidget,&ReviewWidget::returnToImplantmonitor,this,[this,reviewwidget](){
+       reviewwidget->hide();
+       this->show();
+       reviewwidget->close();
+   });
    reviewwidget->setFixedSize(1024,600);
    reviewwidget->show();
    this->hide();

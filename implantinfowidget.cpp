@@ -6,6 +6,11 @@
 #include <QDialog>
 #include <QGraphicsBlurEffect>
 #include <QEvent>
+#include <QMessageBox>
+#include "CustomMessageBox.h"
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
 
 ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     : QWidget(parent)
@@ -211,9 +216,53 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     }
     )");
 
-    continueButton = new QPushButton(tr("继续"));
-    connect(continueButton, &QPushButton::clicked, this, &ImplantInfoWidget::showImplantationSiteWidget);
-    continueButton->setIcon(QIcon(":/image/icons8-next.png"));
+    continueButton = new QPushButton(tr("上传"));
+    continueButton->setIcon(QIcon(":/image/icons8-updata.png"));
+    connect(continueButton, &QPushButton::clicked, this, [this]() {
+        // 如果按钮当前是“上传”，就执行插入逻辑
+        if (continueButton->text() == tr("上传")) {
+            bool ok = insertNewSensor();  // 返回 true／false
+            if (ok) {
+                // 上传成功：改成“继续”，但不跳转
+                continueButton->setText(tr("继续"));
+                continueButton->setIcon(QIcon(":/image/icons8-next.png"));
+            } else {
+                //添加遮罩层
+                QWidget *overlay = new QWidget(this);
+                overlay->setGeometry(this->rect());
+                overlay->setStyleSheet("background-color: rgba(0, 0, 0, 100);"); // 可调透明度
+                overlay->setAttribute(Qt::WA_TransparentForMouseEvents, false); // 拦截事件
+                overlay->show();
+                overlay->raise();
+
+                //添加模糊效果
+                QGraphicsBlurEffect *blur = new QGraphicsBlurEffect;
+                blur->setBlurRadius(20);  // 可调强度：20~40
+                this->setGraphicsEffect(blur);
+
+                //创建信息对话框
+                CustomMessageBox dlg(this,tr("错误"),tr("上传失败，请再次检查输入"), { tr("确定") },350);
+                   dlg.exec();
+
+                //清空输入内容
+                serialInput->clear();
+                checksumInput->clear();
+                implantDoctorInput->clear();
+                treatDoctorInput->clear();
+                implantDateInput->clear();
+
+                // 清除遮罩和模糊
+                this->setGraphicsEffect(nullptr);
+                overlay->close();
+                overlay->deleteLater();
+            }
+        }
+        // 如果按钮当前是“继续”，就打开下一个界面
+        else if (continueButton->text() == tr("继续")) {
+            showImplantationSiteWidget(m_serial);
+        }
+    });
+
 
     continueButton->setStyleSheet(R"(
     QPushButton {
@@ -242,15 +291,8 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     backButton->setFixedSize(120, 40);
     continueButton->setFixedSize(120, 40);
 
-    QHBoxLayout *buttonLayout = new QHBoxLayout();
-    buttonLayout->setContentsMargins(20, 10, 20, 10);
-    buttonLayout->addWidget(backButton);
-    buttonLayout->addStretch();
-    buttonLayout->addWidget(continueButton);
-
     QWidget *buttonWidget = new QWidget();
-    buttonWidget->setFixedHeight(60);
-
+    buttonWidget->setFixedHeight(70);
     buttonWidget->setStyleSheet(R"(
     /* 外层容器，带渐变 + 边缘高光 */
     QWidget {
@@ -264,9 +306,13 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     }
     )");
 
+    QHBoxLayout *buttonLayout = new QHBoxLayout(buttonWidget);
+    buttonLayout->setContentsMargins(20, 10, 20, 10);
+    buttonLayout->addWidget(backButton);
+    buttonLayout->addStretch();
+    buttonLayout->addWidget(continueButton);
 
-
-    buttonWidget->setLayout(buttonLayout);
+    buttonLayout->setAlignment(Qt::AlignCenter);
 
     // 主布局
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
@@ -275,7 +321,7 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     mainLayout->addWidget(formWidget);
     mainLayout->addSpacing(30);
     mainLayout->addWidget(buttonWidget);
-    mainLayout->addSpacing(30);
+    mainLayout->addSpacing(45);
     setLayout(mainLayout);
 }
 
@@ -283,7 +329,7 @@ ImplantInfoWidget::~ImplantInfoWidget() {
 
 }
 
-void ImplantInfoWidget::showImplantationSiteWidget()
+void ImplantInfoWidget::showImplantationSiteWidget(const QString &serial)
 {
     //添加遮罩层
     QWidget *overlay = new QWidget(this);
@@ -410,7 +456,7 @@ void ImplantInfoWidget::showImplantationSiteWidget()
 
     // 7. 如果点击下一步，跳转到植入窗口
     if (result == QDialog::Accepted) {
-        ImplantationSite* implantationSite = new ImplantationSite(this);
+        ImplantationSite* implantationSite = new ImplantationSite(this,serial);
         implantationSite->setWindowFlags(Qt::Window);
         implantationSite->setFixedSize(1024, 600);
         connect(implantationSite, &ImplantationSite::returnRequested, this, [this, implantationSite]() {
@@ -458,3 +504,75 @@ void ImplantInfoWidget::showEvent(QShowEvent *event) {
     QWidget::showEvent(event);
 }
 
+bool ImplantInfoWidget::insertNewSensor()
+{
+    // 1) 先做合法性检查：序列号 + 校准码 必须在对照表里存在
+    m_serial  = serialInput->text().trimmed();
+    QString calib  = checksumInput  ->text().trimmed();
+    QSqlQuery checkQ;
+    checkQ.prepare(R"(
+        SELECT COUNT(*)
+          FROM sensor_serial_number_check
+         WHERE sensor_id=:id AND calibration_code=:code
+    )");
+    checkQ.bindValue(":id",   m_serial);
+    checkQ.bindValue(":code", calib);
+
+    //执行语句失败或未检查到内容皆表示失败
+    if (!checkQ.exec() || !checkQ.next()) {
+        qWarning() << "校验表查询失败：" << checkQ.lastError().text();
+        return false;
+    }
+    if (checkQ.value(0).toInt() == 0) {
+        qWarning() << "序列号/校准码 在对照表中不存在，禁止注册！";
+        return false;
+    }
+
+    // 2) 再检查该传感器是不是已经在主表里注册过了
+    QSqlQuery existQ;
+    existQ.prepare("SELECT COUNT(*) FROM sensor_info WHERE sensor_id=:id");
+    existQ.bindValue(":id", m_serial);
+    if (!existQ.exec() || !existQ.next()) {
+        qWarning() << "主表查询失败：" << existQ.lastError().text();
+        return false;
+    }
+    if (existQ.value(0).toInt() > 0) {
+        qWarning() << "序列号已注册过，禁止重复添加！";
+        return false;
+    }
+
+    //真正做 INSERT
+    QSqlQuery insertQ;
+    insertQ.prepare(R"(
+        INSERT INTO sensor_info (
+            sensor_id,
+            calibration_code,
+            plant_doctor,
+            treatment_doctor,
+            planting_date,
+            location
+        ) VALUES (
+            :id,
+            :code,
+            :pdoc,
+            :tdoc,
+            :date,
+            :loc
+        )
+    )");
+    insertQ.bindValue(":id",    m_serial);
+    insertQ.bindValue(":code",  calib);
+    insertQ.bindValue(":pdoc",  implantDoctorInput->text().trimmed());
+    insertQ.bindValue(":tdoc",  treatDoctorInput->text().trimmed());
+    // SQLite 中可以用 ISO 格式字符串存日期
+    insertQ.bindValue(":date",  implantDateInput->text().trimmed());
+    insertQ.bindValue(":loc",  QStringLiteral(""));
+
+    if (!insertQ.exec()) {
+        qWarning() << "插入新传感器失败：" << insertQ.lastError().text();
+        return false;
+    }
+
+    qDebug() << "新传感器插入成功：" << m_serial;
+    return true;
+}

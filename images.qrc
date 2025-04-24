@@ -28,6 +28,9 @@
         <file>image/icons8-calibration.png</file>
         <file>image/icons8-help.png</file>
         <file>image/icons8-add.png</file>
+        <file>image/icons8-connect.png</file>
+        <file>image/icons8-disconnect.png</file>
+        <file>image/icons8-updata.png</file>
     </qresource>
     <qresource prefix="/translations">
         <file>translations/en_US.qm</file>

@@ -29,7 +29,8 @@ protected:
     void showEvent(QShowEvent *event) override;
 
 private slots:
-    void showImplantationSiteWidget();
+    void showImplantationSiteWidget(const QString &serial);
+    bool insertNewSensor();
 
 private:
     // 输入字段
@@ -43,11 +44,13 @@ private:
     QPushButton *backButton;
     QPushButton *continueButton;
     ImplantationSite *implantationSite;
-    CustomKeyboard *customkeyboard = nullptr;
+//    CustomKeyboard *customkeyboard = nullptr;
     QLineEdit *currentEdit = nullptr;
     CustomKeyboard* currentKeyboard = nullptr;
     bool eventFilterInstalled = false;  // 用来跟踪事件过滤器的安装状态
-
+    QString m_serial;
+    QString m_locationChoice;   // 记录“左”或“右”
+    bool insertImplantationSite();
 };
 
 #endif // IMPLANTINFOWIDGET_H

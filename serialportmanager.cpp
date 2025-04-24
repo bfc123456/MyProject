@@ -13,60 +13,7 @@ SerialPortManager::SerialPortManager(QObject *parent) : QObject(parent), serialP
 
 SerialPortManager::~SerialPortManager()
 {
-    closePort();
-}
-
-bool SerialPortManager::openPort(const QString &portName, qint32 baudRate)
-{
-    if (serialPort->isOpen()) {
-        serialPort->close();
-    }
-
-    serialPort->setPortName(portName);
-    serialPort->setBaudRate(baudRate);
-    serialPort->setDataBits(QSerialPort::Data8);
-    serialPort->setParity(QSerialPort::NoParity);
-    serialPort->setStopBits(QSerialPort::OneStop);
-    serialPort->setFlowControl(QSerialPort::NoFlowControl);
-
-    if (!serialPort->open(QIODevice::ReadWrite)) {
-        emit errorOccurred(serialPort->errorString());
-        return false;
-    }
-
-    qDebug() << "RS-485 Serial Port Opened: " << portName;
-    return true;
-}
-
-void SerialPortManager::closePort()
-{
-    if (serialPort->isOpen()) {
-        serialPort->close();
-        qDebug() << "RS-485 Serial Port Closed";
-    }
-}
-
-bool SerialPortManager::sendCommand(const QByteArray &command)
-{
-    if (!serialPort->isOpen()) {
-        emit errorOccurred("Serial port is not open");
-        return false;
-    }
-
-    qint64 bytesWritten = serialPort->write(command);
-    if (bytesWritten == -1) {
-        emit errorOccurred("Failed to write data");
-        return false;
-    }
-
-    return true;
-}
-
-void SerialPortManager::readData()
-{
-    QByteArray data = serialPort->readAll();
-    qDebug() << "RS-485 Data Received: " << data.toHex();
-    emit dataReceived(data);
+//    closePort();
 }
 
 
@@ -129,21 +76,33 @@ void SerialPortManager::sendReceiverStatusQuery()
 //解析 接收通道状态查询应答指令
 void SerialPortManager::parseReceiverStatusResponse(QByteArray data)
 {
-    if (data.size() < 4) return;
-
-    uint8_t header = data[0];
-    uint8_t commandType = data[1];
-    uint8_t attenuation = data[2]; // 衰减器A的衰减值
-    uint8_t checksum = data[3];
-
-    uint8_t calculatedChecksum = (header + commandType + attenuation) & 0xFF;
-    if (header != 0x55 || calculatedChecksum != checksum) {
-        qDebug() << "Receiver Status: Checksum Error!";
+    if (data.size() < 8) {  // 数据长度必须大于等于 8
+        qDebug() << "数据长度不正确";
         return;
     }
 
-    qDebug() << "Receiver Attenuation: " << attenuation << " dB";
-//    diastolicValue->setText(QString::number(attenuation) + " dB");
+    uint8_t instructionType = data[2];  // 指令类型一般为数据包的第 3 字节
+
+    if (instructionType == 0xBB) {  // 认证是否为有效指令类型
+           // 电压、电流、温度等数据位于 3-7 字节
+           uint8_t voltage = data[3];        // 电压
+           uint8_t current = data[4];        // 电流
+           uint8_t temperature = data[5];    // 温度
+           uint8_t outputPower = data[6];    // 输出功率
+           uint8_t reverseReflection = data[7];  // 反向驻波
+
+           // 输出调试信息
+           qDebug() << "电压:" << voltage;
+           qDebug() << "电流:" << current;
+           qDebug() << "温度:" << temperature;
+           qDebug() << "输出功率:" << outputPower;
+           qDebug() << "反向驻波:" << reverseReflection;
+
+           // 发射信号，将解析的数据传递到维护界面
+//           emit dataReceived(voltage, current, temperature, outputPower, reverseReflection);
+       } else {
+           qDebug() << "指令类型无效，忽略数据";
+       }
 }
 
 //发送 发射通道状态查询指令

@@ -375,3 +375,8 @@ void CustomKeyboard::registerEdit(QLineEdit *edit, const QPoint &offset){
     edit->installEventFilter(this);
 }
 
+//void CustomKeyboard::setKeyboardOffset(QLineEdit* edit, const QPoint& offset) {
+//    // 设置每个 QLineEdit 对应的偏移量
+//    editOffsetMap[edit] = offset;
+//}
+

@@ -18,7 +18,7 @@
 #include <QSplitter>
 #include "databasemanager.h"
 #include "serialportmanager.h"
-#include "maintenance.h"
+#include "maintenancewidget.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -90,7 +90,7 @@ private:
 
     QVector<QPointF> generateData();
 
-    databasemanager dbManager;  // 声明数据库管理对象
+//    databasemanager dbManager;  // 声明数据库管理对象
     SerialPortManager *serialManager;   //声明串口管理对象
 //    QTranslator translator;//翻译器
 

@@ -17,6 +17,7 @@ public:
     ~CustomKeyboard();
     bool eventFilter(QObject *watched, QEvent *event) override;     //支持自动弹出键盘
     void registerEdit(QLineEdit*edit,const QPoint &offset);     // 注册一个输入框与其偏移量
+//    void setKeyboardOffset(QLineEdit* edit, const QPoint& offset);
 
 signals:
     void keyPressed(const QString &text);
@@ -35,7 +36,7 @@ private:
     QWidget *createAlphaKeyboard();
     QList<QPushButton*> letterButtons;
     QPointer<QLineEdit> currentEdit; //当前活跃的输入框
-    QMap<QLineEdit*,QPoint> editOffsetMap; //每个输入框对应的偏移位置
+    QMap<QLineEdit*,QPoint> editOffsetMap; //存储每个输入框对应的偏移位置
 };
 
 #endif // CUSTOMKEYBOARD_H

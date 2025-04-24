@@ -24,6 +24,9 @@ protected:
     void closeEvent(QCloseEvent *event) override;
     void showEvent(QShowEvent *event) override;
 
+private slots:
+    void onSearchClicked();
+
 private:
     QTableWidget *tableWidget;
     QPushButton *btnBack;
@@ -32,6 +35,8 @@ private:
     QPushButton *btnSearch;
     CustomKeyboard* currentKeyboard = nullptr;
     bool eventFilterInstalled = false;  // 用来跟踪事件过滤器的安装状态
+    void filterTableByKeyword(const QString &keyword);
+
 };
 
 #endif // PATIENTLISTWIDGET_H

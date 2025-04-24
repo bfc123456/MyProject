@@ -6,6 +6,7 @@
 #include <QLineEdit>
 #include <QDateEdit>
 #include <QPushButton>
+#include <QComboBox>
 #include "customkeyboard.h"
 
 
@@ -33,6 +34,7 @@ private:
     QLineEdit *implantDoctorInput;
     QLineEdit *treatDoctorInput;
     QDateEdit *implantDateInput;
+    QComboBox *selectcomboBox;
 
     // 操作按钮
     QPushButton *backButton;
@@ -40,9 +42,11 @@ private:
 
     CustomKeyboard* currentKeyboard = nullptr;
     bool eventFilterInstalled = false;  // 用来跟踪事件过滤器的安装状态
+    void validateForm();
+
 
 private slots:
-    void showImplantMonitorWidget();
+    void showImplantionSite();
 };
 
 #endif // FOLLOWUPFORM_H

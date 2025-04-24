@@ -8,7 +8,9 @@
 #include <QApplication>
 #include <QDebug>
 #include <QCloseEvent>
-
+#include <QSqlQuery>
+#include "CustomMessageBox.h"
+#include <QGraphicsBlurEffect>
 
 PatientListWidget::PatientListWidget(QWidget *parent)
     : QWidget(parent)
@@ -118,6 +120,7 @@ PatientListWidget::PatientListWidget(QWidget *parent)
     btnSearch = new QPushButton();
     btnSearch->setText(tr("搜索"));
     btnSearch->setIcon(QIcon(":/image/search.png"));
+    connect(btnSearch, &QPushButton::clicked, this, &PatientListWidget::onSearchClicked);
     btnSearch->setFixedSize(100,40);
 
     topRow->addWidget(searchEdit);
@@ -127,7 +130,7 @@ PatientListWidget::PatientListWidget(QWidget *parent)
     groupLayout->addLayout(topRow);
 
     // 表格设置
-    tableWidget = new QTableWidget(3, 3);
+    tableWidget = new QTableWidget(3, 3,this);
     tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
     tableWidget->setStyleSheet(R"(
@@ -165,12 +168,22 @@ PatientListWidget::PatientListWidget(QWidget *parent)
     tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
     tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
 
-    tableWidget->setItem(0, 0, new QTableWidgetItem("P202401001"));
-    tableWidget->setItem(0, 1, new QTableWidgetItem("2024-01-15"));
-    tableWidget->setItem(1, 0, new QTableWidgetItem("P202401002"));
-    tableWidget->setItem(1, 1, new QTableWidgetItem("2024-01-15"));
-    tableWidget->setItem(2, 0, new QTableWidgetItem("P202401003"));
-    tableWidget->setItem(2, 1, new QTableWidgetItem("2024-01-15"));
+    //从数据库中查询数据
+    QSqlQuery query("SELECT sensor_id, planting_date FROM sensor_info");
+
+    int row = 0;  // 从第一行开始插入数据
+    while (query.next()) {
+        QString sensorId = query.value(0).toString();
+        QString date = query.value(1).toString();
+//        QString remark = query.value(2).toString();
+
+        // 插入数据到 QTableWidget 的每一行
+        tableWidget->setItem(row, 0, new QTableWidgetItem(sensorId));
+        tableWidget->setItem(row, 1, new QTableWidgetItem(date));
+//        tableWidget->setItem(row, 2, new QTableWidgetItem(remark));
+
+        row++;  // 插入完一行后移动到下一行
+    }
 
     groupLayout->addWidget(tableWidget);
     mainLayout->addWidget(group);
@@ -185,6 +198,56 @@ PatientListWidget::PatientListWidget(QWidget *parent)
     btnAdd->setObjectName("AddButton");
     btnAdd->setIcon(QIcon(":/image/icons8-add.png"));
     btnAdd->setFixedSize(135,35);
+
+    btnBack->setStyleSheet(R"(
+    QPushButton {
+        background-color: qlineargradient(
+            x1:0, y1:0, x2:0, y2:1,
+            stop:0 rgba(95, 169, 246, 180),
+            stop:1 rgba(49, 122, 198, 180)
+        );
+        border: 1px solid rgba(163, 211, 255, 0.6); /* 半透明高光边框 */
+        border-radius: 6px;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+        padding: 4px 10px;
+    }
+
+    QPushButton:pressed {
+        background-color: qlineargradient(
+            stop: 0 rgba(47, 106, 158, 200),
+            stop: 1 rgba(31, 78, 121, 200)
+        );
+        padding-left: 2px;
+        padding-top: 2px;
+    }
+    )");
+
+    btnAdd->setStyleSheet(R"(
+    QPushButton {
+        background-color: qlineargradient(
+            stop: 0 rgba(110, 220, 145, 180),
+            stop: 1 rgba(58, 170, 94, 180)
+        );
+        border: 1px solid rgba(168, 234, 195, 0.6);
+        border-radius: 6px;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+        padding: 4px 10px;
+    }
+
+    QPushButton:pressed {
+        background-color: qlineargradient(
+            stop: 0 rgba(44, 128, 73, 200),
+            stop: 1 rgba(29, 102, 53, 200)
+        );
+        padding-left: 2px;
+        padding-top: 2px;
+    }
+    )");
+
 
     //关联信号与槽
     connect(btnBack, &QPushButton::clicked, this, &PatientListWidget::patientReturnLogin);
@@ -225,13 +288,96 @@ void PatientListWidget::showEvent(QShowEvent *event) {
         // 安装事件过滤器
         this->searchEdit->installEventFilter(currentKeyboard);
 
-        QPoint offset(50, 100);  // 根据实际需要设置偏移量
-        currentKeyboard->attachTo(this->searchEdit, offset);  // 调整键盘位置
-
-
         eventFilterInstalled = true;  // 设置标志为已安装
     }
 
     QWidget::showEvent(event);
+}
+
+void PatientListWidget::onSearchClicked() {
+    QString searchText = searchEdit->text().trimmed();
+
+    if (searchText.isEmpty()) {
+
+        //创建遮罩
+        QWidget *overlay = new QWidget(this);
+        overlay->setGeometry(this->rect());
+        overlay->setStyleSheet("background-color: rgba(0, 0, 0, 100);"); // 可调透明度
+        overlay->setAttribute(Qt::WA_TransparentForMouseEvents, false); // 拦截事件
+        overlay->show();
+        overlay->raise();
+
+        //添加模糊效果
+        QGraphicsBlurEffect *blur = new QGraphicsBlurEffect;
+        blur->setBlurRadius(20);  // 可调强度：20~40
+        this->setGraphicsEffect(blur);
+        //创建信息对话框
+        CustomMessageBox dlg(this,tr("错误"),tr("查询失败，请再次检查输入"), { tr("确定") },350);
+        dlg.exec();
+
+        // 清除遮罩和模糊
+        this->setGraphicsEffect(nullptr);
+        overlay->close();
+        overlay->deleteLater();
+
+        return;
+    }
+
+    // 过滤表格中的数据
+    filterTableByKeyword(searchText);
+}
+
+void PatientListWidget::filterTableByKeyword(const QString &keyword) {
+    bool rowFound = false;  // 标记是否找到匹配的行
+
+    // 遍历所有行，查找是否有包含关键词的行
+    for (int row = 0; row < tableWidget->rowCount(); ++row) {
+        bool rowMatches = false;
+
+        // 检查每一列，看看是否有列包含关键字
+        for (int col = 0; col < tableWidget->columnCount(); ++col) {
+            QTableWidgetItem *item = tableWidget->item(row, col);
+            if (item && item->text().contains(keyword, Qt::CaseInsensitive)) {
+                rowMatches = true;
+                break;  // 找到匹配项，跳出当前列的循环
+            }
+        }
+
+        // 根据是否匹配关键字来显示或隐藏行
+        tableWidget->setRowHidden(row, !rowMatches);  // 隐藏不匹配的行
+        if (rowMatches) rowFound = true;  // 如果找到匹配的行，设置 rowFound 为 true
+    }
+
+    // 如果没有找到任何匹配的行，显示提示信息
+    if (!rowFound) {
+
+        //创建遮罩
+        QWidget *overlay = new QWidget(this);
+        overlay->setGeometry(this->rect());
+        overlay->setStyleSheet("background-color: rgba(0, 0, 0, 100);"); // 可调透明度
+        overlay->setAttribute(Qt::WA_TransparentForMouseEvents, false); // 拦截事件
+        overlay->show();
+        overlay->raise();
+
+        //添加模糊效果
+        QGraphicsBlurEffect *blur = new QGraphicsBlurEffect;
+        blur->setBlurRadius(20);  // 可调强度：20~40
+        this->setGraphicsEffect(blur);
+        //创建信息对话框
+        CustomMessageBox dlg(this,tr("提示"),tr("未找到匹配的记录"), { tr("确定") },350);
+        dlg.exec();
+
+        // 清除遮罩和模糊
+        this->setGraphicsEffect(nullptr);
+        overlay->close();
+        overlay->deleteLater();
+
+        // 取消所有隐藏的行
+        for (int row = 0; row < tableWidget->rowCount(); ++row) {
+            tableWidget->setRowHidden(row, false);  // 显示所有行
+        }
+
+        return;
+    }
 }
 

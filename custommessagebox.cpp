@@ -44,6 +44,7 @@ CustomMessageBox::CustomMessageBox(QWidget *parent, const QString &title, const 
     for (const QString &buttonText : buttons) {
         QPushButton *button = new QPushButton(buttonText, this);
 
+        button->setFixedSize(120, 40);
         // 设置按钮样式（默认蓝色按钮 + 白色文字）
         button->setStyleSheet(R"(
         QPushButton {

@@ -1,38 +1,31 @@
-#ifndef databasemanager_H
-#define databasemanager_H
 
-#include <QtSql/QSqlDatabase>
-#include <QtSql/QSqlQuery>
+#ifndef DATABASEMANAGER_H
+#define DATABASEMANAGER_H
+
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
 #include <QDebug>
+#include <QString>
 
-class databasemanager
+class DatabaseManager
 {
 public:
-    databasemanager();
-    ~databasemanager();
+    DatabaseManager(const QString &dbPath);
+    ~DatabaseManager();
 
-    QSqlDatabase getDatabase() {
-        return db;
-    }
+    bool openDatabase();  // 打开数据库连接
+    bool closeDatabase();  // 关闭数据库连接
 
+    bool insertSensorInfo(const QString &sensorId, const QString &calibrationCode,
+                          const QString &plantDoctor, const QString &treatmentDoctor,
+                          const QString &plantingDate, const QString &location);  // 插入数据
 
-    // 连接数据库
-    bool connectDatabase();
-
-    // 插入数据
-    bool insertData(double diastolic , double systolic , double avg , int heartbeat );
-
-    // 查询数据
-    QSqlQuery queryData();
-
-    // 删除数据
-    bool deleteData(int id);  // 删除数据的方法，传入id作为参数
-
-    // 关闭数据库
-    void closeDatabase();
+    bool querySensorInfo(const QString &sensorId);  // 查询数据
 
 private:
-    QSqlDatabase db;  // 数据库连接
+    QSqlDatabase db;
+    QString dbPath;
 };
 
-#endif // databasemanager_H
+#endif // DATABASEMANAGER_H

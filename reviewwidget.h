@@ -23,6 +23,7 @@ public:
 
 signals:
     void returnToMainWindowSignal();
+    void returnToImplantmonitor();
 
 private slots:
     void showExitConfirmWidget();

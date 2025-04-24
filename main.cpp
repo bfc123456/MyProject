@@ -7,15 +7,24 @@
 #include <QSettings>
 #include "mainwindow.h"
 #include "loginwindow.h"
-#include "implantdatabase.h"
 #include "toucheventhandler.h"
-#include "Global.h"
+#include "global.h"
+#include "databasemanager.h"
 
 LoginWindow* globalLoginWindowPointer = nullptr;  // 定义并初始化全局指针，注意全局指针的内存释放，防止内存泄漏！！！
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+
+    //创建数据库
+    DatabaseManager db("E:/software_personal/MyDatabase.db");
+
+    //判断数据库是否正确连接
+    if (!db.openDatabase()) {
+        return -1;  // 打不开就退出
+    }
+
 
     // 设置全局字体为黑体
     QFont font("SimHei");
@@ -32,9 +41,9 @@ int main(int argc, char *argv[])
         a.installTranslator(&translator);
     }
 
-    //创建数据库并验证数据库是否连接成功
-    // 创建数据库连接
-    ImplantDatabase db("D:/software_install/sqlite/implants.db");
+//    //创建数据库并验证数据库是否连接成功
+//    // 创建数据库连接
+//    ImplantDatabase db("D:/software_install/sqlite/implants.db");
 
     // 步骤 1：创建渐变 QPixmap 作为启动背景
     QPixmap pixmap(500, 300);

@@ -36,6 +36,7 @@ private:
     QwtPlotCurve *curve;
     QLineEdit *rhcEdit;
     SettingsWidget *settingswidget;
+    bool readOutFlg = false;
 
 
 private slots:

@@ -247,11 +247,12 @@ ReviewWidget::ReviewWidget(QWidget *parent) : QWidget(parent) {
 
     historyTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     historyTable->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    historyTable->setHorizontalHeaderLabels(QStringList() << tr("序号") << tr("传感器") << tr("参考值") << tr("心率"));
-    historyTable->setItem(0, 0, new QTableWidgetItem("1"));
-    historyTable->setItem(0, 1, new QTableWidgetItem("142/86 (94)"));
-    historyTable->setItem(0, 2, new QTableWidgetItem("134/86 (92)"));
-    historyTable->setItem(0, 3, new QTableWidgetItem("78"));
+    historyTable->setHorizontalHeaderLabels(QStringList() << tr("传感器") << tr("参考值") << tr("心率") << tr("位置调整"));
+
+    historyTable->setItem(0, 0, new QTableWidgetItem("142/86 (94)"));
+    historyTable->setItem(0, 1, new QTableWidgetItem("134/86 (92)"));
+    historyTable->setItem(0, 2, new QTableWidgetItem("78"));
+    historyTable->setItem(0, 3, new QTableWidgetItem("0°"));
     historyTable->horizontalHeader()->setStretchLastSection(true);
     historyTable->setMinimumHeight(120);
     historyTable->verticalHeader()->setStyleSheet(R"(
@@ -336,6 +337,7 @@ ReviewWidget::ReviewWidget(QWidget *parent) : QWidget(parent) {
     // 按钮
     QPushButton *backButton = new QPushButton(tr("返回"));
     backButton->setFixedSize(120, 35);
+    connect(backButton,&QPushButton::clicked,this,&ReviewWidget::returnToImplantmonitor);
     backButton->setIcon(QIcon(":/image/icons8-return.png"));
     QPushButton *saveButton = new QPushButton(tr("保存并返回"));
     saveButton->setFixedSize(120, 35);

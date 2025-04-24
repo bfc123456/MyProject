@@ -10,7 +10,7 @@
 #include <QDebug>
 #include <QTranslator>
 #include <QElapsedTimer>
-#include "maintenance.h"
+#include "maintenancewidget.h"
 #include "followupform.h"
 #include "patientlistwidget.h"
 #include "implantinfowidget.h"
@@ -37,7 +37,6 @@ private:
     QPushButton *btnPatientList;
 
     QElapsedTimer clickTimer; //连续点击记录器
-    MaintenanceWidget  *hiddenWidget = nullptr;//隐藏界面
     QTranslator translator;//翻译器
 
     void showHiddenWidget();
@@ -48,6 +47,7 @@ private:
     std::unique_ptr<ImplantInfoWidget> implantWindow;
     std::unique_ptr<FollowUpForm> followupformwindow;
     std::unique_ptr<PatientListWidget> patientlistwidget;
+    std::unique_ptr<MaintenanceWidget> maintenancewidget;
 
 private slots:
     void onSettingClicked();

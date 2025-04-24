@@ -13,9 +13,9 @@ public:
     explicit SerialPortManager(QObject *parent = nullptr);
     ~SerialPortManager();
 
-    bool openPort(const QString &portName, qint32 baudRate = QSerialPort::Baud115200);
-    void closePort();
-    bool sendCommand(const QByteArray &command);
+//    bool openPort(const QString &portName, qint32 baudRate = QSerialPort::Baud115200);
+//    void closePort();
+//    bool sendCommand(const QByteArray &command);
 
     // 射频板卡控制指令
     void sendAttenuationCommand(uint8_t attenA, uint8_t attenB, uint8_t attenC);

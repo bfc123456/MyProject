@@ -5,9 +5,11 @@
 #include <QMessageBox>
 #include <QGraphicsBlurEffect>
 #include <QTimer>
+#include <QSqlQuery>
+#include <QSqlError>
 
-ImplantationSite::ImplantationSite( QWidget* parent)
-    : QWidget(parent){
+ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
+    : QWidget(parent), m_serial(sensorId){
 
     this->setStyleSheet(R"(
         QWidget {
@@ -111,8 +113,12 @@ ImplantationSite::ImplantationSite( QWidget* parent)
     implantTitle->setAlignment(Qt::AlignCenter);
     implantTitle->setStyleSheet("QLabel { background-image: url(:/image/OIP.jpg); color: white; font-size: 20px; border: none; }");
 
-    QPushButton* buttonL = new QPushButton(tr("左"), frameImplant);
-    QPushButton* buttonR = new QPushButton(tr("右"), frameImplant);
+    buttonL = new QPushButton(tr("左"), frameImplant);
+    buttonR = new QPushButton(tr("右"), frameImplant);
+
+    connect(buttonL,&QPushButton::clicked,this,&ImplantationSite::onBtnLocationClicked);
+    connect(buttonR,&QPushButton::clicked,this,&ImplantationSite::onBtnLocationClicked);
+
     buttonL->setFixedSize(80, 80);
     buttonR->setFixedSize(80, 80);
     QString buttonStyle = "QPushButton { background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #8899aa, stop:1 #556677); color: white; font-weight: bold; font-size: 18px; border-radius: 10px; } QPushButton:pressed { background-color: #445566; }";
@@ -153,8 +159,8 @@ ImplantationSite::ImplantationSite( QWidget* parent)
         QLabel *messageLabel1 = new QLabel(tr("1. 移动传感器至天线中心，然后缓慢移动"), dialog);
         QLabel *messageLabel2 = new QLabel(tr("2. 确认信号强度逐渐变强然后停止，并重复三次"), dialog);
 //        messageLabel->setWordWrap(true);  // 允许自动换行
-        messageLabel1->setStyleSheet("color: white; font-size: 16px;");  // 设置字体和颜色
-        messageLabel2->setStyleSheet("color: white; font-size: 16px;");  // 设置字体和颜色
+        messageLabel1->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");  // 设置字体和颜色
+        messageLabel2->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");  // 设置字体和颜色
 
         // 创建确认按钮
         QPushButton *confirmButton = new QPushButton(tr("确认"), dialog);
@@ -378,6 +384,7 @@ ImplantationSite::ImplantationSite( QWidget* parent)
         this->setGraphicsEffect(blur);
 
         CalibrationDialog *calibrationialog = new CalibrationDialog(this);
+        qDebug()<<"121";
         connect(calibrationialog,&CalibrationDialog::openmonitorwidget,this,[this](){
             ImplantMonitor *implantmonitor = new ImplantMonitor();
             implantmonitor->show();
@@ -440,13 +447,12 @@ void ImplantationSite::OpenSettingsRequested() {
     settingswidget->show();
 }
 
-void ImplantationSite::openImplantMonitorWidget() {
-    ImplantMonitor* implantmonitor = new ImplantMonitor(this);
-    implantmonitor->setWindowFlags(Qt::Window);
-    implantmonitor->setFixedSize(1024, 600);
-    implantmonitor->show();
-    this->hide();
-}
+//void ImplantationSite::openImplantMonitorWidget() {
+//    ImplantMonitor* implantmonitor = new ImplantMonitor(this);
+//    implantmonitor->setWindowFlags(Qt::Window);
+//    implantmonitor->setFixedSize(1024, 600);
+//    implantmonitor->show();
+//}
 
 void ImplantationSite::startSimulation() {
     // 每次定时更新数据和绘图
@@ -488,6 +494,50 @@ void ImplantationSite::updatePlot() {
     curve->setData(seriesData);  // 设置数据
 
     plot->replot();  // 重绘图表
+}
+
+void ImplantationSite::onBtnLocationClicked()
+{
+    //判断是哪个按钮
+    auto *btn = qobject_cast<QPushButton*>(sender());
+    QString loc;
+    if (btn == buttonL)  loc = "left";
+    else if (btn == buttonR) loc = "right";
+    else return;
+
+    //确认弹窗
+    CustomMessageBox dlg(
+        this,
+        tr("确认上传"),
+        tr("是否上传已选择的位置？"),
+        { tr("确定"), tr("返回") },
+        350
+    );
+    dlg.exec();
+    if (dlg.getUserResponse() != tr("确定"))
+        return;
+
+    //执行上传
+    if (uploadLocation(loc)) {
+        CustomMessageBox ok(this, tr("成功"),
+            tr("位置已上传：%1").arg(loc=="left"?tr("左侧"):tr("右侧")),
+            { tr("确定") }, 300);
+        ok.exec();
+        ok.close();
+    }
+}
+
+bool ImplantationSite::uploadLocation(const QString &loc)
+{
+    QSqlQuery q;
+    q.prepare(R"(
+      UPDATE sensor_info
+         SET location = :loc
+       WHERE sensor_id = :id
+    )");
+    q.bindValue(":loc", loc);
+    q.bindValue(":id",  m_serial);
+    return q.exec();
 }
 
 

@@ -30,6 +30,7 @@ private:
     bool isValidDate(const QString& date, QString& errorMessage) const;
 
     QSqlDatabase db;
+
 };
 
 #endif // IMPLANTDATABASE_H

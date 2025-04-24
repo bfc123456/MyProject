@@ -1,0 +1,63 @@
+#ifndef MAINTENANCEWIDGET_H
+#define MAINTENANCEWIDGET_H
+
+#include <QWidget>
+#include <QPushButton>
+#include <QComboBox>
+#include <QTextEdit>
+#include <QLineEdit>
+#include "serialmanager.h"
+#include "udpmanager.h"
+
+class MaintenanceWidget : public QWidget
+{
+    Q_OBJECT
+
+public:
+    explicit MaintenanceWidget(QWidget *parent = nullptr);
+    ~MaintenanceWidget();
+
+private slots:
+    void onConnectSerialPort();  // 连接串口
+    void onSendData();           // 发送数据
+    void onClearReceive();       // 清空接收区
+    void onClearSend();          // 清空发送区
+    void onReceiveData(const QByteArray &data);        // 接收数据
+
+private:
+
+    SerialManager *serialManager;
+    UdpManager *udpManager;
+
+    QComboBox *portComboBox;
+    QComboBox *baudRateComboBox;
+    QComboBox *dataBitsComboBox;
+    QComboBox *parityComboBox;
+    QComboBox *stopBitsComboBox;
+    QComboBox *flowControlComboBox;
+
+    QPushButton *connectButton;
+    QPushButton *sendButton;
+    QPushButton *clearReceiveButton;
+    QPushButton *clearSendButton;
+
+    QTextEdit *receiveTextEdit;
+    QTextEdit *sendTextEdit;
+
+    // 状态指示框，用来显示每个监控项的状态
+    QFrame *voltageStatusFrame;
+    QFrame *currentStatusFrame;
+    QFrame *temperatureStatusFrame;
+    QFrame *powerOutputStatusFrame;
+    QFrame *reverseReflectionStatusFrame;
+
+    void setStatus(QFrame *frame, bool isNormal);
+
+    //数据解析函数
+    void parseReceivedData(const QByteArray &data); //发射通道状态查询应答指令解析
+    void parseAttenuationResponse(const QByteArray &data);  //接收通道衰减应答指令解析
+
+    void onDataReceived(const QByteArray &data);  //处理UDP监听的数据
+};
+
+#endif // MAINTENANCEWIDGET_H

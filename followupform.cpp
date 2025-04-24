@@ -5,9 +5,8 @@
 #include <QGridLayout>
 #include <QDebug>
 #include <QDialog>
-#include <QComboBox>
 #include <QAbstractItemView>
-#include "Global.h"
+#include "global.h"
 
 FollowUpForm::FollowUpForm(QWidget *parent)
     : QWidget(parent)
@@ -79,12 +78,12 @@ FollowUpForm::FollowUpForm(QWidget *parent)
     checksumInput->setFixedSize(400, 50);
     checksumInput->setPlaceholderText(tr("请输入校准码"));
 
-    QLabel *implantDoctorLabel = new QLabel(tr("校准码"));
+    QLabel *implantDoctorLabel = new QLabel(tr("植入医生"));
     implantDoctorLabel->setFixedSize(180, 40);
     implantDoctorLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     implantDoctorInput = new QLineEdit();
     implantDoctorInput->setFixedSize(400, 50);
-    implantDoctorInput->setPlaceholderText(tr("请输入校准码"));
+    implantDoctorInput->setPlaceholderText(tr("请输入植入医生姓名"));
 
     QLabel *treatDoctorLabel = new QLabel(tr("治疗医生"));
     treatDoctorLabel->setFixedSize(180, 40);
@@ -107,7 +106,7 @@ FollowUpForm::FollowUpForm(QWidget *parent)
     locationLabel->setFixedSize(160, 40);
     locationLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     //  创建 QComboBox 对象
-    QComboBox *selectcomboBox = new QComboBox(this);
+    selectcomboBox = new QComboBox(this);
     selectcomboBox->setFixedSize(400, 50);
     // 添加下拉选项“左”与“右”
     selectcomboBox->addItem(tr("左"));
@@ -251,7 +250,7 @@ FollowUpForm::FollowUpForm(QWidget *parent)
     buttonLayout->addWidget(continueButton);
 
     QWidget *buttonWidget = new QWidget();
-    buttonWidget->setFixedHeight(60);
+    buttonWidget->setFixedHeight(70);
 
     buttonWidget->setStyleSheet(R"(
     /* 外层容器，带渐变 + 边缘高光 */
@@ -276,7 +275,7 @@ FollowUpForm::FollowUpForm(QWidget *parent)
             globalLoginWindowPointer->show();         // 再次显示主界面
         }
     });
-    connect(continueButton, &QPushButton::clicked, this, &FollowUpForm::showImplantMonitorWidget);
+    connect(continueButton, &QPushButton::clicked, this, &FollowUpForm::showImplantionSite);
 
     // 主布局
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
@@ -285,17 +284,18 @@ FollowUpForm::FollowUpForm(QWidget *parent)
     mainLayout->addWidget(formWidget);
     mainLayout->addSpacing(30);
     mainLayout->addWidget(buttonWidget);
-    mainLayout->addSpacing(30);
+    mainLayout->addSpacing(45);
     setLayout(mainLayout);
 }
 
 FollowUpForm::~FollowUpForm() {}
 
-void FollowUpForm::showImplantMonitorWidget(){
-    ImplantMonitor* implantmonitor = new ImplantMonitor(this);
-    implantmonitor->setWindowFlags(Qt::Window);
-    implantmonitor->setFixedSize(1024, 600);
-    implantmonitor->show();
+void FollowUpForm::showImplantionSite(){
+    ImplantationSite* implantationsite = new ImplantationSite(this);
+    implantationsite->setWindowFlags(Qt::Window);
+    implantationsite->setFixedSize(1024, 600);
+    implantationsite->show();
+    this->hide();
 }
 
 void FollowUpForm::closeEvent(QCloseEvent *event) {
@@ -333,3 +333,21 @@ void FollowUpForm::showEvent(QShowEvent *event) {
 
     QWidget::showEvent(event);
 }
+
+//void FollowUpForm::validateForm() {
+//    // 获取所有输入框的内容
+//    QString serial = serialInput->text().trimmed();      // 传感器序列号
+//    QString calib = checksumInput->text().trimmed();        // 校准码
+//    QString doctor = implantDoctorInput->text().trimmed();      // 植入医生
+//    QString treatdoctor = treatDoctorInput->text().trimmed();   //治疗医生
+//    QString date = implantDateInput->text().trimmed();  // 植入日期
+//    QString location = selectcomboBox->currentText().trimmed();     // 植入位置（假设这是一个 QComboBox）
+
+//    // 检查是否所有字段都有值
+//    bool isValid = !serial.isEmpty() && !calib.isEmpty() && !doctor.isEmpty() &&
+//                   !date.isEmpty() && !location.isEmpty();
+
+//    // 如果所有输入框有效，启用继续按钮，否则禁用继续按钮
+//    continueButton->setEnabled(isValid);
+//}
+

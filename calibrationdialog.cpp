@@ -153,8 +153,8 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
         emit openmonitorwidget();
         this->close();
     });
-    connect(resetBtn, &QPushButton::clicked, this, []() {
-        QMessageBox::information(nullptr, tr("提示"), tr("重新校准已执行"));
+    connect(resetBtn, &QPushButton::clicked, this, [this]() {
+        inputEdit->clear();
     });
 }
 
@@ -162,3 +162,35 @@ QString CalibrationDialog::getCalibrationValue() const
 {
     return inputEdit->text();
 }
+
+//void CalibrationDialog::closeEvent(QCloseEvent *event) {
+//    // 确保关闭时删除键盘
+//    if (currentKeyboard) {
+//        currentKeyboard->deleteLater();  // 删除当前键盘实例
+//        currentKeyboard = nullptr;  // 设置为 nullptr，防止后续使用无效指针
+//    }
+
+//    // 调用父类的 closeEvent 来确保默认处理
+//    event->accept();  // 确保继续执行关闭事件
+//}
+
+
+//void CalibrationDialog::showEvent(QShowEvent *event) {
+//    if (!eventFilterInstalled) {
+//        // 销毁之前的键盘实例
+//        if (currentKeyboard) {
+//            currentKeyboard->deleteLater();  // 删除键盘实例
+//            currentKeyboard = nullptr;
+//        }
+
+//        // 创建新的键盘实例
+//        currentKeyboard = new CustomKeyboard(this);
+
+//        // 安装事件过滤器
+//        this->inputEdit->installEventFilter(currentKeyboard);
+
+//        eventFilterInstalled = true;  // 设置标志为已安装
+//    }
+
+//    QWidget::showEvent(event);
+//}

@@ -1,131 +1,86 @@
 #include "databasemanager.h"
-#include <QtSql/QSqlError>
-#include <QtSql/QSqlQuery>
-#include <QtSql/QSqlDriver>
-#include <QtSql/QSqlDatabase>
-#include <QDateTime>
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QDebug>
 
-databasemanager::databasemanager() {}
-
-databasemanager::~databasemanager() {}
-
-bool databasemanager::connectDatabase() {
-    // 使用SQLite数据库驱动
-    db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName("my_database.db");
-
-    // 尝试打开数据库
-        if (!db.open()) {
-            qDebug() << "Error: Unable to open database!";
-            return false;
-        }
-        qDebug() << "Database connected successfully!";
-
-        // 创建表格，如果表格不存在
-        QSqlQuery query;
-        QString createTableQuery = R"(
-            CREATE TABLE IF NOT EXISTS pulmonary_artery_pressure (
-                number INTEGER PRIMARY KEY AUTOINCREMENT,
-                diastolicValue REAL,
-                systolicValue REAL,
-                avgValue REAL,
-                heartbeatValue INTEGER,
-                upload_time TEXT
-            );
-        )";
-
-        if (!query.exec(createTableQuery)) {
-            qDebug() << "Error: Failed to create table!" << query.lastError().text();
-            return false;
-        }
-
-        qDebug() << "Table 'pulmonary_artery_pressure' created successfully!";
-        return true;
+DatabaseManager::DatabaseManager(const QString &dbPath)
+    : dbPath(dbPath)
+{
+    db = QSqlDatabase::addDatabase("QSQLITE");  // 使用 SQLite 数据库
+    db.setDatabaseName(dbPath);  // 设置数据库文件路径
 }
 
-bool databasemanager::insertData(double diastolic , double systolic , double avg , int heartbeat ) {
-    if (!db.isOpen()) {
-        qDebug() << "Database is not open!";
-        return false;  // 数据库没有打开
-    }
+DatabaseManager::~DatabaseManager()
+{
+    closeDatabase();  // 析构时关闭数据库连接
+}
 
-    QSqlQuery query;
-    // 插入数据的 SQL 语句
-    query.prepare("INSERT INTO pulmonary_artery_pressure (diastolicValue, systolicValue, avgValue, heartbeatValue, upload_time) "
-                  "VALUES (:diastolic, :systolic, :avg, :heartbeat, :upload_time)");
-
-    // 绑定参数
-    query.bindValue(":diastolic", diastolic);
-    query.bindValue(":systolic", systolic);
-    query.bindValue(":avg", avg);
-    query.bindValue(":heartbeat", heartbeat);
-    query.bindValue(":upload_time", QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss"));
-
-    qDebug() << "SQL query: " << query.executedQuery();
-    qDebug() << "Bound values: "
-             << "diastolic:" << diastolic
-             << "systolic:" << systolic
-             << "avg:" << avg
-             << "heartbeat:" << heartbeat;
-
-    // 执行查询
-    if (query.exec()) {
-        qDebug() << "Data inserted successfully.";
-    } else {
-        qDebug() << "Failed to insert data: " << query.lastError();
+bool DatabaseManager::openDatabase()
+{
+    if (!db.open()) {
+        qDebug() << "Error opening database:" << db.lastError().text();
         return false;
     }
-
+    qDebug() << "Database opened successfully!";
     return true;
 }
 
-
-// 查询数据
-QSqlQuery databasemanager::queryData() {
-    QSqlQuery query;
-    if (!db.isOpen()) {
-        qDebug() << "Database is not open!";
-        return query;  // 返回一个无效的查询对象
-    }
-
-    query.prepare("SELECT * FROM pulmonary_artery_pressure");
-
-    if (query.exec()) {
-        qDebug() << "Query executed successfully111.";
-        return query;  // 返回有效的查询对象
-    } else {
-        qDebug() << "Query failed: " << query.lastError().text();
-        return query;  // 返回无效查询对象
-    }
-}
-
-bool databasemanager::deleteData(int number) {
-    if (!db.isOpen()) {
-        qDebug() << "Database is not open!";
-        return false;  // 数据库没有打开
-    }
-
-    QSqlQuery query;
-    query.prepare("DELETE FROM pulmonary_artery_pressure WHERE number = :number");
-    query.bindValue(":number", number);
-
-    if (query.exec()) {
-        qDebug() << "Data deleted successfully.";
-    } else {
-        qDebug() << "Failed to delete data: " << query.lastError();
-        return false;
-    }
-
-    return true;
-}
-
-void databasemanager::closeDatabase() {
+bool DatabaseManager::closeDatabase()
+{
     if (db.isOpen()) {
-        db.close();  // 关闭数据库连接
-        qDebug() << "Database connection closed.";
-    } else {
-        qDebug() << "Database is already closed.";
+        db.close();
+        qDebug() << "Database closed.";
+        return true;
     }
+    return false;
 }
 
+bool DatabaseManager::insertSensorInfo(const QString &sensorId, const QString &calibrationCode,
+                                       const QString &plantDoctor, const QString &treatmentDoctor,
+                                       const QString &plantingDate, const QString &location)
+{
+    QSqlQuery query;
+    query.prepare("INSERT INTO sensor_info (sensor_id, calibration_code, plant_doctor, treatment_doctor, planting_date, location) "
+                  "VALUES (:sensorId, :calibrationCode, :plantDoctor, :treatmentDoctor, :plantingDate, :location)");
 
+    query.bindValue(":sensorId", sensorId);
+    query.bindValue(":calibrationCode", calibrationCode);
+    query.bindValue(":plantDoctor", plantDoctor);
+    query.bindValue(":treatmentDoctor", treatmentDoctor);
+    query.bindValue(":plantingDate", plantingDate);
+    query.bindValue(":location", location);
+
+    if (!query.exec()) {
+        qDebug() << "Error inserting data:" << query.lastError().text();
+        return false;  // 插入失败
+    }
+
+    qDebug() << "Data inserted successfully.";
+    return true;  // 插入成功
+}
+
+bool DatabaseManager::querySensorInfo(const QString &sensorId)
+{
+    QSqlQuery query;
+    query.prepare("SELECT * FROM sensor_info WHERE sensor_id = :sensorId");
+    query.bindValue(":sensorId", sensorId);
+
+    if (!query.exec()) {
+        qDebug() << "Error querying data:" << query.lastError().text();
+        return false;
+    }
+
+    if (query.next()) {
+        // 输出查询结果
+        qDebug() << "Sensor ID:" << query.value(0).toString();
+        qDebug() << "Calibration Code:" << query.value(1).toString();
+        qDebug() << "Plant Doctor:" << query.value(2).toString();
+        qDebug() << "Treatment Doctor:" << query.value(3).toString();
+        qDebug() << "Planting Date:" << query.value(4).toString();
+        qDebug() << "Location:" << query.value(5).toString();
+        return true;  // 查询成功
+    } else {
+        qDebug() << "No data found for sensor_id:" << sensorId;
+        return false;  // 未找到数据
+    }
+}

@@ -1,4 +1,4 @@
-QT       += core gui serialport sql virtualkeyboard serialport
+QT       += core gui serialport sql virtualkeyboard serialport network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -33,17 +33,18 @@ SOURCES += \
     languagemanager.cpp \
     loginwindow.cpp \
     main.cpp \
-    maintenance.cpp \
+    maintenancewidget.cpp \
     measurewidget.cpp \
     modernwaveplot.cpp \
     patientlistwidget.cpp \
     readoutrecorddialog.cpp \
     reviewwidget.cpp \
     rhcinputdialog.cpp \
-    serialportmanager.cpp \
+    serialmanager.cpp \
     settingswidget.cpp \
     signalstrength.cpp \
-    toucheventhandler.cpp
+    toucheventhandler.cpp \
+    udpmanager.cpp
 
 HEADERS += \
     calibrationdialog.h \
@@ -63,17 +64,18 @@ HEADERS += \
     implantmonitor.h \
     languagemanager.h \
     loginwindow.h \
-    maintenance.h \
+    maintenancewidget.h \
     measurewidget.h \
     modernwaveplot.h \
     patientlistwidget.h \
     readoutrecorddialog.h \
     reviewwidget.h \
     rhcinputdialog.h \
-    serialportmanager.h \
+    serialmanager.h \
     settingswidget.h \
     signalstrength.h \
-    toucheventhandler.h
+    toucheventhandler.h \
+    udpmanager.h
 
 FORMS += \
 #    historycheck.ui \
@@ -90,22 +92,23 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 RESOURCES += \
     images.qrc
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../qt_5_15/qt_5_12/5.12.9/mingw73_64/lib/ -lqwt
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../qt_5_15/qt_5_12/5.12.9/mingw73_64/lib/ -lqwtd
-else:unix: LIBS += -L$$PWD/../../qt_5_15/qt_5_12/5.12.9/mingw73_64/lib/ -lqwt
-
-INCLUDEPATH += $$PWD/../../qt_5_15/qt_5_12/5.12.9/mingw73_64/include/Qwt
-DEPENDPATH += $$PWD/../../qt_5_15/qt_5_12/5.12.9/mingw73_64/include/Qwt
-
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../qt_5_15/qt_5_12/5.12.9/mingw73_64/lib/ -lqwt
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../qt_5_15/qt_5_12/5.12.9/mingw73_64/lib/ -lqwtd
-else:unix: LIBS += -L$$PWD/../../qt_5_15/qt_5_12/5.12.9/mingw73_64/lib/ -lqwt
-
-INCLUDEPATH += $$PWD/../../qt_5_15/qt_5_12/5.12.9/mingw73_64/include/Qwt
-DEPENDPATH += $$PWD/../../qt_5_15/qt_5_12/5.12.9/mingw73_64/include/Qwt
 
 DISTFILES += \
     Lang/zh_CN.ts \
     translations/en_US.ts \
     translations/zh_CN.ts
 
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../qt_5_12_9/5.12.9/mingw73_64/lib/ -lqwt
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../qt_5_12_9/5.12.9/mingw73_64/lib/ -lqwtd
+else:unix: LIBS += -L$$PWD/../../qt_5_12_9/5.12.9/mingw73_64/lib/ -lqwt
+
+INCLUDEPATH += $$PWD/../../qt_5_12_9/5.12.9/mingw73_64/include/Qwt
+DEPENDPATH += $$PWD/../../qt_5_12_9/5.12.9/mingw73_64/include/Qwt
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../qt_5_12_9/5.12.9/mingw73_64/lib/ -lqwt
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../qt_5_12_9/5.12.9/mingw73_64/lib/ -lqwtd
+else:unix: LIBS += -L$$PWD/../../qt_5_12_9/5.12.9/mingw73_64/lib/ -lqwt
+
+INCLUDEPATH += $$PWD/../../qt_5_12_9/5.12.9/mingw73_64/include/Qwt
+DEPENDPATH += $$PWD/../../qt_5_12_9/5.12.9/mingw73_64/include/Qwt
