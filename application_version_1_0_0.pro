@@ -65,6 +65,7 @@ HEADERS += \
     languagemanager.h \
     loginwindow.h \
     maintenancewidget.h \
+    measurementdata.h \
     measurewidget.h \
     modernwaveplot.h \
     patientlistwidget.h \

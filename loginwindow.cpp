@@ -220,27 +220,23 @@ void LoginWindow::showHiddenWidget() {
     maintenancewidget->show();
 }
 
-
-
 void LoginWindow::changeLanguage(const QString &languageCode)
 {
     qApp->removeTranslator(&translator);
 
-    QString qmPath = ":/translations/translations/" + languageCode + ".qm";
+     QString qmPath = QString(":/translations/translations/%1.qm").arg(languageCode);
 
     if (translator.load(qmPath)) {
         qApp->installTranslator(&translator);
         qDebug() << "语言切换成功：" << qmPath;
 
-        // **存储用户选择的语言**
+        //存储用户选择的语言
         QSettings settings("MyCompany", "MyApp");
         settings.setValue("language", languageCode);
     } else {
         qDebug() << "语言加载失败：" << qmPath;
+        return;
     }
-
-//    // **手动更新 UI**
-//    ui->retranslateUi(this);
 
     // **遍历所有顶级窗口，发送 `LanguageChange` 事件**
     QEvent event(QEvent::LanguageChange);
@@ -261,6 +257,37 @@ void LoginWindow::openSettingsWindow(){
 void LoginWindow::openImplantWindow() {
     if (!implantWindow) {
         implantWindow = std::make_unique<ImplantInfoWidget>();  // 只有在窗口未创建时才创建
+        implantWindow->setStyleSheet(R"(
+            QWidget {
+                 background-color: qlineargradient(
+                     x1: 0, y1: 0, x2: 0, y2: 1,
+                     stop: 0 rgba(30, 50, 80, 0.9),     /* 顶部：偏亮蓝灰，透明度 0.9 */
+                     stop: 1 rgba(10, 25, 50, 0.75)     /* 底部：深蓝，透明度 0.75 */
+                 );
+                color: white;
+                font-size: 16px;
+                border-radius: 10px;
+            }
+
+            QLabel {
+                color: white;
+                font-weight: bold;
+            }
+
+            QPushButton {
+                background-color: #4a6283;
+                color: white;
+                padding: 3px 8px;
+                border-radius: 6px;
+                font-weight: bold;
+                min-height: 30px;
+            }
+
+            QPushButton:pressed {
+                background-color: rgba(255, 255, 255, 0.3);
+            }
+        )");
+
     }
     connect(implantWindow.get(), &ImplantInfoWidget::openSettingsWindow, this, [this]() {
         openSettingsWindow();
@@ -268,45 +295,19 @@ void LoginWindow::openImplantWindow() {
     });
     connect(implantWindow.get(), &ImplantInfoWidget::implantReturnLogin, this, &LoginWindow::closeImplantWindow);
 
+    // 添加对 destroyed 信号的监听，确保窗口销毁时清理资源
+    connect(implantWindow.get(), &QObject::destroyed, this, [this]() {
+        implantWindow.reset(); // 窗口被销毁后，确保指针置空
+    });
+
     implantWindow->setWindowFlags(Qt::Window);
-    implantWindow->setStyleSheet(R"(
-        QWidget {
-             background-color: qlineargradient(
-                 x1: 0, y1: 0, x2: 0, y2: 1,
-                 stop: 0 rgba(30, 50, 80, 0.9),     /* 顶部：偏亮蓝灰，透明度 0.9 */
-                 stop: 1 rgba(10, 25, 50, 0.75)     /* 底部：深蓝，透明度 0.75 */
-             );
-            color: white;
-            font-size: 16px;
-            border-radius: 10px;
-        }
-
-        QLabel {
-            color: white;
-            font-weight: bold;
-        }
-
-        QPushButton {
-            background-color: #4a6283;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-weight: bold;
-            min-height: 30px;
-        }
-
-        QPushButton:pressed {
-            background-color: rgba(255, 255, 255, 0.3);
-        }
-    )");
-
-
     implantWindow->show();
 }
 
 void LoginWindow::closeImplantWindow(){
+
     implantWindow->close();
-    implantWindow.reset(); //界面关闭，自动销毁并释放内存
+//    implantWindow.reset(); //界面关闭，自动销毁并释放内存
 }
 
 void LoginWindow::showLoginWindow() {
@@ -583,4 +584,3 @@ void LoginWindow::closeEvent(QCloseEvent *event)
         event->ignore();  // 不关闭窗口
     }
 }
-

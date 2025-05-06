@@ -1,5 +1,4 @@
 #include "cardiacoutputdialog.h"
-#include "customkeyboard.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QPushButton>
@@ -12,6 +11,7 @@ CardiacOutputDialog::CardiacOutputDialog(QString bpValue, QString avgValue, QWid
     // 设置窗体样式
     setWindowTitle(tr("输入心输出量"));
     this->setStyleSheet("background-color: #18273E;");
+    this->setFixedSize(350,180);
 
     // 主布局
     QVBoxLayout *mainlayout = new QVBoxLayout(this);
@@ -37,29 +37,28 @@ CardiacOutputDialog::CardiacOutputDialog(QString bpValue, QString avgValue, QWid
     unitLabel->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
 
     // 心输出量输入框
-    QLabel *coTitle = new QLabel("心输出量",this);
+    QLabel *coTitle = new QLabel(tr("心输出量"),this);
     coTitle->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
     coTitle->setFixedHeight(40);
     coEdit = new QLineEdit;
     coEdit->setFixedSize(135,35);
     coEdit->setStyleSheet(R"(
         QLineEdit {
-            background-color: #white;
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 8px;
-            padding: 6px 12px;
-            font-size: 16px;
-            color: white;
-        }
-        QLineEdit:focus {
-            border: 1px solid #4FA3F7;
-            background-color: #253646;
+            padding-left: 8px;
+            color: #666666;
+            border: 1px solid #ccc;  /*浅灰色边框 */
+            border-radius: 4px;
+            background-color: white; /*背景色 */
         }
     )");
 
     coEdit->setFocusPolicy(Qt::ClickFocus);
-//    coEdit->installEventFilter(CustomKeyboard::instance(this));
-//    CustomKeyboard::instance()->registerEdit(coEdit, QPoint(-180, 0));
+    // 拿到单例键盘
+    currentKeyboard = CustomKeyboard::instance(this);
+
+    // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
+    currentKeyboard->registerEdit(coEdit,QPoint(-185, 0));
+
 
     QLabel *coUnit = new QLabel("L/Min",this);
     coUnit->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");

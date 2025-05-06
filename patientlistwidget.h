@@ -8,6 +8,7 @@
 #include <QLabel>
 #include "customkeyboard.h"
 
+
 class PatientListWidget : public QWidget
 {
     Q_OBJECT
@@ -20,15 +21,12 @@ signals:
     void openSettingsWindow();
     void patientReturnLogin();
 
-protected:
-    void closeEvent(QCloseEvent *event) override;
-    void showEvent(QShowEvent *event) override;
-
 private slots:
     void onSearchClicked();
 
 private:
     QTableWidget *tableWidget;
+    QLabel *title;
     QPushButton *btnBack;
     QPushButton *btnAdd;
     QLineEdit *searchEdit;
@@ -36,6 +34,8 @@ private:
     CustomKeyboard* currentKeyboard = nullptr;
     bool eventFilterInstalled = false;  // 用来跟踪事件过滤器的安装状态
     void filterTableByKeyword(const QString &keyword);
+
+    void changeEvent(QEvent *event) override;
 
 };
 

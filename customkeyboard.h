@@ -2,41 +2,57 @@
 #define CUSTOMKEYBOARD_H
 
 #include <QWidget>
-#include <QStackedWidget>
-#include <QPushButton>
-#include <QPointer>
-#include <QLineEdit>
+#include <QPoint>
 #include <QMap>
 
-class CustomKeyboard : public QWidget
-{
+class QLineEdit;
+class QStackedWidget;
+class QPushButton;
+
+class CustomKeyboard : public QWidget {
     Q_OBJECT
 public:
-    explicit CustomKeyboard(QWidget *parent = nullptr);
-    void attachTo(QLineEdit *edit, const QPoint &offset = QPoint(0, 5));       //附着到目标输入框
-    ~CustomKeyboard();
-    bool eventFilter(QObject *watched, QEvent *event) override;     //支持自动弹出键盘
-    void registerEdit(QLineEdit*edit,const QPoint &offset);     // 注册一个输入框与其偏移量
-//    void setKeyboardOffset(QLineEdit* edit, const QPoint& offset);
+    // 单例获取实例
+    static CustomKeyboard* instance(QWidget *parent = nullptr);
+
+    // 注册输入框及其键盘偏移
+    void registerEdit(QLineEdit *edit, const QPoint &offset = QPoint(-35, 0));
 
 signals:
-    void keyPressed(const QString &text);
-    void hideKeyboardRequested();
+    // 键被按下的信号
+    void keyPressed(const QString &key);
 
-private slots:
-    void handleButtonClicked(const QString &text);
+protected:
+    // 捕获输入框获取焦点事件
+    bool eventFilter(QObject *watched, QEvent *event) override;
+    // 拖拽相关
+    void mousePressEvent(QMouseEvent *e) override;
+    void mouseMoveEvent(QMouseEvent *e) override;
+    void mouseReleaseEvent(QMouseEvent *e) override;
+
+private:
+    explicit CustomKeyboard(QWidget *parent = nullptr);
+    ~CustomKeyboard();
+
+    // 将键盘关联到给定输入框，并按偏移量弹出
+    void attachTo(QLineEdit *edit, const QPoint &offset);
+
+    // 构造键盘页面
+    QWidget* createNumKeyboard();
+    QWidget* createAlphaKeyboard();
     void switchToNumKeyboard();
     void switchToAlphaKeyboard();
     void handleShiftClicked();
 
-private:
-    bool isUpperCase = false;// 用来标记当前是否大写模式
-    QStackedWidget *stackedWidget;
-    QWidget *createNumKeyboard();
-    QWidget *createAlphaKeyboard();
-    QList<QPushButton*> letterButtons;
-    QPointer<QLineEdit> currentEdit; //当前活跃的输入框
-    QMap<QLineEdit*,QPoint> editOffsetMap; //存储每个输入框对应的偏移位置
+    QStackedWidget            *stackedWidget;
+    QList<QPushButton*>        letterButtons;
+    QMap<QLineEdit*, QPoint>   editOffsetMap;
+    QLineEdit                 *currentEdit = nullptr;
+    bool                       isUpperCase = false;
+
+    // 拖拽辅助
+    bool                       m_dragging;
+    QPoint                     m_dragPosition;
 };
 
 #endif // CUSTOMKEYBOARD_H

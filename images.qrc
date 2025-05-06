@@ -8,7 +8,6 @@
         <file>image/delete.png</file>
         <file>image/exclamation_mark.png</file>
         <file>image/hide.png</file>
-        <file>image/background.png</file>
         <file>image/setting.png</file>
         <file>image/icons8-reset.png</file>
         <file>image/icons8-shutdown.png</file>
@@ -18,8 +17,6 @@
         <file>image/icons8-shezhi.png</file>
         <file>image/icons8-return.png</file>
         <file>image/icons8-next.png</file>
-        <file>image/body.png</file>
-        <file>image/OIP.jpg</file>
         <file>image/icons8-heart.png</file>
         <file>image/icons8-tingzhen.png</file>
         <file>image/icons8-signal.png</file>
@@ -31,6 +28,8 @@
         <file>image/icons8-connect.png</file>
         <file>image/icons8-disconnect.png</file>
         <file>image/icons8-updata.png</file>
+        <file>image/newbody.png</file>
+        <file>image/logoimage.jpg</file>
     </qresource>
     <qresource prefix="/translations">
         <file>translations/en_US.qm</file>

@@ -24,15 +24,19 @@ signals:
     void implantReturnLogin();
     void onSignalFromImplantationSite();
 
-protected:
-    void closeEvent(QCloseEvent *event) override;
-    void showEvent(QShowEvent *event) override;
-
 private slots:
     void showImplantationSiteWidget(const QString &serial);
     bool insertNewSensor();
 
 private:
+    //标题
+    QLabel *titleLabel;
+    QLabel *serialLabel;
+    QLabel *checksumLabel;
+    QLabel *implantDoctorLabel;
+    QLabel *treatDoctorLabel;
+    QLabel *dateLabel;
+
     // 输入字段
     QLineEdit *serialInput;
     QLineEdit *checksumInput;
@@ -51,6 +55,7 @@ private:
     QString m_serial;
     QString m_locationChoice;   // 记录“左”或“右”
     bool insertImplantationSite();
+    void changeEvent(QEvent *event) override;
 };
 
 #endif // IMPLANTINFOWIDGET_H

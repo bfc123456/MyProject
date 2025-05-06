@@ -55,7 +55,7 @@ PatientListWidget::PatientListWidget(QWidget *parent)
 
 
     // 标题栏
-    QLabel *title = new QLabel(tr("医疗设备管理系统---患者列表"));
+    title = new QLabel(tr("医疗设备管理系统---患者列表"));
     title->setObjectName("titleLabel");
     title->setAttribute(Qt::WA_TranslucentBackground);
     title->setFixedHeight(30);
@@ -102,7 +102,7 @@ PatientListWidget::PatientListWidget(QWidget *parent)
           border-radius: 8px;          /* 圆角边框 */
           padding: 6px;                /* 内边距 */
           color: white;                /* 文字颜色 */
-          font-size: 16px;             /* 字体大小 */
+          font-size: 14px;             /* 字体大小 */
           font-weight: bold;           /* 字体加粗 */
       }
 
@@ -116,6 +116,12 @@ PatientListWidget::PatientListWidget(QWidget *parent)
       }
 
     )");
+
+    // 拿到单例键盘
+    currentKeyboard = CustomKeyboard::instance(this);
+
+    // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
+    currentKeyboard->registerEdit(searchEdit,QPoint(0, 0));
 
     btnSearch = new QPushButton();
     btnSearch->setText(tr("搜索"));
@@ -211,7 +217,7 @@ PatientListWidget::PatientListWidget(QWidget *parent)
         color: white;
         font-weight: bold;
         font-size: 14px;
-        padding: 4px 10px;
+        padding: 2px 5px;
     }
 
     QPushButton:pressed {
@@ -235,7 +241,7 @@ PatientListWidget::PatientListWidget(QWidget *parent)
         color: white;
         font-weight: bold;
         font-size: 14px;
-        padding: 4px 10px;
+        padding: 2px 5px;
     }
 
     QPushButton:pressed {
@@ -262,38 +268,6 @@ PatientListWidget::~PatientListWidget(){
 
 }
 
-
-void PatientListWidget::closeEvent(QCloseEvent *event) {
-    // 确保关闭时删除键盘
-    if (currentKeyboard) {
-        currentKeyboard->deleteLater();  // 删除当前键盘实例
-        currentKeyboard = nullptr;  // 设置为 nullptr，防止后续使用无效指针
-    }
-
-    // 调用父类的 closeEvent 来确保默认处理
-    event->accept();  // 确保继续执行关闭事件
-}
-
-void PatientListWidget::showEvent(QShowEvent *event) {
-    if (!eventFilterInstalled) {
-        // 销毁之前的键盘实例
-        if (currentKeyboard) {
-            currentKeyboard->deleteLater();  // 删除键盘实例
-            currentKeyboard = nullptr;
-        }
-
-        // 创建新的键盘实例
-        currentKeyboard = new CustomKeyboard(this);
-
-        // 安装事件过滤器
-        this->searchEdit->installEventFilter(currentKeyboard);
-
-        eventFilterInstalled = true;  // 设置标志为已安装
-    }
-
-    QWidget::showEvent(event);
-}
-
 void PatientListWidget::onSearchClicked() {
     QString searchText = searchEdit->text().trimmed();
 
@@ -301,7 +275,7 @@ void PatientListWidget::onSearchClicked() {
 
         //创建遮罩
         QWidget *overlay = new QWidget(this);
-        overlay->setGeometry(this->rect());
+//        overlay->setGeometry(this->rect());
         overlay->setStyleSheet("background-color: rgba(0, 0, 0, 100);"); // 可调透明度
         overlay->setAttribute(Qt::WA_TransparentForMouseEvents, false); // 拦截事件
         overlay->show();
@@ -353,7 +327,7 @@ void PatientListWidget::filterTableByKeyword(const QString &keyword) {
 
         //创建遮罩
         QWidget *overlay = new QWidget(this);
-        overlay->setGeometry(this->rect());
+//        overlay->setGeometry(this->rect());
         overlay->setStyleSheet("background-color: rgba(0, 0, 0, 100);"); // 可调透明度
         overlay->setAttribute(Qt::WA_TransparentForMouseEvents, false); // 拦截事件
         overlay->show();
@@ -378,6 +352,26 @@ void PatientListWidget::filterTableByKeyword(const QString &keyword) {
         }
 
         return;
+    }
+}
+
+void PatientListWidget::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) {
+        // 系统自动发送的 LanguageChange
+        setWindowTitle(tr("患者查询界面"));
+        title->setText(tr("医疗设备管理系统---患者列表"));
+        searchEdit->setText(tr("🔍 搜索患者..."));
+        btnSearch->setText(tr("搜索"));
+        tableWidget->setHorizontalHeaderLabels({
+            tr("序列号"),
+            tr("日期"),
+            tr("备注")
+        });
+        btnBack->setText(tr("返回"));
+        btnAdd->setText(tr("添加患者信息"));
+
     }
 }
 

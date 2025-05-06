@@ -7,7 +7,7 @@ CustomMessageBox::CustomMessageBox(QWidget *parent, const QString &title, const 
     setWindowTitle(title);
     this->setObjectName("Custommessagebox");
     this->setStyleSheet(R"(
-        QWidget#CustomMessageBox {
+        QWidget#Custommessagebox {
         background-color: qlineargradient(
             x1: 0, y1: 0, x2: 0, y2: 1,
             stop: 0 rgba(15, 34, 67, 200),     /* 深蓝：顶部 */
@@ -85,8 +85,7 @@ CustomMessageBox::CustomMessageBox(QWidget *parent, const QString &title, const 
     mainLayout->addWidget(messageLabel);  // 添加消息
     mainLayout->addSpacing(20);  // 设置间距
     mainLayout->addLayout(buttonLayout);  // 添加按钮
-
-    setLayout(mainLayout);  // 设置布局
+    mainLayout->setSizeConstraint(QLayout::SetFixedSize);
 }
 
 QString CustomMessageBox::getUserResponse()

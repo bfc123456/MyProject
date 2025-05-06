@@ -10,6 +10,12 @@ DatabaseManager::DatabaseManager(const QString &dbPath)
     db.setDatabaseName(dbPath);  // 设置数据库文件路径
 }
 
+DatabaseManager& DatabaseManager::instance() {
+    static DatabaseManager inst("E:/software_personal/personal_program/MyProject/MyDatabase.db");
+    if (!inst.db.isOpen()) inst.openDatabase();
+    return inst;
+}
+
 DatabaseManager::~DatabaseManager()
 {
     closeDatabase();  // 析构时关闭数据库连接
@@ -21,6 +27,14 @@ bool DatabaseManager::openDatabase()
         qDebug() << "Error opening database:" << db.lastError().text();
         return false;
     }
+
+    // 打开数据库后，立即开启外键约束检查
+    QSqlQuery pragma(db);
+    if (!pragma.exec("PRAGMA foreign_keys = ON;")) {
+        qWarning() << "Failed to enable foreign key support:"
+                   << pragma.lastError().text();
+    }
+
     qDebug() << "Database opened successfully!";
     return true;
 }
@@ -83,4 +97,30 @@ bool DatabaseManager::querySensorInfo(const QString &sensorId)
         qDebug() << "No data found for sensor_id:" << sensorId;
         return false;  // 未找到数据
     }
+}
+
+//通过传感器序列号查询位置信息
+QString DatabaseManager::getLocationBySensorId(const QString &sensorId)
+{
+    QSqlQuery query;
+    query.prepare(R"(
+        SELECT location
+          FROM sensor_info
+         WHERE sensor_id = :id
+         LIMIT 1
+    )");
+    query.bindValue(":id", sensorId);
+
+    if (!query.exec()) {
+        qWarning() << "Location query failed:" << query.lastError().text();
+        return {};
+    }
+
+    if (!query.next()) {
+        qWarning() << "No record for sensor_id =" << sensorId;
+        return {};
+    }
+
+    // 去掉空格并标准化小写
+    return query.value(0).toString().trimmed().toLower();
 }

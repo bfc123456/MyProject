@@ -7,6 +7,7 @@
 #include <QDialog>
 #include <QAbstractItemView>
 #include "global.h"
+#include "SerialStore.h"
 
 FollowUpForm::FollowUpForm(QWidget *parent)
     : QWidget(parent)
@@ -36,11 +37,11 @@ FollowUpForm::FollowUpForm(QWidget *parent)
 
     topBar->setFixedHeight(50);
 
-    QLabel *titleLabel = new QLabel(tr("回访"), this);
+    titleLabel = new QLabel(tr("回访"), this);
     titleLabel->setFixedSize(160, 35);
     titleLabel->setAutoFillBackground(false);                   // 不自动填充背景
     titleLabel->setAttribute(Qt::WA_TranslucentBackground);     // 启用透明背景
-    titleLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
+//    titleLabel->setAlignment(Qt::AlignVCenter);
 
     QPushButton *btnSettings = new QPushButton(this);
     btnSettings->setIcon(QIcon(":/image/icons8-shezhi.png"));
@@ -64,35 +65,43 @@ FollowUpForm::FollowUpForm(QWidget *parent)
     topLayout->setContentsMargins(10, 0, 10, 0);
 
     // 表单部分
-    QLabel *serialLabel = new QLabel(tr("传感器序列号"));
+    serialLabel = new QLabel(tr("传感器序列号"));
     serialLabel->setFixedSize(180, 40);
     serialLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     serialInput = new QLineEdit();
     serialInput->setFixedSize(400, 50);
     serialInput->setPlaceholderText(tr("请输入传感器序列号"));
 
-    QLabel *checksumLabel = new QLabel(tr("校准码"));
+    checksumLabel = new QLabel(tr("校准码"));
     checksumLabel->setFixedSize(180, 40);
     checksumLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     checksumInput = new QLineEdit();
     checksumInput->setFixedSize(400, 50);
     checksumInput->setPlaceholderText(tr("请输入校准码"));
 
-    QLabel *implantDoctorLabel = new QLabel(tr("植入医生"));
+    implantDoctorLabel = new QLabel(tr("植入医生"));
     implantDoctorLabel->setFixedSize(180, 40);
     implantDoctorLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     implantDoctorInput = new QLineEdit();
     implantDoctorInput->setFixedSize(400, 50);
     implantDoctorInput->setPlaceholderText(tr("请输入植入医生姓名"));
 
-    QLabel *treatDoctorLabel = new QLabel(tr("治疗医生"));
+    treatDoctorLabel = new QLabel(tr("治疗医生"));
     treatDoctorLabel->setFixedSize(180, 40);
     treatDoctorLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     treatDoctorInput = new QLineEdit();
     treatDoctorInput->setFixedSize(400, 50);
     treatDoctorInput->setPlaceholderText(tr("请输入治疗医生姓名"));
 
-    QLabel *dateLabel = new QLabel(tr("植入日期"));
+    currentKeyboard = CustomKeyboard::instance(this);
+
+    // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
+    currentKeyboard->registerEdit(serialInput);
+    currentKeyboard->registerEdit(checksumInput);
+    currentKeyboard->registerEdit(implantDoctorInput);
+    currentKeyboard->registerEdit(treatDoctorInput);
+
+    dateLabel = new QLabel(tr("植入日期"));
     dateLabel->setFixedSize(180, 40);
     dateLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     implantDateInput = new QDateEdit(this);
@@ -102,7 +111,7 @@ FollowUpForm::FollowUpForm(QWidget *parent)
     implantDateInput->setFixedSize(400, 50);
     implantDateInput->setCalendarPopup(true);
 
-    QLabel *locationLabel = new QLabel(tr("植入位置"));
+    locationLabel = new QLabel(tr("植入位置"));
     locationLabel->setFixedSize(160, 40);
     locationLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     //  创建 QComboBox 对象
@@ -291,63 +300,40 @@ FollowUpForm::FollowUpForm(QWidget *parent)
 FollowUpForm::~FollowUpForm() {}
 
 void FollowUpForm::showImplantionSite(){
-    ImplantationSite* implantationsite = new ImplantationSite(this);
+    m_serial  = serialInput->text().trimmed();
+    ImplantationSite* implantationsite = new ImplantationSite(this,m_serial);
+    connect(implantationsite, &ImplantationSite::returnRequested, this, [this, implantationsite]() {
+        implantationsite->hide();
+        this->show();
+        implantationsite->deleteLater();
+    });
     implantationsite->setWindowFlags(Qt::Window);
     implantationsite->setFixedSize(1024, 600);
     implantationsite->show();
     this->hide();
 }
 
-void FollowUpForm::closeEvent(QCloseEvent *event) {
-    // 确保关闭时删除键盘
-    if (currentKeyboard) {
-        currentKeyboard->deleteLater();  // 删除当前键盘实例
-        currentKeyboard = nullptr;  // 设置为 nullptr，防止后续使用无效指针
+void FollowUpForm::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) {
+        // 系统自动发送的 LanguageChange
+        setWindowTitle(tr("新植入物管理界面"));
+        titleLabel->setText(tr("回访"));
+        serialLabel->setText(tr("传感器序列号"));
+        serialInput->setText(tr("请输入传感器序列号"));
+        checksumLabel->setText(tr("校准码"));
+        checksumInput->setText(tr("请输入校准码"));
+        implantDoctorLabel->setText(tr("植入医生"));
+        implantDoctorInput->setText(tr("请输入植入医生姓名"));
+        treatDoctorLabel->setText(tr("治疗医生"));
+        treatDoctorInput->setText(tr("请输入治疗医生姓名"));
+        dateLabel->setText(tr("植入日期"));
+        locationLabel->setText(tr("植入位置"));
+        selectcomboBox->setItemText(0, tr("左"));
+        selectcomboBox->setItemText(1, tr("右"));
+        backButton->setText(tr("返回"));
+        continueButton->setText(tr("继续"));
+
     }
-
-    // 调用父类的 closeEvent 来确保默认处理
-    event->accept();  // 确保继续执行关闭事件
 }
-
-
-void FollowUpForm::showEvent(QShowEvent *event) {
-    if (!eventFilterInstalled) {
-        // 销毁之前的键盘实例
-        if (currentKeyboard) {
-            currentKeyboard->deleteLater();  // 删除键盘实例
-            currentKeyboard = nullptr;
-        }
-
-        // 创建新的键盘实例
-        currentKeyboard = new CustomKeyboard(this);
-
-        // 安装事件过滤器
-        this->serialInput->installEventFilter(currentKeyboard);
-        this->checksumInput->installEventFilter(currentKeyboard);
-        this->implantDoctorInput->installEventFilter(currentKeyboard);
-        this->treatDoctorInput->installEventFilter(currentKeyboard);
-
-
-        eventFilterInstalled = true;  // 设置标志为已安装
-    }
-
-    QWidget::showEvent(event);
-}
-
-//void FollowUpForm::validateForm() {
-//    // 获取所有输入框的内容
-//    QString serial = serialInput->text().trimmed();      // 传感器序列号
-//    QString calib = checksumInput->text().trimmed();        // 校准码
-//    QString doctor = implantDoctorInput->text().trimmed();      // 植入医生
-//    QString treatdoctor = treatDoctorInput->text().trimmed();   //治疗医生
-//    QString date = implantDateInput->text().trimmed();  // 植入日期
-//    QString location = selectcomboBox->currentText().trimmed();     // 植入位置（假设这是一个 QComboBox）
-
-//    // 检查是否所有字段都有值
-//    bool isValid = !serial.isEmpty() && !calib.isEmpty() && !doctor.isEmpty() &&
-//                   !date.isEmpty() && !location.isEmpty();
-
-//    // 如果所有输入框有效，启用继续按钮，否则禁用继续按钮
-//    continueButton->setEnabled(isValid);
-//}
-

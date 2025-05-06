@@ -33,7 +33,7 @@ void LanguageManager::switchLanguage(const QString& languageCode)
     if (languageCode == currentLangCode)
         return; // 避免重复加载
 
-    qApp->removeTranslator(&translator);
+    qApp->removeTranslator(&translator);    // 卸载旧翻译器
 
     QString qmPath = ":/translations/translations/" + languageCode + ".qm";
     if (translator.load(qmPath)) {

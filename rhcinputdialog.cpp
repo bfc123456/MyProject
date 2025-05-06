@@ -1,5 +1,4 @@
 #include "rhcinputdialog.h"
-#include "customkeyboard.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QPushButton>
@@ -10,7 +9,7 @@ RHCInputDialog::RHCInputDialog(QWidget *parent)
     : QDialog(parent)
 {
     // 设置窗口标题
-    setWindowTitle("输入RHC");
+    setWindowTitle(tr("输入RHC"));
     this->setStyleSheet("background-color: #18273E;");
     this->setFixedSize(500,250);
 
@@ -19,7 +18,7 @@ RHCInputDialog::RHCInputDialog(QWidget *parent)
     mainlayout->setContentsMargins(15,15,15,15);
 
     // 创建网格布局
-    QGridLayout *gridLayout = new QGridLayout(this);
+    QGridLayout *gridLayout = new QGridLayout();
 
     // 创建输入框和分隔符
     QLineEdit *raInput1 = new QLineEdit(this);
@@ -52,14 +51,17 @@ RHCInputDialog::RHCInputDialog(QWidget *parent)
     paInput3->setFocusPolicy(Qt::ClickFocus);
     pcwpInput1->setFocusPolicy(Qt::ClickFocus);
 
-//    raInput1->installEventFilter(CustomKeyboard::instance(this));
-//    rvInput1->installEventFilter(CustomKeyboard::instance(this));
-//    rvInput2->installEventFilter(CustomKeyboard::instance(this));
-//    paInput1->installEventFilter(CustomKeyboard::instance(this));
-//    paInput2->installEventFilter(CustomKeyboard::instance(this));
-//    paInput3->installEventFilter(CustomKeyboard::instance(this));
-//    pcwpInput1->installEventFilter(CustomKeyboard::instance(this));
+    // 拿到单例键盘
+    currentKeyboard = CustomKeyboard::instance(this);
 
+    // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
+    currentKeyboard->registerEdit(raInput1, QPoint(-170,0));
+    currentKeyboard->registerEdit(rvInput1);
+    currentKeyboard->registerEdit(rvInput2, QPoint(-170,0));
+    currentKeyboard->registerEdit(paInput1);
+    currentKeyboard->registerEdit(paInput2, QPoint(-170,0));
+    currentKeyboard->registerEdit(paInput3 , QPoint(-170,0));
+    currentKeyboard->registerEdit(pcwpInput1 , QPoint(-170,0));
 
     // 设置QLabel样式
     rvdivider->setStyleSheet("QLabel { font-size: 18px; color: #aaaaaa; }");
@@ -88,8 +90,9 @@ RHCInputDialog::RHCInputDialog(QWidget *parent)
     QHBoxLayout *btnlayout = new QHBoxLayout();
     clearButton = new QPushButton(tr("全部清除"), this);
     clearButton->setIcon(QIcon(":/image/delete.png"));
-    clearButton->setFixedWidth(120);
+    clearButton->setFixedSize(120,35);
     saveButton = new QPushButton(tr("保存"), this);
+    saveButton->setFixedSize(120,35);
     saveButton->setIcon(QIcon(":/image/icons8-save.png"));
 
     clearButton->setStyleSheet(R"(
@@ -103,7 +106,7 @@ RHCInputDialog::RHCInputDialog(QWidget *parent)
         color: white;
         font-weight: bold;
         font-size: 14px;
-        padding: 8px 20px;
+        padding: 2px 5px;
     }
 
     QPushButton:pressed {
@@ -127,7 +130,7 @@ RHCInputDialog::RHCInputDialog(QWidget *parent)
         color: white;
         font-weight: bold;
         font-size: 14px;
-        padding: 8px 20px;
+        padding: 2px 5px;
     }
 
     QPushButton:pressed {

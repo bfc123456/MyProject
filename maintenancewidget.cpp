@@ -19,20 +19,20 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
                  stop: 1 rgba(10, 25, 50, 0.75)     /* 底部：深蓝，透明度 0.75 */
              );
             color: white;
-            font-size: 16px;
+            font-size: 14px;
             border-radius: 10px;
         }
     )");
 
     //设置布局
     QHBoxLayout *mainLayout = new QHBoxLayout(this);
-    mainLayout->setContentsMargins(30,30,30,30);
+    mainLayout->setContentsMargins(10,30,10,30);
 
     //左侧串口连接布局
     QWidget *serialconfigwidget = new QWidget();
     serialconfigwidget->setFixedWidth(200);
     QVBoxLayout *serialconfiglayout = new QVBoxLayout(serialconfigwidget);
-    serialconfiglayout->setContentsMargins(30,30,30,30);
+    serialconfiglayout->setContentsMargins(10,30,10,30);
 
     // 端口号设置
     QLabel *portLabel = new QLabel(tr("端口号:"));
@@ -122,7 +122,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
         background-color: rgba(30, 40, 60, 230);     /* 背景色 */
         border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: 8px;
-        padding: 6px 10px;
+        padding: 2px 5px;
     }
 
     QComboBox QAbstractItemView {
@@ -148,7 +148,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     connectButton->setFixedWidth(150);
 
     serialconfiglayout->addStretch();
-    serialconfiglayout->addWidget(connectButton);
+    serialconfiglayout->addWidget(connectButton, 0, Qt::AlignHCenter);
     serialconfiglayout->setAlignment(Qt::AlignHCenter);
 
 
@@ -202,7 +202,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
         );
         border: 1px solid rgba(255, 255, 255, 0.08);      /* 柔和外边框 */
         border-radius: 12px;
-        padding: 8px;
+        padding: 2px;
 
     }
           QPushButton {
@@ -215,7 +215,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
               font-size: 14px;
               border: 1px solid rgba(255, 255, 255, 40);
               border-radius: 8px;
-              padding: 4px 10px;
+              padding: 2px 5px;
               width: 100px;  /* 设置最小宽度 */
               height: 25px;  /* 设置最小高度 */
           }
@@ -234,7 +234,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
         );
         border: 1px solid rgba(255, 255, 255, 0.08);      /* 柔和外边框 */
         border-radius: 12px;
-        padding: 8px;
+        padding: 2px;
 
     }
       QPushButton {
@@ -247,7 +247,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
           font-size: 14px;
           border: 1px solid rgba(255, 255, 255, 40);
           border-radius: 8px;
-          padding: 4px 10px;
+          padding: 2px 5px;
           width: 100px;  /* 设置最小宽度 */
           height: 25px;  /* 设置最小高度 */
       }
@@ -262,7 +262,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
             color: white;  /* 文字颜色为白色 */
             border: 2px solid #3C4A5C;  /* 边缘颜色 */
             border-radius: 8px;  /* 圆角 */
-            padding: 5px;  /* 内边距 */
+            padding: 2px;  /* 内边距 */
             font-size: 14px;  /* 设置字体大小 */
         }
 
@@ -292,7 +292,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
         );
         border: 1px solid rgba(255, 255, 255, 0.08);      /* 柔和外边框 */
         border-radius: 12px;
-        padding: 8px;
+        padding: 2px;
 
     }
       QPushButton {
@@ -305,7 +305,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
           font-size: 14px;
           border: 1px solid rgba(255, 255, 255, 40);
           border-radius: 8px;
-          padding: 4px 10px;
+          padding: 2px 5px;
           width: 100px;  /* 设置最小宽度 */
           height: 25px;  /* 设置最小高度 */
       }
@@ -315,7 +315,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     )");
 
     QVBoxLayout *statusLayout = new QVBoxLayout(statuscheckwidget);
-    statusLayout->setContentsMargins(30,30,30,30);
+    statusLayout->setContentsMargins(10,30,10,30);
 
     // 创建frame用来显示状态信息
     voltageStatusFrame = new QFrame();

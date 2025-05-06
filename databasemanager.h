@@ -23,6 +23,10 @@ public:
 
     bool querySensorInfo(const QString &sensorId);  // 查询数据
 
+    static DatabaseManager& instance(); //获取单例
+
+    QString getLocationBySensorId(const QString &sensorId);
+
 private:
     QSqlDatabase db;
     QString dbPath;

@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include <QLineEdit>
+#include "customkeyboard.h"
 
 class RHCInputDialog : public QDialog
 {
@@ -21,6 +22,7 @@ private:
     QLineEdit *rhcEdit;
     QPushButton *clearButton;
     QPushButton *saveButton;
+    CustomKeyboard* currentKeyboard = nullptr;
 };
 
 #endif // RHCINPUTDIALOG_H

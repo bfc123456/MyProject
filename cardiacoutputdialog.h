@@ -7,6 +7,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
+#include "customkeyboard.h"
 
 class CardiacOutputDialog : public QDialog {
     Q_OBJECT
@@ -18,6 +19,7 @@ public:
 
 private:
     QLineEdit *coEdit;
+    CustomKeyboard* currentKeyboard = nullptr;
 };
 
 #endif // CARDIACOUTPUTDIALOG_H

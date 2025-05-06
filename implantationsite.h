@@ -7,14 +7,13 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QFrame>
-#include <qwt_plot.h>
 #include <QVBoxLayout>
-#include <qwt_plot_grid.h>//模拟函数头文件（后续可删除）
-#include <qwt_plot_curve.h>//模拟函数头文件（后续可删除）
-//#include "loginwindow.h"
+#include "modernwaveplot.h"
 #include "settingswidget.h"
 #include "circularprogressbar.h"
 #include "CustomMessageBox.h"
+#include "calibrationdialog.h"
+#include "implantmonitor.h"
 
 class ImplantationSite : public QWidget
 {
@@ -43,7 +42,7 @@ private:
     QVBoxLayout* mainLayout;
     SettingsWidget *settingswidget;
 
-    QwtPlot* plot;//模拟函数变量声明
+    ModernWavePlot* plot;//模拟函数变量声明
     QwtPlotCurve* curve;
     QwtPlotGrid* grid;
     QTimer* timer;
@@ -53,7 +52,11 @@ private:
     QPushButton* buttonL;
     QPushButton* buttonR;
     QString m_serial;
-
+    QLabel *idLabel;
+    CalibrationDialog *calibrationialog = nullptr;
+    ImplantMonitor *implantmonitor = nullptr;
+    bool isClicked = false;  //按钮状态
+    QString selectedPos;
 };
 
 #endif // IMPLANTATIONSITE_H

@@ -11,15 +11,17 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include "settingswidget.h"
-#include <qwt_plot.h>
-#include <qwt_plot_curve.h>
+#include "measurementdata.h"
+#include "modernwaveplot.h"
+#include "databasemanager.h"
 
 class ReviewWidget : public QWidget {
     Q_OBJECT
 
 public:
-    explicit ReviewWidget(QWidget *parent = nullptr);
+    explicit ReviewWidget(QWidget *parent = nullptr ,  const QString &sensorId = QString());
     ~ReviewWidget();
+    void setDataList(const QList<MeasurementData> &list);
 
 signals:
     void returnToMainWindowSignal();
@@ -28,9 +30,16 @@ signals:
 private slots:
     void showExitConfirmWidget();
     void OpenSettingsRequested();
+    bool uploadToDatabase();
 
 private:
     SettingsWidget *settingswidget;
+    QTableWidget *historyTable  = nullptr;
+    QPushButton *saveButton;
+    QString m_serial;
+    QLabel *idLabel;
+    ModernWavePlot *bpPlot  = nullptr;
+    QList<MeasurementData> m_list;
 };
 
 #endif // REVIEWWIDGET_H

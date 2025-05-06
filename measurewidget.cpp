@@ -2,16 +2,16 @@
 #include <qwt_plot_grid.h>
 #include <qwt_plot_curve.h>
 #include <qwt_series_data.h>
-#include "CircularProgressBar.h"
+#include "circularprogressbar.h"
 #include <QGridLayout>
 #include <qwt_scale_widget.h>
 #include <qwt_plot_layout.h>
 #include <QGraphicsBlurEffect>
 #include <QDialog>
-#include "modernwaveplot.h"
+#include <QTimer>
 
-
-MeasureWidget::MeasureWidget(QWidget *parent) : QWidget(parent)
+MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
+    : QWidget(parent), m_serial(sensorId)
 {
 
     QVBoxLayout *mainlayout = new QVBoxLayout(this);
@@ -43,15 +43,21 @@ MeasureWidget::MeasureWidget(QWidget *parent) : QWidget(parent)
             border-radius: 10px;
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
+         QLabel {
+             color: white;
+             font-weight: bold;
+             font-size: 16px;
+         }
     )");
 
     topwidget->setFixedHeight(50);
 
     //状态栏标题
     titleLabel = new QLabel(tr("新植入物"));
-    titleLabel->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
-    idLabel = new QLabel("XXXXXXXX");
-    idLabel->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
+    titleLabel->setStyleSheet("background-color: transparent; color: white;");
+    idLabel = new QLabel();
+    idLabel->setText(m_serial);
+    idLabel->setStyleSheet("background-color: transparent; color: white;");
     titleLabel->setFixedWidth(120);
     titleLabel->setAlignment(Qt::AlignCenter);
     idLabel->setFixedWidth(120);
@@ -124,27 +130,28 @@ MeasureWidget::MeasureWidget(QWidget *parent) : QWidget(parent)
     QHBoxLayout *middlerightLayout = new QHBoxLayout(middlerightwidget);
 
     // 创建实例
-    ModernWavePlot* plot = new ModernWavePlot(this);
+    plot = new ModernWavePlot(this);
+
+    plot->setAutoFillBackground(false);
+    plot->setStyleSheet("background: transparent; border: none;");
 
     // 配置曲线数据
-    QVector<QPointF> data;
-    for (int i = 0; i < 200; ++i)
-        data << QPointF(i, 40 + 20 * std::sin(i * 0.1));
+//    QVector<QPointF> data;
+//    for (int i = 0; i < 200; ++i)
+//        data << QPointF(i, 40 + 20 * std::sin(i * 0.1));
 
     // 设置样式和数据
     plot->setFixedSize(800, 235);
-    plot->setYRange(20, 60);
+    plot->setYRange(0, 80); // Y 轴范围
+    plot->setXRange(0, 180); //X轴范围
     plot->setLineColor(QColor(100, 180, 255));
-    plot->setFillColor(QColor(40, 120, 200, 30), 20);
+    plot->setFillColor(QColor(40, 120, 200, 30),  -1);
     plot->setCanvasBackground(QColor(20, 30, 50, 230));
-    plot->setData(data);
-
-    QFont axisFont("Arial", 10, QFont::Bold);
-    plot->axisWidget(QwtPlot::xBottom)->setFont(axisFont);
-    plot->axisWidget(QwtPlot::yLeft)->setFont(axisFont);
+//    plot->setData(data);
 
 
     middlerightLayout->addWidget(plot,Qt::AlignCenter);
+//    middlerightLayout->setContentsMargins(15,5,15,5);
 
     middleLayout->addWidget(middleliftwidget);
     middleLayout->addSpacing(10);
@@ -183,7 +190,7 @@ MeasureWidget::MeasureWidget(QWidget *parent) : QWidget(parent)
     sbptittlle->setStyleSheet("background-color: transparent; color: white; font-size: 14px;");
     sbplayout->addWidget(sbptittlle);
     QHBoxLayout *sbpdatalayout = new QHBoxLayout();
-    QLabel *sbpdata = new QLabel("120");
+    sbpdata = new QLabel("120");
     sbpdata->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
     QLabel *sbpunit = new QLabel("mmHg");
     sbpunit->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
@@ -197,7 +204,7 @@ MeasureWidget::MeasureWidget(QWidget *parent) : QWidget(parent)
     dbptittlle->setStyleSheet("background-color: transparent; color: white; font-size: 14px;");
     dbplayout->addWidget(dbptittlle);
     QHBoxLayout *dbpdatalayout = new QHBoxLayout();
-    QLabel *dbpdata = new QLabel("80");
+    dbpdata = new QLabel("80");
     dbpdata->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
     QLabel *dbpunit = new QLabel("mmHg");
     dbpunit->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
@@ -211,7 +218,7 @@ MeasureWidget::MeasureWidget(QWidget *parent) : QWidget(parent)
     meantittlle->setStyleSheet("background-color: transparent; color: white; font-size: 14px;");
     meanlayout->addWidget(meantittlle);
     QHBoxLayout *meandatalayout = new QHBoxLayout();
-    QLabel *meandata = new QLabel("80");
+    meandata = new QLabel("80");
     meandata->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
     QLabel *meanunit = new QLabel("mmHg");
     meanunit->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
@@ -225,7 +232,7 @@ MeasureWidget::MeasureWidget(QWidget *parent) : QWidget(parent)
     heartratetittlle->setStyleSheet("background-color: transparent; color: white; font-size: 14px;");
     heartratelayout->addWidget(heartratetittlle);
     QHBoxLayout *heartrateunitlayout = new QHBoxLayout();
-    QLabel *heartratedata = new QLabel("80");
+    heartratedata = new QLabel("80");
     heartratedata->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
     QLabel *heartrateunit = new QLabel("mmHg");
     heartrateunit->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
@@ -257,7 +264,7 @@ MeasureWidget::MeasureWidget(QWidget *parent) : QWidget(parent)
             border-radius: 8px;
             padding: 6px 10px;
             color: #ffffff;
-            font-size: 14px;
+            font-size: 13px;
             selection-background-color: rgba(100, 200, 255, 0.3);
         }
         QLineEdit:focus {
@@ -270,7 +277,8 @@ MeasureWidget::MeasureWidget(QWidget *parent) : QWidget(parent)
     refersbptittlle->setStyleSheet("background-color: transparent; color: white; font-size: 14px;");
     refersbpdatalayout->addWidget(refersbptittlle);
     QHBoxLayout *refersbpinputlayout = new QHBoxLayout();
-    QLineEdit * referinputsbpdata = new QLineEdit();
+    referinputsbpdata = new QLineEdit();
+    referinputsbpdata->setPlaceholderText(tr("请输入参考收缩压..."));
     referinputsbpdata->setFixedHeight(30);
     referinputsbpdata->setStyleSheet(modernLineEditStyle);
     QLabel * referinputsbpunit = new QLabel("mmHg");
@@ -285,7 +293,8 @@ MeasureWidget::MeasureWidget(QWidget *parent) : QWidget(parent)
     referdbptittlle->setStyleSheet("background-color: transparent; color: white; font-size: 14px;");
     referdbdatalayout->addWidget(referdbptittlle);
     QHBoxLayout *referdbpinputlayout = new QHBoxLayout();
-    QLineEdit * referinputdbpdata = new QLineEdit();
+    referinputdbpdata = new QLineEdit();
+    referinputdbpdata->setPlaceholderText(tr("请输入参考舒张压..."));
     referinputdbpdata->setFixedHeight(30);
     referinputdbpdata->setStyleSheet(modernLineEditStyle);
     QLabel * referinputdbpunit = new QLabel("mmHg");
@@ -300,7 +309,8 @@ MeasureWidget::MeasureWidget(QWidget *parent) : QWidget(parent)
     refermeantittlle->setStyleSheet("background-color: transparent; color: white; font-size: 14px;");
     refermeandatalayout->addWidget(refermeantittlle);
     QHBoxLayout *refermeaninputlayout = new QHBoxLayout();
-    QLineEdit * refermeaninputdata = new QLineEdit();
+    refermeaninputdata = new QLineEdit();
+    refermeaninputdata->setPlaceholderText(tr("请输入参考平均值..."));
     refermeaninputdata->setFixedHeight(30);
     refermeaninputdata->setStyleSheet(modernLineEditStyle);
     QLabel * refermeaninputunit = new QLabel("mmHg");
@@ -333,40 +343,57 @@ MeasureWidget::MeasureWidget(QWidget *parent) : QWidget(parent)
     QLabel * positontittle = new QLabel(tr("患者位置调整"));
     positontittle->setStyleSheet("background-color: transparent; color: #7DDFFF; font-size: 16px;");
     bottomrightlayout->addWidget(positontittle);
-    
-    const QString buttonStyle = R"(
-        QPushButton {
-            background-color: qlineargradient(
-                x1:0, y1:0, x2:0, y2:1,
-                stop:0 rgba(90, 160, 255, 0.7),
-                stop:1 rgba(40, 100, 200, 0.7)
-            );
-            border: 1px solid rgba(120, 200, 255, 0.3);
-            border-radius: 8px;
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            padding: 6px 12px;
-        }
-
-        QPushButton:pressed {
-            background-color: rgba(30, 90, 160, 0.9);
-            border: 1px solid rgba(100, 200, 255, 0.6);
-            padding-left: 8px;
-            padding-top: 7px;
-        }
-    )";
 
 
     QGridLayout *positionbuttonlayout = new QGridLayout();
-    QPushButton *zerobutton = new QPushButton("0°");
-    zerobutton->setStyleSheet(buttonStyle);
-    QPushButton *thirtybutton = new QPushButton("30°");
-    thirtybutton->setStyleSheet(buttonStyle);
-    QPushButton *fortyfivebutton = new QPushButton("45°");
-    fortyfivebutton->setStyleSheet(buttonStyle);
-    QPushButton *ninetybutton = new QPushButton("90°");
-    ninetybutton->setStyleSheet(buttonStyle);
+    zerobutton = new QPushButton("0°");
+    zerobutton->setStyleSheet("QPushButton {"
+                              "background-color:rgba(135, 206, 235, 0.6);"  // 恢复为蓝色背景
+                              "color: white;"  // 恢复白色文字
+                              "font-size: 14px;"
+                              "font-weight: bold;"
+                              "border: 1px solid rgba(120, 200, 255, 0.3);"
+                              "border-radius: 8px;"
+                              "padding: 6px 12px;"
+                              "}");
+    thirtybutton = new QPushButton("30°");
+    thirtybutton->setStyleSheet("QPushButton {"
+                                "background-color:rgba(135, 206, 235, 0.6);"  // 恢复为蓝色背景
+                                "color: white;"  // 恢复白色文字
+                                "font-size: 14px;"
+                                "font-weight: bold;"
+                                "border: 1px solid rgba(120, 200, 255, 0.3);"
+                                "border-radius: 8px;"
+                                "padding: 6px 12px;"
+                                "}");
+    fortyfivebutton = new QPushButton("45°");
+    fortyfivebutton->setStyleSheet("QPushButton {"
+                                   "background-color:rgba(135, 206, 235, 0.6);"  // 恢复为蓝色背景
+                                   "color: white;"  // 恢复白色文字
+                                   "font-size: 14px;"
+                                   "font-weight: bold;"
+                                   "border: 1px solid rgba(120, 200, 255, 0.3);"
+                                   "border-radius: 8px;"
+                                   "padding: 6px 12px;"
+                                   "}");
+    ninetybutton = new QPushButton("90°");
+    ninetybutton->setStyleSheet("QPushButton {"
+                                "background-color:rgba(135, 206, 235, 0.6);"  // 恢复为蓝色背景
+                                "color: white;"  // 恢复白色文字
+                                "font-size: 14px;"
+                                "font-weight: bold;"
+                                "border: 1px solid rgba(120, 200, 255, 0.3);"
+                                "border-radius: 8px;"
+                                "padding: 6px 12px;"
+                                "}");
+
+    //关联函数
+    // 在构造函数或者合适的位置连接按钮点击信号
+    connect(zerobutton, &QPushButton::clicked, this, &MeasureWidget::onBtnClicked);
+    connect(thirtybutton, &QPushButton::clicked, this, &MeasureWidget::onBtnClicked);
+    connect(fortyfivebutton, &QPushButton::clicked, this, &MeasureWidget::onBtnClicked);
+    connect(ninetybutton, &QPushButton::clicked, this, &MeasureWidget::onBtnClicked);
+
     positionbuttonlayout->addWidget(zerobutton,0,0);
     positionbuttonlayout->addWidget(thirtybutton,0,1);
     positionbuttonlayout->addWidget(fortyfivebutton,1,0);
@@ -375,13 +402,23 @@ MeasureWidget::MeasureWidget(QWidget *parent) : QWidget(parent)
     
     QLabel *remarklabel = new QLabel(tr("备注"));
     remarklabel->setStyleSheet("background-color: transparent; color: #7DDFFF; font-size: 16px;");
-    QLineEdit *remarklineedit = new QLineEdit();
+    remarklineedit = new QLineEdit();
     remarklineedit->setFixedHeight(50);
     remarklineedit->setPlaceholderText(tr("请输入备注信息..."));
     remarklineedit->setStyleSheet(modernLineEditStyle);
     bottomrightlayout->addWidget(remarklabel);
     bottomrightlayout->addWidget(remarklineedit);
-   
+
+
+    // 拿到单例键盘
+    currentKeyboard = CustomKeyboard::instance(this);
+
+    // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
+    currentKeyboard->registerEdit(referinputsbpdata, QPoint(259,-300));
+    currentKeyboard->registerEdit(referinputdbpdata, QPoint(70,-300));
+    currentKeyboard->registerEdit(refermeaninputdata, QPoint(-119,-300));
+    currentKeyboard->registerEdit(remarklineedit, QPoint(-351,-300));
+
     bottomlayout->addWidget(bottomliftwidget);
     bottomlayout->addSpacing(25);
     bottomlayout->addWidget(bottomrightwidget);
@@ -454,6 +491,7 @@ MeasureWidget::MeasureWidget(QWidget *parent) : QWidget(parent)
     mainlayout->addLayout(savebtnlayout);
     mainlayout->addSpacing(5);
 
+    startMeasurement();
 }
 
 MeasureWidget::~MeasureWidget() {
@@ -533,7 +571,7 @@ void MeasureWidget::openSaveConfirm(){
         color: white;
         font-weight: bold;
         font-size: 14px;
-        padding: 8px 20px;
+        padding: 2px 5px;
     }
 
     QPushButton:pressed {
@@ -550,7 +588,13 @@ void MeasureWidget::openSaveConfirm(){
 
     mainLayout->addLayout(buttonLayout);
 
-    QObject::connect(confirmButton, &QPushButton::clicked, &prompt, &QDialog::accept);
+    QObject::connect(confirmButton, &QPushButton::clicked, this, [this, &prompt]() {
+
+        onSaveButtonClicked();
+        prompt.accept();  // 关闭QDialog
+        this->close();
+        emit returnprepage();
+    });
 
     // 5. 阻塞显示
     prompt.exec();
@@ -561,3 +605,143 @@ void MeasureWidget::openSaveConfirm(){
     overlay->deleteLater();
 
 }
+
+    //开始生成波形数据
+void MeasureWidget::startMeasurement() {
+    // 初始化开始时间
+    currentTime = 0;
+    points.clear();  // 清空之前的数据
+
+    // 设置定时器，每秒触发一次timeout信号
+    measurementTimer = new QTimer(this);
+    connect(measurementTimer, &QTimer::timeout, this, &MeasureWidget::updateWaveform);
+
+    // 启动定时器，每1000毫秒（1秒）触发一次
+    measurementTimer->start(1000);
+}
+
+void MeasureWidget::updateWaveform() {
+    // 每秒增加一个数据点
+    points.append(QPointF(currentTime, qrand() % 81)); // 生成0到80之间的随机数，模拟波形数据
+
+    // 计算最大值和最小值
+    maxValue = points[0].y();
+    minValue = points[0].y();
+    avgValue = 0;
+    heartRate = 0;
+
+    for (const auto& point : points) {
+        if (point.y() > maxValue) {
+            maxValue = point.y();  // 更新最大值
+        }
+        if (point.y() < minValue) {
+            minValue = point.y();  // 更新最小值
+        }
+    }
+
+    // 计算平均值
+    double sum = 0;
+    for (const auto &point : points) {
+        sum += point.y();
+    }
+    avgValue = sum / points.size();
+
+    // 计算心率
+    heartRate = calculateHeartRate();
+
+
+    // 更新血压标签的显示内容（格式：血压\n最大值/最小值）
+    sbpdata->setText(QString("%1").arg(QString::number(maxValue, 'f', 2)));
+    dbpdata->setText(QString("%1").arg(QString::number(minValue, 'f', 2)));
+    meandata->setText(QString("%1").arg(QString::number(heartRate, 'f', 2)));
+    heartratedata->setText(QString("%1").arg(QString::number(avgValue, 'f', 2)));
+
+    // 设置新的波形数据到plot
+    plot->setData(points);
+
+    // 更新图表
+    plot->replot();
+
+    // 增加时间
+    currentTime++;
+
+    // 假设当时间超过180秒时停止
+    if (currentTime > 180) {
+        measurementTimer->stop(); // 停止定时器
+    }
+}
+
+    //简单的心率计算
+double MeasureWidget::calculateHeartRate() {
+    int peaks = 0;
+    for (int i = 1; i < points.size() - 1; ++i) {
+        if (points[i].y() > points[i - 1].y() && points[i].y() > points[i + 1].y()) {
+            peaks++;
+        }
+    }
+    return peaks * 60.0 / points.size();  // 假设每个峰值代表一个心跳，计算心率
+}
+
+    //位置按钮点击反馈函数
+void MeasureWidget::onBtnClicked() {
+    QPushButton *clickedBtn = qobject_cast<QPushButton*>(sender());
+
+    if (!isYellow) {
+        clickedBtn->setStyleSheet("QPushButton {"
+                                  "background-color: rgba(0, 255, 0, 0.6);"  // 设置淡绿色并调整透明度
+                                  "color: black;"  // 设置文字颜色为黑色
+                                  "font-size: 14px;"
+                                  "font-weight: bold;"
+                                  "border: 1px solid rgba(120, 200, 255, 0.3);"  // 设置边框的颜色和样式
+                                  "border-radius: 8px;"  // 设置圆角边框
+                                  "padding: 6px 12px;"
+                                  "}");
+        isYellow = true; // 标记按钮已经变为黄色
+
+        selectedAngle  = clickedBtn->text();
+
+    } else {
+        clickedBtn->setStyleSheet("QPushButton {"
+                                  "background-color:rgba(135, 206, 235, 0.6);"  // 恢复为蓝色背景
+                                  "color: white;"  // 恢复白色文字
+                                  "font-size: 14px;"
+                                  "font-weight: bold;"
+                                  "border: 1px solid rgba(120, 200, 255, 0.3);"
+                                  "border-radius: 8px;"
+                                  "padding: 6px 12px;"
+                                  "}");
+        isYellow = false; // 标记按钮恢复为初始状态
+
+        selectedAngle.clear();
+    }
+}
+
+void MeasureWidget::onSaveButtonClicked() {
+
+    MeasurementData d;
+
+    //取值
+    d.sensorSystolic   = sbpdata->text();
+    d.sensorDiastolic  = dbpdata->text();
+    d.sensorAvg        = meandata->text();
+    d.heartRate        = heartratedata->text();
+    d.refSystolic      = referinputsbpdata->text();
+    d.refDiastolic     = referinputdbpdata->text();
+    d.refAvg           = refermeaninputdata->text();
+    d.angle            = selectedAngle;
+    d.note             = remarklineedit->text();
+    d.points           = this->points;
+
+    // 发射信号，传递所有数据
+    emit dataSaved(d);
+//    qDebug() << "sensorSystolic: " << sensorSystolic;
+//    qDebug() << "sensorDiastolic: " << sensorDiastolic;
+//    qDebug() << "sensorAvg: " << sensorAvg;
+//    qDebug() << "heartRate: " << heartRate;
+//    qDebug() << "refSystolic: " << refSystolic;
+//    qDebug() << "refDiastolic: " << refDiastolic;
+//    qDebug() << "refAvg: " << refAvg;
+//    qDebug() << "angle: " << angle;
+//    qDebug() << "note: " << note;
+}
+

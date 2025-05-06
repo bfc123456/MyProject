@@ -15,7 +15,7 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
     QLabel* title = new QLabel(tr("校准传感器"));
-    title->setFixedWidth(120);
+    title->setFixedWidth(180);
     title->setAlignment(Qt::AlignCenter);
     title->setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent; color: white;");
     mainLayout->addWidget(title, 0, Qt::AlignHCenter);
@@ -70,8 +70,12 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
             background-color: white; /*背景色 */
         }
     )");
-//    this->inputEdit->installEventFilter(CustomKeyboard::instance(this));
-//    CustomKeyboard::instance(this)->registerEdit(inputEdit, QPoint(-250, 0));
+
+    // 拿到单例键盘
+    currentKeyboard = CustomKeyboard::instance(this);
+
+    // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
+    currentKeyboard->registerEdit(inputEdit,QPoint(-250, 0));
 
     inputLayout->addWidget(inputLabel);
     inputLayout->addWidget(inputEdit);
@@ -105,7 +109,7 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
         color: white;
         font-weight: bold;
         font-size: 14px;
-        padding: 4px 10px;
+        padding: 2px 5px;
     }
 
     QPushButton:pressed {
@@ -129,7 +133,7 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
         color: white;
         font-weight: bold;
         font-size: 14px;
-        padding: 8px 20px;
+        padding: 2px 5px;
     }
 
     QPushButton:pressed {
@@ -162,35 +166,3 @@ QString CalibrationDialog::getCalibrationValue() const
 {
     return inputEdit->text();
 }
-
-//void CalibrationDialog::closeEvent(QCloseEvent *event) {
-//    // 确保关闭时删除键盘
-//    if (currentKeyboard) {
-//        currentKeyboard->deleteLater();  // 删除当前键盘实例
-//        currentKeyboard = nullptr;  // 设置为 nullptr，防止后续使用无效指针
-//    }
-
-//    // 调用父类的 closeEvent 来确保默认处理
-//    event->accept();  // 确保继续执行关闭事件
-//}
-
-
-//void CalibrationDialog::showEvent(QShowEvent *event) {
-//    if (!eventFilterInstalled) {
-//        // 销毁之前的键盘实例
-//        if (currentKeyboard) {
-//            currentKeyboard->deleteLater();  // 删除键盘实例
-//            currentKeyboard = nullptr;
-//        }
-
-//        // 创建新的键盘实例
-//        currentKeyboard = new CustomKeyboard(this);
-
-//        // 安装事件过滤器
-//        this->inputEdit->installEventFilter(currentKeyboard);
-
-//        eventFilterInstalled = true;  // 设置标志为已安装
-//    }
-
-//    QWidget::showEvent(event);
-//}

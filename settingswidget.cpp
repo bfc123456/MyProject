@@ -147,8 +147,8 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     }
     )");
 
-    languageComboBox->addItem("简体中文", "zh_CN");
-    languageComboBox->addItem("English", "en_US");
+    languageComboBox->addItem(tr("中文"), "zh_CN");
+    languageComboBox->addItem(tr("英语"), "en_US");
     languageComboBox->setFixedSize(150, 40);
 
     QString currentLang = LanguageManager::instance().currentLanguage();
@@ -319,6 +319,9 @@ void SettingsWidget::changeEvent(QEvent *event)
         shutdownButton->setText(tr("关  机"));
         systemInfoLabel->setText(tr("系统信息"));
         softwareVersionLabel1->setText(tr("软件版本:"));
+
+        languageComboBox->setItemText(0, tr("中文"));
+        languageComboBox->setItemText(1, tr("英语"));
     }
     QWidget::changeEvent(event);
 }

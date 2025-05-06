@@ -8,16 +8,17 @@
 #include <QGraphicsBlurEffect>
 #include "circularprogressbar.h"
 #include "rhcinputdialog.h"
-#include "measurewidget.h"
-#include "reviewwidget.h"
-#include "modernwaveplot.h"
-#include "readoutrecorddialog.h"
+#include <QtSql/QSqlDatabase>
+#include <QtSql/QSqlQuery>
+#include <QtSql/QSqlError>
+#include "databasemanager.h"
 
-ImplantMonitor::ImplantMonitor(QWidget *parent) : QWidget(parent) {
+ImplantMonitor::ImplantMonitor(QWidget *parent , const QString &sensorId) : QWidget(parent) , m_serial(sensorId) {
 
     this->setFixedSize(1024,600);
     this->setObjectName("Implantonitor");
     this->setStyleSheet(R"(
+    QWidget#Implantonitor {
     background-color: qlineargradient(
         x1: 0, y1: 1,
         x2: 1, y2: 0,
@@ -37,7 +38,7 @@ ImplantMonitor::ImplantMonitor(QWidget *parent) : QWidget(parent) {
     QWidget *topwidget = new QWidget(this);
     topwidget->setObjectName("TopBar");
     topwidget->setStyleSheet(R"(
-        #TopBar {
+        QWidget#TopBar {
             background-color: qlineargradient(
                 x1: 0, y1: 0, x2: 0, y2: 1,
                 stop: 0 rgba(25, 50, 75, 0.9),
@@ -46,13 +47,19 @@ ImplantMonitor::ImplantMonitor(QWidget *parent) : QWidget(parent) {
             border-radius: 10px;
             border: 1px solid rgba(255, 255, 255, 0.08); /* 边缘高光 */
         }
+         QLabel {
+             color: white;
+             font-weight: bold;
+             font-size: 16px;
+         }
     )");
     topwidget->setFixedHeight(50);
 
     titleLabel = new QLabel(tr("新植入物"));
-    titleLabel->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
-    idLabel = new QLabel("XXXXXXXX");
-    idLabel->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
+    titleLabel->setStyleSheet("background-color: transparent; color: white;");
+    idLabel = new QLabel();
+    idLabel ->setText(m_serial);
+    idLabel->setStyleSheet("background-color: transparent; color: white;");
     titleLabel->setFixedWidth(120);
     titleLabel->setAlignment(Qt::AlignCenter);
     idLabel->setFixedWidth(120);
@@ -98,21 +105,22 @@ ImplantMonitor::ImplantMonitor(QWidget *parent) : QWidget(parent) {
     }
     )");
 
-    ModernWavePlot *plot = new ModernWavePlot(this);
+    plot = new ModernWavePlot(this);
 
     plot->setAutoFillBackground(false);
-    plot->setStyleSheet("background: transparent; border: none;");
+    plot->setStyleSheet("background: transparent; border: none; color:white;");
 
-    // 设置曲线数据
+//    // 设置曲线数据
     QVector<QPointF> points;
     for (int i = 0; i < 200; ++i)
-        points.append(QPointF(i, qrand() % 50 + 60));
+        points.append(QPointF(i, qrand() % 81));  // 生成0到80之间的随机数
     plot->setData(points);
 
     // 设置样式
     plot->setLineColor(QColor(100, 180, 255));  //曲线颜色
-    plot->setFillColor(QColor(40, 120, 200, 30), 20);   //波形底部填充
-    plot->setYRange(60, 110);                       // Y 轴范围
+    plot->setFillColor(QColor(40, 120, 200, 30), -1);   //波形底部填充
+    plot->setYRange(0, 80); // Y 轴范围
+    plot->setXRange(0, 180); //X轴范围
     plot->setMinimumHeight(200);                    // 控件高度（生效）
 
     //布局plot
@@ -121,7 +129,7 @@ ImplantMonitor::ImplantMonitor(QWidget *parent) : QWidget(parent) {
     middleLayout->setContentsMargins(50, 30, 50, 30);
 
     //设置底部布局
-    QHBoxLayout *bottomLayout = new QHBoxLayout(this);
+    QHBoxLayout *bottomLayout = new QHBoxLayout();
     //从左到右依次排布四个widget
     //左一：圆形进度显示
     QWidget *firstLeftWidget = new QWidget;
@@ -139,46 +147,59 @@ ImplantMonitor::ImplantMonitor(QWidget *parent) : QWidget(parent) {
     firstLeftLayout->addWidget(progressBar, 0, Qt::AlignCenter);
 
     //左二：植入位置显示
-    QWidget *secondLeftWidget = new QWidget;
-    imgLabel = new QLabel(secondLeftWidget);
-    imgLabel->setFixedSize(180, 120);
-    QPixmap original(":/image/body.png");
-    QPixmap scaled = original.scaled(imgLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    imgLabel->setPixmap(scaled);
-    imgLabel->setAlignment(Qt::AlignCenter);
-    secondLeftWidget->setFixedSize(180, 120);  // 容器控件尺寸固定
-
-    // 左右半透明框
-    QFrame* leftRegion = new QFrame(imgLabel);
-    QFrame* rightRegion = new QFrame(imgLabel);
-
-    // 设置初始大小和位置：左右各一半
-    leftRegion->setGeometry(0, 0, 90, 120);   // 左半边
-    rightRegion->setGeometry(90, 0, 90, 120); // 右半边
-
-    auto setImplantSide = [&](bool isLeft){
-        if (isLeft) {
-            leftRegion->setStyleSheet("background-color: rgba(0, 200, 0, 80);");
-            rightRegion->setStyleSheet("background-color: rgba(200, 200, 200, 40);");
-        } else {
-            leftRegion->setStyleSheet("background-color: rgba(200, 200, 200, 40);");
-            rightRegion->setStyleSheet("background-color: rgba(0, 200, 0, 80);");
+    QWidget *secondLeftWidget = new QWidget(parent);
+    secondLeftWidget->setObjectName("secondLeftWidget");
+    secondLeftWidget->setFixedSize(180, 120);
+    secondLeftWidget->setStyleSheet(R"(
+        QWidget#secondLeftWidget {
+            border: none;
+            /* 用 border-image 拉伸背景 */
+            border-image: url(:/image/newbody.png);
         }
-    };
-    setImplantSide(true);
+    )");
+    //在它上面放一个 QLabel 来显示“L”或“R”
+    QLabel *sideLabel = new QLabel(secondLeftWidget);
+    sideLabel->setFixedSize(40, 40);
+    sideLabel->setAlignment(Qt::AlignCenter);
+    sideLabel->setStyleSheet(R"(
+      QLabel {
+        background-color: rgba(33, 150, 243, 0.85);  /* #2196F3 + 85% 不透明度 */
+        color: white;
+        font-size: 18px;
+        border-radius: 6px;
+      }
+    )");
 
-//    centerLayout->addStretch();
+    QString loc = DatabaseManager::instance().getLocationBySensorId(m_serial);
+
+    m_isLeft = (loc == "left");
+//    qDebug()<<" "<<m_isLeft;
+
+    //根据左右来移动到正确位置，比如右侧偏上
+    if (m_isLeft) {
+        sideLabel->setText("L");
+        // 左侧居中偏左
+        sideLabel->move( 40, 2*(secondLeftWidget->height() - sideLabel->height())/3 );
+    } else {
+        sideLabel->setText("R");
+        // 右侧居中偏右
+        sideLabel->move(
+                    secondLeftWidget->width() - sideLabel->width() - 40,
+                    2*(secondLeftWidget->height() - sideLabel->height())/3
+                    );
+    }
+    sideLabel->show();
 
     //右二：数据显示区域
     QWidget *secondRightWidget = new QWidget;
     secondRightWidget->setFixedSize(260,120);
     QHBoxLayout *secondRightLayout = new QHBoxLayout(secondRightWidget);
     //定义控件
-    bpVal = new QLabel("血压\n120/80");
+    bpVal = new QLabel(tr("血压\n120/80"));
     bpVal->setFixedSize(110,45);
-    avgVal = new QLabel("平均\n94");
+    avgVal = new QLabel(tr("平均\n94"));
     avgVal->setFixedSize(110,45);
-    hrVal = new QLabel("心率\n75");
+    hrVal = new QLabel(tr("心率\n75"));
     hrVal->setFixedSize(110,45);
     statisticsbtn = new QPushButton(tr("读数记录"));
     statisticsbtn->setFixedSize(110,45);
@@ -195,7 +216,7 @@ ImplantMonitor::ImplantMonitor(QWidget *parent) : QWidget(parent) {
             font-weight: bold;
             border: 1px solid rgba(255, 255, 255, 50);
             border-radius: 10px;
-            padding: 6px;
+            padding: 2px;
         }
     )";
 
@@ -242,6 +263,7 @@ ImplantMonitor::ImplantMonitor(QWidget *parent) : QWidget(parent) {
     connect(inputCO, &QPushButton::clicked, this, &ImplantMonitor::openCOClicked);
     connect(inputRHC, &QPushButton::clicked, this, &ImplantMonitor::openRHCClicked);
     connect(startBtn, &QPushButton::clicked, this, &ImplantMonitor::openMeasureClicked);
+//    connect(startBtn, &QPushButton::clicked, this, &ImplantMonitor::startMeasurement);
     connect(statBtn, &QPushButton::clicked, this, &ImplantMonitor::openReviewClicked);
 
     //放置布局
@@ -272,7 +294,7 @@ ImplantMonitor::ImplantMonitor(QWidget *parent) : QWidget(parent) {
     )";
 
     firstLeftWidget->setStyleSheet(darkCardStyle);
-    secondLeftWidget->setStyleSheet(darkCardStyle);
+//    secondLeftWidget->setStyleSheet(darkCardStyle);
     secondRightWidget->setStyleSheet(darkCardStyle);
     firstRightWidget->setStyleSheet(darkCardStyle);
 
@@ -306,7 +328,7 @@ ImplantMonitor::ImplantMonitor(QWidget *parent) : QWidget(parent) {
             font-weight: bold;
             border: 2px solid #228822;
             border-radius: 10px;
-            padding: 10px 24px;
+            padding: 2px 5px;
         }
         QPushButton:pressed {
             background-color: #2EA836;
@@ -326,7 +348,7 @@ ImplantMonitor::ImplantMonitor(QWidget *parent) : QWidget(parent) {
             font-size: 14px;
             border: 1px solid rgba(255, 255, 255, 40);
             border-radius: 8px;
-            padding: 4px 10px;
+            padding: 2px 5px;
         }
         QPushButton:pressed {
             background-color: rgba(100, 120, 200, 50);
@@ -337,9 +359,7 @@ ImplantMonitor::ImplantMonitor(QWidget *parent) : QWidget(parent) {
     statBtn->setStyleSheet(secondaryBtnStyle);
     statisticsbtn->setStyleSheet(secondaryBtnStyle);
     
-    connect(statisticsbtn,&QPushButton::clicked,this,&ImplantMonitor::openReadoutClicked);
-
-    setLayout(mainLayout);
+    connect(statisticsbtn, &QPushButton::clicked,this,&ImplantMonitor::onReadoutButtonClicked);
 }
 
 ImplantMonitor::~ImplantMonitor(){
@@ -351,7 +371,7 @@ void ImplantMonitor::openCOClicked()
 
     //添加遮罩层
     QWidget *overlay = new QWidget(this);
-    overlay->setGeometry(this->rect());
+//    overlay->setGeometry(this->rect());
     overlay->setStyleSheet("background-color: rgba(0, 0, 0, 100);"); // 可调透明度
     overlay->setAttribute(Qt::WA_TransparentForMouseEvents, false); // 拦截事件
     overlay->show();
@@ -379,7 +399,7 @@ void ImplantMonitor::openRHCClicked()
 {
     //添加遮罩层
     QWidget *overlay = new QWidget(this);
-    overlay->setGeometry(this->rect());
+//    overlay->setGeometry(this->rect());
     overlay->setStyleSheet("background-color: rgba(0, 0, 0, 100);"); // 可调透明度
     overlay->setAttribute(Qt::WA_TransparentForMouseEvents, false); // 拦截事件
     overlay->show();
@@ -408,8 +428,8 @@ void ImplantMonitor::openRHCClicked()
 
 void ImplantMonitor::openMeasureClicked()
 {
-   qDebug()<<"test";
-   MeasureWidget *measurewidget = new MeasureWidget(this);
+   measurewidget = new MeasureWidget(nullptr,m_serial);
+   connect(measurewidget, &MeasureWidget::dataSaved,this,&ImplantMonitor::onDataSaved);
    measurewidget->setWindowFlags(Qt::Window);
    measurewidget->setAttribute(Qt::WA_DeleteOnClose);
    measurewidget->setFixedSize(1024,600);
@@ -423,28 +443,68 @@ void ImplantMonitor::openMeasureClicked()
 
 void ImplantMonitor::openReviewClicked()
 {
-   qDebug()<<"test";
-   ReviewWidget *reviewwidget = new ReviewWidget();
-   connect(reviewwidget,&ReviewWidget::returnToImplantmonitor,this,[this,reviewwidget](){
+   if (!reviewwidget) {
+   reviewwidget = new ReviewWidget(nullptr,m_serial);
+   connect(reviewwidget,&ReviewWidget::returnToImplantmonitor,this,[this](){
+       reviewwidget->setDataList(measurementList);
        reviewwidget->hide();
        this->show();
        reviewwidget->close();
-   });
+   });}
+
+   reviewwidget->setDataList(measurementList);
    reviewwidget->setFixedSize(1024,600);
    reviewwidget->show();
    this->hide();
 }
 
-void ImplantMonitor::openReadoutClicked(){
-    ReadoutRecordDialog *readoutdialog = new ReadoutRecordDialog(this);
-    readoutdialog->setWindowFlags(Qt::Window);
-    readoutdialog->setAttribute(Qt::WA_DeleteOnClose);
-    readoutdialog->show();
-}
+//void ImplantMonitor::openReadoutClicked(){
+//    readoutdialog = new ReadoutRecordDialog(this);
+//    readoutdialog->setWindowFlags(Qt::Window);
+//    readoutdialog->setAttribute(Qt::WA_DeleteOnClose);
+//    readoutdialog->show();
+//}
 
 void ImplantMonitor::OpenSettingsRequested() {
     settingswidget = new SettingsWidget();
     settingswidget->setWindowFlags(Qt::Dialog);
     settingswidget->setAttribute(Qt::WA_DeleteOnClose);
     settingswidget->show();
+}
+
+//处理量测打包的数据
+void ImplantMonitor::onDataSaved(const MeasurementData &d0) {
+    MeasurementData d = d0;
+    d.order = measurementList.size() + 1;    // 顺序号
+    measurementList.append(d);
+}
+
+void ImplantMonitor::onReadoutButtonClicked() {
+    if (!readoutdialog) {
+        readoutdialog = new ReadoutRecordDialog(this);
+        // 这里把整个列表一次性传给对话框
+        connect(this, &ImplantMonitor::dataListUpdated,readoutdialog, &ReadoutRecordDialog::populateData);
+//        connect(this, &ImplantMonitor::dataListUpdated,readoutdialog, &ReadoutRecordDialog::populateData);
+        connect(readoutdialog, &ReadoutRecordDialog::rowDeleted,this, &ImplantMonitor::onRowDeleted);
+    }
+    // 触发对话框更新
+    emit dataListUpdated(measurementList);
+    readoutdialog->show();
+}
+
+//删除结构体中对应的数据
+void ImplantMonitor::onRowDeleted(int row)
+{
+    if (row < 0 || row >= measurementList.size())
+        return;
+
+    // 从容器里删掉这一条
+    measurementList.removeAt(row);
+
+    // 重新给每条数据排 order
+    for (int i = 0; i < measurementList.size(); ++i)
+        measurementList[i].order = i + 1;
+
+    // 推送最新列表，让对话框刷新
+    emit dataListUpdated(measurementList);
 }

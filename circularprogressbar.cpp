@@ -1,4 +1,4 @@
-#include "CircularProgressBar.h"
+#include "circularprogressbar.h"
 #include <QPainter>
 #include <QConicalGradient>
 #include <QFont>

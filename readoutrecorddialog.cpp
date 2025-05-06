@@ -20,8 +20,7 @@ ReadoutRecordDialog::ReadoutRecordDialog(QWidget *parent) : QDialog(parent) {
 
     // 顶部标题与按钮
     QLabel *titleLabel = new QLabel("读数记录");
-    titleLabel->setStyleSheet("font-weight: bold; font-"
-                              "size: 16px; background-color: transparent; color: white;");
+    titleLabel->setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent; color: white;");
     btnRefresh = new QPushButton("重新校准");
     btnRefresh->setIcon(QIcon(":/image/icons8-calibration.png"));
     btnRefresh->setFixedSize(120, 40);
@@ -63,6 +62,7 @@ ReadoutRecordDialog::ReadoutRecordDialog(QWidget *parent) : QDialog(parent) {
             padding-top: 7px;
         }
     )");
+    connect(btnDelete, &QPushButton::clicked,this,&ReadoutRecordDialog::onDeleteButtonClicked);
 
 
     QHBoxLayout *topLayout = new QHBoxLayout();
@@ -73,13 +73,28 @@ ReadoutRecordDialog::ReadoutRecordDialog(QWidget *parent) : QDialog(parent) {
     topLayout->addWidget(btnDelete);
 
     // 表格
-    table = new QTableWidget(0, 5, this);
-    QStringList headers = {"序号", "传感器", "参考值", "心率", "位置"};
+    table = new QTableWidget(0, 6, this);
+    QStringList headers = {"序号", "传感器", "参考值", "心率", "位置","备注"};
     table->setHorizontalHeaderLabels(headers);
-    table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    table->verticalHeader()->setVisible(false);
-    table->setSelectionMode(QAbstractItemView::NoSelection);
-    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+    auto *h = table->horizontalHeader();
+
+    // 0、1、2 列：Interactive (或者 Fixed)，并手动设置初始宽度
+    h->setSectionResizeMode(0, QHeaderView::Interactive);
+    h->setSectionResizeMode(1, QHeaderView::Interactive);
+    h->setSectionResizeMode(2, QHeaderView::Interactive);
+    table->setColumnWidth(0, 50);
+    table->setColumnWidth(1, 200);
+    table->setColumnWidth(2, 200);
+
+    // 3、4、5 列：Stretch，平分“Interactive”列之外的所有剩余宽度
+    h->setSectionResizeMode(3, QHeaderView::Stretch);
+    h->setSectionResizeMode(4, QHeaderView::Stretch);
+    h->setSectionResizeMode(5, QHeaderView::Stretch);
+
+    table->verticalHeader()->setVisible(false); //隐藏左侧行号
+//    table->setSelectionMode(QAbstractItemView::NoSelection);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);  //关闭所有编辑触发器
     table->setStyleSheet(R"(
         QTableWidget {
             background-color: #1e1e1e;           /* 深灰黑背景 */
@@ -106,25 +121,47 @@ ReadoutRecordDialog::ReadoutRecordDialog(QWidget *parent) : QDialog(parent) {
 
     mainLayout->addLayout(topLayout);
     mainLayout->addWidget(table);
-
-    // 插入测试数据
-    table->insertRow(0);
-    table->setItem(0, 0, new QTableWidgetItem("1"));
-    table->setItem(0, 1, new QTableWidgetItem("120  80  (93)"));
-    table->setItem(0, 2, new QTableWidgetItem("120  80  (93)"));
-    table->setItem(0, 3, new QTableWidgetItem("75"));
-    table->setItem(0, 4, new QTableWidgetItem("0°"));
 }
 
 ReadoutRecordDialog::~ ReadoutRecordDialog(){
     
 }
 
-void ReadoutRecordDialog::populateData() {
-    table->insertRow(0);
-    table->setItem(0, 0, new QTableWidgetItem("1"));
-    table->setItem(0, 1, new QTableWidgetItem("120  80  (93)"));
-    table->setItem(0, 2, new QTableWidgetItem("120  80  (93)"));
-    table->setItem(0, 3, new QTableWidgetItem("75"));
-    table->setItem(0, 4, new QTableWidgetItem("0°"));
+// 获取量测信息更新至列表
+void ReadoutRecordDialog::populateData(const QList<MeasurementData> &list) {
+    table->clearContents();
+    table->setRowCount(list.size());
+    for (int i = 0; i < list.size(); ++i) {
+        const auto &d = list[i];
+
+        auto makeCenteredItem = [&](const QString &text) {
+            auto *item = new QTableWidgetItem(text);
+            item->setTextAlignment(Qt::AlignCenter);
+            return item;
+        };
+
+        table->setItem(i, 0, makeCenteredItem(QString::number(d.order)));
+        table->setItem(i, 1, makeCenteredItem(
+            d.sensorSystolic + "/" +
+            d.sensorDiastolic + " (" +
+            d.sensorAvg + ")"));
+        table->setItem(i, 2, makeCenteredItem(
+            d.refSystolic + "/" +
+            d.refDiastolic + " (" +
+            d.refAvg + ")"));
+        table->setItem(i, 3, makeCenteredItem(d.heartRate));
+        table->setItem(i, 4, makeCenteredItem(d.angle));
+        table->setItem(i, 5, makeCenteredItem(d.note));
+    }
+}
+
+void ReadoutRecordDialog::onDeleteButtonClicked()
+{
+    int row = table->currentRow();
+    if (row < 0) {
+        // 没有选中任何行
+        return;
+    }
+    // 通知外面要删除哪一行
+    emit rowDeleted(row);
 }

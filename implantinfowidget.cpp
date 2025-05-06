@@ -28,6 +28,12 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
             stop: 1 rgba(30, 60, 100, 255)     /* 右上：深蓝灰 */
         );
     }
+
+    QLabel {
+        color: white;
+        font-weight: bold;
+        font-size: 16px;
+    }
     )");
 
     // 顶部栏
@@ -48,7 +54,7 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     topBar->setFixedHeight(50);
 
 
-    QLabel *titleLabel = new QLabel(tr("新植入物"), this);
+    titleLabel = new QLabel(tr("新植入物"), this);
     titleLabel->setFixedSize(160, 35);
     titleLabel->setAutoFillBackground(false);                   // 不自动填充背景
     titleLabel->setAttribute(Qt::WA_TranslucentBackground);     // 启用透明背景
@@ -77,35 +83,35 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     topLayout->setContentsMargins(10, 0, 10, 0);
 
     // 表单部分
-    QLabel *serialLabel = new QLabel(tr("传感器序列号"));
+    serialLabel = new QLabel(tr("传感器序列号"));
     serialLabel->setFixedSize(180, 40);
     serialLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     serialInput = new QLineEdit();
     serialInput->setFixedSize(400, 50);
     serialInput->setPlaceholderText(tr("请输入传感器序列号"));
 
-    QLabel *checksumLabel = new QLabel(tr("校准码"));
+    checksumLabel = new QLabel(tr("校准码"));
     checksumLabel->setFixedSize(180, 40);
     checksumLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     checksumInput = new QLineEdit();
     checksumInput->setFixedSize(400, 50);
     checksumInput->setPlaceholderText(tr("请输入校准码"));
 
-    QLabel *implantDoctorLabel = new QLabel(tr("植入医生"));
+    implantDoctorLabel = new QLabel(tr("植入医生"));
     implantDoctorLabel->setFixedSize(180, 40);
     implantDoctorLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     implantDoctorInput = new QLineEdit();
     implantDoctorInput->setFixedSize(400, 50);
     implantDoctorInput->setPlaceholderText(tr("请输入植入医生姓名"));
 
-    QLabel *treatDoctorLabel = new QLabel(tr("治疗医生"));
+    treatDoctorLabel = new QLabel(tr("治疗医生"));
     treatDoctorLabel->setFixedSize(180, 40);
     treatDoctorLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     treatDoctorInput = new QLineEdit();
     treatDoctorInput->setFixedSize(400, 50);
     treatDoctorInput->setPlaceholderText(tr("请输入治疗医生姓名"));
 
-    QLabel *dateLabel = new QLabel(tr("植入日期"));
+    dateLabel = new QLabel(tr("植入日期"));
     dateLabel->setFixedSize(180, 40);
     dateLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     implantDateInput = new QDateEdit(this);
@@ -115,18 +121,13 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     implantDateInput->setFixedSize(400, 50);
     implantDateInput->setCalendarPopup(true);
 
+    currentKeyboard = CustomKeyboard::instance(this);
 
-
-//    //将事件过滤器安装到主线程上
-//    QMetaObject::invokeMethod(this, [this]() {
-//        if (!eventFilterInstalled) {
-//        this->serialInput->installEventFilter(CustomKeyboard::instance(this));
-//        this->checksumInput->installEventFilter(CustomKeyboard::instance(this));
-//        this->treatDoctorInput->installEventFilter(CustomKeyboard::instance(this));
-//        this->implantDoctorInput->installEventFilter(CustomKeyboard::instance(this));
-//        eventFilterInstalled = true;
-//        }
-//    });
+    // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
+    currentKeyboard->registerEdit(serialInput);
+    currentKeyboard->registerEdit(checksumInput);
+    currentKeyboard->registerEdit(implantDoctorInput);
+    currentKeyboard->registerEdit(treatDoctorInput);
 
     QGridLayout *formLayout = new QGridLayout();
     formLayout->addWidget(serialLabel, 0, 0);
@@ -371,6 +372,7 @@ void ImplantInfoWidget::showImplantationSiteWidget(const QString &serial)
     QVBoxLayout* mainLayout = new QVBoxLayout(&prompt);
 
     QLabel* label = new QLabel(tr("请将传感器植入患者体内，点击下一步"));
+    label->setWordWrap(true);
     label->setAlignment(Qt::AlignCenter);
     label->setStyleSheet("font-size: 16px;");
     mainLayout->addWidget(label);
@@ -469,44 +471,9 @@ void ImplantInfoWidget::showImplantationSiteWidget(const QString &serial)
     }
 }
 
-void ImplantInfoWidget::closeEvent(QCloseEvent *event) {
-    // 确保关闭时删除键盘
-    if (currentKeyboard) {
-        currentKeyboard->deleteLater();  // 删除当前键盘实例
-        currentKeyboard = nullptr;  // 设置为 nullptr，防止后续使用无效指针
-    }
-
-    // 调用父类的 closeEvent 来确保默认处理
-    event->accept();  // 确保继续执行关闭事件
-}
-
-
-void ImplantInfoWidget::showEvent(QShowEvent *event) {
-    if (!eventFilterInstalled) {
-        // 销毁之前的键盘实例
-        if (currentKeyboard) {
-            currentKeyboard->deleteLater();  // 删除键盘实例
-            currentKeyboard = nullptr;
-        }
-
-        // 创建新的键盘实例
-        currentKeyboard = new CustomKeyboard(this);
-
-        // 安装事件过滤器
-        this->serialInput->installEventFilter(currentKeyboard);
-        this->checksumInput->installEventFilter(currentKeyboard);
-        this->implantDoctorInput->installEventFilter(currentKeyboard);
-        this->treatDoctorInput->installEventFilter(currentKeyboard);
-
-        eventFilterInstalled = true;  // 设置标志为已安装
-    }
-
-    QWidget::showEvent(event);
-}
-
 bool ImplantInfoWidget::insertNewSensor()
 {
-    // 1) 先做合法性检查：序列号 + 校准码 必须在对照表里存在
+    //先做合法性检查：序列号 + 校准码 必须在对照表里存在
     m_serial  = serialInput->text().trimmed();
     QString calib  = checksumInput  ->text().trimmed();
     QSqlQuery checkQ;
@@ -528,7 +495,7 @@ bool ImplantInfoWidget::insertNewSensor()
         return false;
     }
 
-    // 2) 再检查该传感器是不是已经在主表里注册过了
+    //再检查该传感器是不是已经在主表里注册过了
     QSqlQuery existQ;
     existQ.prepare("SELECT COUNT(*) FROM sensor_info WHERE sensor_id=:id");
     existQ.bindValue(":id", m_serial);
@@ -576,3 +543,26 @@ bool ImplantInfoWidget::insertNewSensor()
     qDebug() << "新传感器插入成功：" << m_serial;
     return true;
 }
+
+void ImplantInfoWidget::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) {
+        // 系统自动发送的 LanguageChange
+        setWindowTitle(tr("新植入物管理界面"));
+        titleLabel->setText(tr("新植入物"));
+        serialLabel->setText(tr("传感器序列号"));
+        serialInput->setText(tr("请输入传感器序列号"));
+        checksumLabel->setText(tr("校准码"));
+        checksumInput->setText(tr("请输入校准码"));
+        implantDoctorLabel->setText(tr("植入医生"));
+        implantDoctorInput->setText(tr("请输入植入医生姓名"));
+        treatDoctorLabel->setText(tr("治疗医生"));
+        treatDoctorInput->setText(tr("请输入治疗医生姓名"));
+        dateLabel->setText(tr("植入日期"));
+        backButton->setText(tr("返回"));
+        continueButton->setText(tr("上传"));
+
+    }
+}
+

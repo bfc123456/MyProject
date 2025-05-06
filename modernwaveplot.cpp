@@ -41,22 +41,21 @@ ModernWavePlot::ModernWavePlot(QWidget *parent)
     QwtScaleWidget* xAxis = this->axisWidget(QwtPlot::xBottom);
     QwtScaleWidget* yAxis = this->axisWidget(QwtPlot::yLeft);
 
-    // 设置轴线颜色为白色
-    xAxis->setPalette(QPalette(Qt::white));
-    yAxis->setPalette(QPalette(Qt::white));
-
     // 设置字体颜色为白
     QFont font = xAxis->font();
     font.setPointSize(10);
     xAxis->setFont(font);
     yAxis->setFont(font);
 
+    // 设置坐标轴颜色为白色
+    xAxis->setPalette(QPalette(Qt::white));
+    yAxis->setPalette(QPalette(Qt::white));
 
-    //  设置刻度文字颜色为白色
+    // 设置刻度文字颜色为白色
     QPalette axisPal;
-    axisPal.setColor(QPalette::WindowText, Qt::white);  // 纯白
-    this->axisWidget(QwtPlot::xBottom)->setPalette(axisPal);
-    this->axisWidget(QwtPlot::yLeft)->setPalette(axisPal);
+    axisPal.setColor(QPalette::WindowText, Qt::white);  // 设置为纯白色
+    xAxis->setPalette(axisPal);
+    yAxis->setPalette(axisPal);
 
 }
 
@@ -75,4 +74,8 @@ void ModernWavePlot::setFillColor(const QColor& fill, double baseline) {
 
 void ModernWavePlot::setYRange(double min, double max) {
     this->setAxisScale(QwtPlot::yLeft, min, max);
+}
+
+void ModernWavePlot::setXRange(double min, double max) {
+    this->setAxisScale(QwtPlot::xBottom, min, max);
 }
