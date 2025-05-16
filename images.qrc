@@ -30,6 +30,7 @@
         <file>image/icons8-updata.png</file>
         <file>image/newbody.png</file>
         <file>image/logoimage.jpg</file>
+        <file>image/icons-close.png</file>
     </qresource>
     <qresource prefix="/translations">
         <file>translations/en_US.qm</file>

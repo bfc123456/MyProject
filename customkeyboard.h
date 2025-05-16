@@ -1,9 +1,11 @@
+
 #ifndef CUSTOMKEYBOARD_H
 #define CUSTOMKEYBOARD_H
 
 #include <QWidget>
 #include <QPoint>
 #include <QMap>
+#include <mutex>
 
 class QLineEdit;
 class QStackedWidget;
@@ -17,6 +19,14 @@ public:
 
     // 注册输入框及其键盘偏移
     void registerEdit(QLineEdit *edit, const QPoint &offset = QPoint(-35, 0));
+
+    //下面是单例优化代码（测试）
+
+    // 显示虚拟键盘
+    void showKeyboard();
+
+    // 关闭虚拟键盘
+    void closeKeyboard();
 
 signals:
     // 键被按下的信号
@@ -34,6 +44,10 @@ private:
     explicit CustomKeyboard(QWidget *parent = nullptr);
     ~CustomKeyboard();
 
+    // 防止拷贝和赋值（单例优化代码，待测试）
+    CustomKeyboard(const CustomKeyboard&) = delete;
+    CustomKeyboard& operator=(const CustomKeyboard&) = delete;
+
     // 将键盘关联到给定输入框，并按偏移量弹出
     void attachTo(QLineEdit *edit, const QPoint &offset);
 
@@ -43,6 +57,7 @@ private:
     void switchToNumKeyboard();
     void switchToAlphaKeyboard();
     void handleShiftClicked();
+    void hideWithDelay();
 
     QStackedWidget            *stackedWidget;
     QList<QPushButton*>        letterButtons;

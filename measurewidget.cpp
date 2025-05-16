@@ -9,9 +9,10 @@
 #include <QGraphicsBlurEffect>
 #include <QDialog>
 #include <QTimer>
+#include "CustomMessageBox.h"
 
 MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
-    : QWidget(parent), m_serial(sensorId)
+    : FramelessWindow(parent), m_serial(sensorId)
 {
 
     QVBoxLayout *mainlayout = new QVBoxLayout(this);
@@ -178,7 +179,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
     QVBoxLayout *bottomliftlayout = new QVBoxLayout (bottomliftwidget);
 
     //标题标签
-    QLabel *sensormonitor = new QLabel(tr("传感器检测数据"));
+    sensormonitor = new QLabel(tr("传感器检测数据"));
     sensormonitor->setStyleSheet("background-color: transparent; color: #7DDFFF; font-size: 18px;");
     bottomliftlayout->addWidget(sensormonitor);
 
@@ -186,7 +187,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
 
     //收缩压
     QVBoxLayout *sbplayout = new QVBoxLayout();
-    QLabel *sbptittlle = new QLabel(tr("收缩压"));
+    sbptittlle = new QLabel(tr("收缩压"));
     sbptittlle->setStyleSheet("background-color: transparent; color: white; font-size: 14px;");
     sbplayout->addWidget(sbptittlle);
     QHBoxLayout *sbpdatalayout = new QHBoxLayout();
@@ -200,7 +201,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
 
     //舒张压
     QVBoxLayout *dbplayout = new QVBoxLayout();
-    QLabel *dbptittlle = new QLabel(tr("舒张压"));
+    dbptittlle = new QLabel(tr("舒张压"));
     dbptittlle->setStyleSheet("background-color: transparent; color: white; font-size: 14px;");
     dbplayout->addWidget(dbptittlle);
     QHBoxLayout *dbpdatalayout = new QHBoxLayout();
@@ -214,7 +215,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
 
     //平均值
     QVBoxLayout *meanlayout = new QVBoxLayout();
-    QLabel *meantittlle = new QLabel(tr("平均"));
+    meantittlle = new QLabel(tr("平均"));
     meantittlle->setStyleSheet("background-color: transparent; color: white; font-size: 14px;");
     meanlayout->addWidget(meantittlle);
     QHBoxLayout *meandatalayout = new QHBoxLayout();
@@ -228,7 +229,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
 
     //心率
     QVBoxLayout *heartratelayout = new QVBoxLayout();
-    QLabel *heartratetittlle = new QLabel(tr("心率"));
+    heartratetittlle = new QLabel(tr("心率"));
     heartratetittlle->setStyleSheet("background-color: transparent; color: white; font-size: 14px;");
     heartratelayout->addWidget(heartratetittlle);
     QHBoxLayout *heartrateunitlayout = new QHBoxLayout();
@@ -247,7 +248,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
     realdataLayout->addLayout(heartratelayout);
     bottomliftlayout->addLayout(realdataLayout);
     bottomliftlayout->addSpacing(10);
-    QLabel *referencetittle = new QLabel(tr("参考值"));
+    referencetittle = new QLabel(tr("参考值"));
     referencetittle->setStyleSheet("background-color: transparent; color: #7DDFFF; font-size: 18px;");
     bottomliftlayout->addWidget(referencetittle);
     
@@ -273,7 +274,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
         }
     )";
 
-    QLabel*refersbptittlle = new QLabel(tr("收缩压"));
+    refersbptittlle = new QLabel(tr("收缩压"));
     refersbptittlle->setStyleSheet("background-color: transparent; color: white; font-size: 14px;");
     refersbpdatalayout->addWidget(refersbptittlle);
     QHBoxLayout *refersbpinputlayout = new QHBoxLayout();
@@ -289,7 +290,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
  
     //参考舒张压
     QVBoxLayout *referdbdatalayout = new QVBoxLayout();
-    QLabel*referdbptittlle = new QLabel(tr("舒张压"));
+    referdbptittlle = new QLabel(tr("舒张压"));
     referdbptittlle->setStyleSheet("background-color: transparent; color: white; font-size: 14px;");
     referdbdatalayout->addWidget(referdbptittlle);
     QHBoxLayout *referdbpinputlayout = new QHBoxLayout();
@@ -305,7 +306,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
     
     //参考平均值
     QVBoxLayout *refermeandatalayout = new QVBoxLayout();
-    QLabel*refermeantittlle = new QLabel(tr("平均"));
+    refermeantittlle = new QLabel(tr("平均"));
     refermeantittlle->setStyleSheet("background-color: transparent; color: white; font-size: 14px;");
     refermeandatalayout->addWidget(refermeantittlle);
     QHBoxLayout *refermeaninputlayout = new QHBoxLayout();
@@ -340,7 +341,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
     }
     )");
     QVBoxLayout *bottomrightlayout = new QVBoxLayout(bottomrightwidget);
-    QLabel * positontittle = new QLabel(tr("患者位置调整"));
+    positontittle = new QLabel(tr("患者位置调整"));
     positontittle->setStyleSheet("background-color: transparent; color: #7DDFFF; font-size: 16px;");
     bottomrightlayout->addWidget(positontittle);
 
@@ -400,7 +401,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
     positionbuttonlayout->addWidget(ninetybutton,1,1);
     bottomrightlayout->addLayout(positionbuttonlayout);
     
-    QLabel *remarklabel = new QLabel(tr("备注"));
+    remarklabel = new QLabel(tr("备注"));
     remarklabel->setStyleSheet("background-color: transparent; color: #7DDFFF; font-size: 16px;");
     remarklineedit = new QLineEdit();
     remarklineedit->setFixedHeight(50);
@@ -429,7 +430,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
     
     //创建保存按钮
     QHBoxLayout *savebtnlayout = new QHBoxLayout();
-    QPushButton *savebtn = new QPushButton(tr("保存"));
+    savebtn = new QPushButton(tr("保存"));
     savebtn->setFixedSize(120,35);
     connect(savebtn,&QPushButton::clicked,this,&MeasureWidget::openSaveConfirm);
     savebtn->setStyleSheet(R"(
@@ -456,7 +457,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
     }
     )");
 
-    QPushButton *returnbtn = new QPushButton(tr("返回"));
+    returnbtn = new QPushButton(tr("返回"));
     returnbtn->setFixedSize(120,35);
     connect(returnbtn,&QPushButton::clicked,this,&MeasureWidget::returnImplantmonitor);
     returnbtn->setStyleSheet(R"(
@@ -527,79 +528,27 @@ void MeasureWidget::openSaveConfirm(){
     this->setGraphicsEffect(blur);
 
     //创建提示弹窗
-    QDialog prompt(this);
-    prompt.setStyleSheet(R"(
-        QDialog {
-            background-color: qlineargradient(
-                x1: 0, y1: 0, x2: 0, y2: 1,
-                stop: 0 rgba(15, 34, 67, 200),     /* 深蓝：顶部 */
-                stop: 1 rgba(10, 25, 50, 180)      /* 更深蓝：底部 */
-            );
-            border-radius: 12px;
-        }
+    CustomMessageBox dlg(
+        this,
+        tr("提示"),
+        tr("数据保存成功"),
+        { tr("确 认") },
+        400      // 对话框宽度
+    );
 
-        QLabel {
-            color: rgba(255, 255, 255, 230);
-            font-size: 16px;
-            font-weight: bold;
-            background: transparent;   /* 关键！避免白底 */
-        }
-    )");
+    int result = dlg.exec();
 
-    prompt.setWindowTitle(tr("提示"));
-    prompt.setFixedSize(400, 200);
-
-    //内容布局与按钮
-    QVBoxLayout* mainLayout = new QVBoxLayout(&prompt);
-
-    QLabel* label = new QLabel(tr("数据保存成功"));
-    label->setAlignment(Qt::AlignCenter);
-    label->setStyleSheet("font-size: 16px;");
-    mainLayout->addWidget(label);
-
-    QHBoxLayout* buttonLayout = new QHBoxLayout;
-    QPushButton* confirmButton = new QPushButton(tr("确 认"));
-    confirmButton->setFixedSize(120,45);
-    confirmButton->setStyleSheet(R"(
-    QPushButton {
-        background-color: qlineargradient(
-            stop: 0 rgba(110, 220, 145, 180),
-            stop: 1 rgba(58, 170, 94, 180)
-        );
-        border: 1px solid rgba(168, 234, 195, 0.6);
-        border-radius: 6px;
-        color: white;
-        font-weight: bold;
-        font-size: 14px;
-        padding: 2px 5px;
-    }
-
-    QPushButton:pressed {
-        background-color: qlineargradient(
-            stop: 0 rgba(44, 128, 73, 200),
-            stop: 1 rgba(29, 102, 53, 200)
-        );
-        padding-left: 2px;
-        padding-top: 2px;
-    }
-    )");
-
-    buttonLayout->addWidget(confirmButton,Qt::AlignCenter);
-
-    mainLayout->addLayout(buttonLayout);
-
-    QObject::connect(confirmButton, &QPushButton::clicked, this, [this, &prompt]() {
-
+    //根据用户点击结果来做后续处理
+    if (result == QDialog::Accepted) {
+        // 执行保存后的逻辑
         onSaveButtonClicked();
-        prompt.accept();  // 关闭QDialog
+
+        // 关闭当前界面并通知上一级
         this->close();
         emit returnprepage();
-    });
+    }
 
-    // 5. 阻塞显示
-    prompt.exec();
-
-    // 6. 清除遮罩和模糊
+    // 清除遮罩和模糊
     this->setGraphicsEffect(nullptr);
     overlay->close();
     overlay->deleteLater();
@@ -734,14 +683,31 @@ void MeasureWidget::onSaveButtonClicked() {
 
     // 发射信号，传递所有数据
     emit dataSaved(d);
-//    qDebug() << "sensorSystolic: " << sensorSystolic;
-//    qDebug() << "sensorDiastolic: " << sensorDiastolic;
-//    qDebug() << "sensorAvg: " << sensorAvg;
-//    qDebug() << "heartRate: " << heartRate;
-//    qDebug() << "refSystolic: " << refSystolic;
-//    qDebug() << "refDiastolic: " << refDiastolic;
-//    qDebug() << "refAvg: " << refAvg;
-//    qDebug() << "angle: " << angle;
-//    qDebug() << "note: " << note;
+}
+
+void MeasureWidget::changeEvent(QEvent *event){
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) {
+        // 系统自动发送的 LanguageChange
+        titleLabel->setText(tr("新植入物"));
+        sensormonitor->setText(tr("传感器检测数据"));
+        sbptittlle->setText(tr("收缩压"));
+        dbptittlle->setText(tr("舒张压"));
+        meantittlle->setText(tr("平均"));
+        heartratetittlle->setText(tr("心率"));
+        referencetittle->setText(tr("参考值"));
+        refersbptittlle->setText(tr("收缩压"));
+        referinputsbpdata->setText(tr("请输入参考收缩压..."));
+        referdbptittlle->setText(tr("舒张压"));
+        referinputdbpdata->setText(tr("请输入参考舒张压..."));
+        refermeantittlle->setText(tr("平均"));
+        refermeaninputdata->setText(tr("请输入参考平均值..."));
+        positontittle->setText(tr("患者位置调整"));
+        remarklabel->setText(tr("备注"));
+        remarklineedit->setText(tr("请输入备注信息..."));
+        savebtn->setText(tr("保存"));
+        returnbtn->setText(tr("返回"));
+
+    }
 }
 

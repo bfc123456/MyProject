@@ -63,7 +63,10 @@ ReadoutRecordDialog::ReadoutRecordDialog(QWidget *parent) : QDialog(parent) {
         }
     )");
     connect(btnDelete, &QPushButton::clicked,this,&ReadoutRecordDialog::onDeleteButtonClicked);
-
+    connect(btnRefresh, &QPushButton::clicked,this,[this](){
+        emit onRefreshButtonClicked();
+        this->close();
+    });
 
     QHBoxLayout *topLayout = new QHBoxLayout();
     topLayout->addWidget(titleLabel);

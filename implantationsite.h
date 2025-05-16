@@ -1,3 +1,4 @@
+
 #ifndef IMPLANTATIONSITE_H
 #define IMPLANTATIONSITE_H
 
@@ -14,8 +15,9 @@
 #include "CustomMessageBox.h"
 #include "calibrationdialog.h"
 #include "implantmonitor.h"
+#include "FramelessWindow.h"
 
-class ImplantationSite : public QWidget
+class ImplantationSite : public FramelessWindow
 {
     Q_OBJECT
 
@@ -28,7 +30,6 @@ signals:
 
 private slots:
     void OpenSettingsRequested();
-//    void openImplantMonitorWidget();
     
     void startSimulation();
     void updatePlot();   // 定时器更新绘图
@@ -41,6 +42,16 @@ private:
 //    LoginWindow *loginWindow;
     QVBoxLayout* mainLayout;
     SettingsWidget *settingswidget;
+    QLabel *titleLabel;
+    QLabel* implantTitle;
+    QLabel* labelCurve;
+    QPushButton* helpButton;
+    QLabel* heartTitle;
+    QLabel* heartUnit;
+    QLabel* pressureTitle;
+    QLabel* signalTitle;
+    QPushButton* returnButton;
+    QPushButton* calibrateButton;
 
     ModernWavePlot* plot;//模拟函数变量声明
     QwtPlotCurve* curve;
@@ -57,6 +68,7 @@ private:
     ImplantMonitor *implantmonitor = nullptr;
     bool isClicked = false;  //按钮状态
     QString selectedPos;
+    void changeEvent(QEvent *event) override;
 };
 
 #endif // IMPLANTATIONSITE_H

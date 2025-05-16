@@ -1,3 +1,4 @@
+
 #ifndef LOGINWINDOW_H
 #define LOGINWINDOW_H
 
@@ -14,9 +15,11 @@
 #include "followupform.h"
 #include "patientlistwidget.h"
 #include "implantinfowidget.h"
+#include "CloseOnlyWindow.h"
+#include "FramelessWindow.h"
 #include <memory>
 
-class LoginWindow : public QWidget {
+class LoginWindow : public FramelessWindow   {
     Q_OBJECT
 
 public:
@@ -27,7 +30,7 @@ public:
 
 protected:
     void paintEvent(QPaintEvent *event) override;
-    void closeEvent(QCloseEvent *event) override;  // 重载 closeEvent 方法
+//    void closeEvent(QCloseEvent *event) override;  // 重载 closeEvent 方法
 
 private:
     QVBoxLayout *mainLayout;

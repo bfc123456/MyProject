@@ -1,3 +1,4 @@
+
 #ifndef EXITCONFIRMDIALOG_H
 #define EXITCONFIRMDIALOG_H
 
@@ -6,8 +7,9 @@
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+#include "CloseOnlyWindow.h"
 
-class ExitConfirmDialog : public QDialog {
+class ExitConfirmDialog : public CloseOnlyWindow {
     Q_OBJECT
 public:
     explicit ExitConfirmDialog(QWidget *parent = nullptr);

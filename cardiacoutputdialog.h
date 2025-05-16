@@ -1,15 +1,15 @@
+
 #ifndef CARDIACOUTPUTDIALOG_H
 #define CARDIACOUTPUTDIALOG_H
-
-#pragma once
 
 #include <QDialog>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
 #include "customkeyboard.h"
+#include "CloseOnlyWindow.h"
 
-class CardiacOutputDialog : public QDialog {
+class CardiacOutputDialog : public CloseOnlyWindow {
     Q_OBJECT
 
 public:

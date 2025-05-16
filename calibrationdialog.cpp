@@ -6,7 +6,7 @@
 #include "customkeyboard.h"
 
 CalibrationDialog::CalibrationDialog(QWidget* parent)
-    : QDialog(parent)
+    : CloseOnlyWindow(parent)
 {
     setWindowTitle(tr("校准传感器"));
     setFixedSize(400, 280);
@@ -14,7 +14,7 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
 
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
-    QLabel* title = new QLabel(tr("校准传感器"));
+    title = new QLabel(tr("校准传感器"));
     title->setFixedWidth(180);
     title->setAlignment(Qt::AlignCenter);
     title->setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent; color: white;");
@@ -52,7 +52,7 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
 
     // 输入区域
     QHBoxLayout* inputLayout = new QHBoxLayout;
-    QLabel* inputLabel = new QLabel(tr("PA导管平均值"));
+    inputLabel = new QLabel(tr("PA导管平均值"));
     inputLabel->setFixedWidth(150);
     inputLabel->setFixedHeight(40);
     inputLabel->setAlignment(Qt::AlignCenter);
@@ -88,11 +88,11 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
 
     // 按钮区域
     QHBoxLayout* buttonLayout = new QHBoxLayout;
-    QPushButton* resetBtn = new QPushButton(tr("重新校准"));
+    resetBtn = new QPushButton(tr("重新校准"));
     resetBtn->setIcon(QIcon(":/image/icons8-refresh.png"));
     resetBtn->setIconSize(QSize(20, 20));
     resetBtn->setFixedSize(115, 40);
-    QPushButton* saveBtn = new QPushButton(tr("保存"));
+    saveBtn = new QPushButton(tr("保存"));
     saveBtn->setIcon(QIcon(":/image/icons8-save.png"));
     saveBtn->setIconSize(QSize(20, 20));
     saveBtn->setFixedSize(115, 40);
@@ -165,4 +165,17 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
 QString CalibrationDialog::getCalibrationValue() const
 {
     return inputEdit->text();
+}
+
+void CalibrationDialog::changeEvent(QEvent *event){
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) {
+        // 系统自动发送的 LanguageChange
+        setWindowTitle(tr("校准传感器"));
+        title->setText(tr("校准传感器"));
+        inputLabel->setText(tr("PA导管平均值"));
+        inputEdit->setPlaceholderText(tr("输入校准值..."));
+        resetBtn->setText(tr("重新校准"));
+        saveBtn->setText(tr("保存"));
+    }
 }

@@ -8,35 +8,24 @@
 #include <QGuiApplication>
 #include <QMouseEvent>
 #include <QTimer>
+#include <QApplication>
 
 CustomKeyboard* CustomKeyboard::instance(QWidget *parent)
 {
-    static CustomKeyboard* _inst = nullptr;
-    if (!_inst) {
-        _inst = new CustomKeyboard(parent);
-    }
-    return _inst;
+    static CustomKeyboard* instance = nullptr;  // 静态局部变量保证只创建一次
+    static std::once_flag onceFlag;  // 确保线程安全
+
+    std::call_once(onceFlag, [&]() {
+        instance = new CustomKeyboard(parent);  // 只创建一次
+    });
+
+    return instance;
 }
 
 CustomKeyboard::CustomKeyboard(QWidget *parent)
     : QWidget(parent)
 {
-    this->setStyleSheet(R"(
-    QWidget {
-        background-color: qlineargradient(
-            x1: 0, y1: 0, x2: 0, y2: 1,
-            stop: 0 rgba(25, 50, 75, 0.9),
-            stop: 1 rgba(10, 20, 30, 0.85)
-        );
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.08); /* 边缘高光 */
-    }
-
-    QLabel {
-        color: white;
-        font-weight: bold;
-        font-size: 14px;
-    })");
+    setParent(parent);
     setFixedSize(470, 250);
     setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
     setAttribute(Qt::WA_ShowWithoutActivating);
@@ -61,6 +50,8 @@ CustomKeyboard::CustomKeyboard(QWidget *parent)
         area = QGuiApplication::primaryScreen()->availableGeometry();
     }
     move(area.center() - QPoint(width()/2, height()/2));
+
+    this->setWindowFlags(this->windowFlags() | Qt::WindowDoesNotAcceptFocus);   //设置虚拟键盘窗口属性，避免抢焦点
 }
 
 CustomKeyboard::~CustomKeyboard() {}
@@ -79,6 +70,13 @@ bool CustomKeyboard::eventFilter(QObject *watched, QEvent *event)
             currentEdit = edit;
             QPoint offset = editOffsetMap.value(edit, QPoint(-35,0));
             attachTo(edit, offset);
+        }
+    }
+    else if (event->type() == QEvent::FocusOut) {
+        if (auto *edit = qobject_cast<QLineEdit*>(watched)) {
+            if (edit == currentEdit) {
+                hideWithDelay();
+            }
         }
     }
     return QWidget::eventFilter(watched, event);
@@ -236,4 +234,26 @@ void CustomKeyboard::mouseReleaseEvent(QMouseEvent *e)
         m_dragging = false;
         e->accept();
     }
+}
+
+// 显示虚拟键盘
+void CustomKeyboard::showKeyboard() {
+    this->show();
+    this->raise();  // 确保它显示在前面
+}
+
+// 关闭虚拟键盘
+void CustomKeyboard::closeKeyboard() {
+    this->hide();  // 隐藏虚拟键盘
+}
+
+void CustomKeyboard::hideWithDelay()
+{
+    QTimer::singleShot(100, this, [this]() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        if (!this->isAncestorOf(focusWidget) && focusWidget != currentEdit) {
+            currentEdit = nullptr;
+            this->hide();
+        }
+    });
 }

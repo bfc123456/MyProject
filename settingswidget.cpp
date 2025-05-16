@@ -15,10 +15,10 @@
 #include <QPixmap>
 
 SettingsWidget::SettingsWidget( QWidget *parent)
-    : QWidget(parent)
+    : FramelessWindow(parent)
 {
-    setWindowTitle(tr("设置界面"));
-    this->setFixedSize(1024, 600);
+//    setWindowTitle(tr("设置界面"));
+//    this->setFixedSize(1024, 600);
     this->setObjectName("settingswidget");
     this->setStyleSheet(
                 R"(
@@ -33,7 +33,48 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     )");
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(180, 30, 180, 30);
+
+    // 顶部栏部件
+    QWidget *topBar = new QWidget(this);
+    topBar->setFixedHeight(50);
+    topBar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+    // 设置透明背景（如果你使用渐变背景）
+    topBar->setStyleSheet("background-color: transparent;");
+
+    // 系统名称 Label（左侧）
+    titleLabel = new QLabel("🩺 "+ tr("医疗设备管理系统"), this);
+    titleLabel->setStyleSheet("color: white; font-size: 18px; font-weight: bold;");
+    titleLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+
+    //设置按钮（右侧）
+    QPushButton *btnclose = new QPushButton(this);
+    btnclose->setIcon(QIcon(":/image/icons-close.png"));
+    btnclose->setIconSize(QSize(35, 35));
+    btnclose->setFlat(true);  // 去除按钮边框
+    // 设置点击视觉反馈
+    btnclose->setStyleSheet(R"(
+        QPushButton {
+            border: none;
+            background-color: transparent;
+            border-radius: 20px; /* 让 hover/pressed 效果是圆的 */
+        }
+        QPushButton:pressed {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+    )");
+
+    connect(btnclose, &QPushButton::clicked, this, &SettingsWidget::onBtnCloseClicked);
+
+
+    //顶部栏布局
+    QHBoxLayout *tittleLayout = new QHBoxLayout(topBar);
+    tittleLayout->addWidget(titleLabel);
+    tittleLayout->addStretch();
+    tittleLayout->addWidget(btnclose);
+    tittleLayout->setContentsMargins(10, 0, 10, 0);  // 左右边距
+
+    mainLayout->addWidget(topBar);
 
     QWidget *topWidget = new QWidget();
     topWidget->setFixedHeight(320);
@@ -54,7 +95,8 @@ SettingsWidget::SettingsWidget( QWidget *parent)
         }
     )");
 
-
+    QVBoxLayout*mainbottomLayout = new QVBoxLayout();
+    mainbottomLayout->setContentsMargins(180, 30, 180, 30);
     QVBoxLayout *topLayout = new QVBoxLayout(topWidget);
 
     systemSettingsLabel = new QLabel(tr("系统设置"));
@@ -236,7 +278,7 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     topLayout->addLayout(shutdownLayout);
 
     // 添加顶部
-    mainLayout->addWidget(topWidget);
+    mainbottomLayout->addWidget(topWidget);
 
     // 添加底部信息
     QWidget *bottomWidget = new QWidget();
@@ -273,7 +315,8 @@ SettingsWidget::SettingsWidget( QWidget *parent)
 
     bottomLayout->addWidget(systemInfoLabel);
     bottomLayout->addLayout(infoRow);
-    mainLayout->addWidget(bottomWidget);
+    mainbottomLayout->addWidget(bottomWidget);
+    mainLayout->addLayout(mainbottomLayout);
 
 
 }
@@ -308,7 +351,8 @@ void SettingsWidget::onShutdownClicked()
 void SettingsWidget::changeEvent(QEvent *event)
 {
     if (event->type() == QEvent::LanguageChange) {
-        setWindowTitle(tr("设置界面"));
+        qDebug() << "SettingsWidget 收到 LanguageChange 事件";
+        titleLabel->setText("🩺 "+ tr("医疗设备管理系统"));
         systemSettingsLabel->setText(tr("系统设置"));
         signalStrengthLabel->setText(tr("最小信号强度"));
         modifyButton->setText(tr("修  改"));
@@ -324,4 +368,8 @@ void SettingsWidget::changeEvent(QEvent *event)
         languageComboBox->setItemText(1, tr("英语"));
     }
     QWidget::changeEvent(event);
+}
+
+void SettingsWidget::onBtnCloseClicked(){
+    this->close();
 }

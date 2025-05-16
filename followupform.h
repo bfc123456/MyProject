@@ -1,3 +1,4 @@
+
 #ifndef FOLLOWUPFORM_H
 #define FOLLOWUPFORM_H
 
@@ -8,9 +9,10 @@
 #include <QPushButton>
 #include <QComboBox>
 #include "customkeyboard.h"
+#include "FramelessWindow.h"
 
 
-class FollowUpForm: public QWidget
+class FollowUpForm: public FramelessWindow
 {
     Q_OBJECT
 

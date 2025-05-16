@@ -1,3 +1,4 @@
+
 #ifndef SETTINGSWIDGET_H
 #define SETTINGSWIDGET_H
 
@@ -6,10 +7,11 @@
 #include <QPushButton>
 #include <QSlider>
 #include <QComboBox>
+#include "FramelessWindow.h"
 
 class LoginWindow;
 
-class SettingsWidget : public QWidget
+class SettingsWidget : public FramelessWindow
 {
     Q_OBJECT
 
@@ -24,6 +26,7 @@ private slots:
     void onLanguageChanged(const QString &);
     void onRebootClicked();
     void onShutdownClicked();
+    void onBtnCloseClicked();
 
 private:
     QLabel *systemSettingsLabel;
@@ -34,6 +37,7 @@ private:
     QLabel *systemInfoLabel;
     QLabel *softwareVersionLabel1;
     QLabel *softwareVersionLabel2;
+    QLabel *titleLabel;
 
     QSlider *signalStrengthSlider;
     QComboBox *languageComboBox;

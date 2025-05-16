@@ -11,12 +11,20 @@
 #include "global.h"
 #include "databasemanager.h"
 #include "languagemanager.h"
+#include "udpmanager.h"
 
 LoginWindow* globalLoginWindowPointer = nullptr;  // 定义并初始化全局指针，注意全局指针的内存释放，防止内存泄漏！！！
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+
+    UdpManager udpManager;
+
+    if (!udpManager.startListening(5005)) {
+        qDebug() << "UDP监听失败";
+        return -1;
+    }
 
     LanguageManager::instance(); //初始化语言环境
 
@@ -43,8 +51,12 @@ int main(int argc, char *argv[])
         a.installTranslator(&translator);
     }
 
+    //取主屏幕分辨率
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QSize screenSize = screen->availableGeometry().size();
+
     // 创建渐变 QPixmap 作为启动背景
-    QPixmap pixmap(500, 300);
+    QPixmap pixmap(screenSize);
     pixmap.fill(Qt::transparent);  // 保证透明背景
 
     QPainter painter(&pixmap);
@@ -58,21 +70,24 @@ int main(int argc, char *argv[])
     QSplashScreen splash(pixmap);
     splash.setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
     splash.setAttribute(Qt::WA_TranslucentBackground);
-    splash.setFixedSize(500, 300);
+    splash.setFixedSize(screenSize);
+    splash.showFullScreen();
 
+    int logoW = screenSize.width() * 0.20;
     QLabel *logoLabel = new QLabel(&splash);
     logoLabel->setPixmap(QPixmap(":/image/logoimage.jpg")
-                         .scaledToWidth(180, Qt::SmoothTransformation));
+                         .scaledToWidth(logoW, Qt::SmoothTransformation));
     logoLabel->setAlignment(Qt::AlignCenter);
 
     QLabel *tipLabel = new QLabel(QObject::tr("Loading, please wait..."), &splash);
     tipLabel->setAlignment(Qt::AlignCenter);
-    tipLabel->setStyleSheet("font-size:18px; color:rgba(255,255,255,0.9);");
+     tipLabel->setStyleSheet("font-size: " + QString::number(screenSize.height()*0.02) + "px; color:rgba(255,255,255,0.9);");
 
     QProgressBar *progressBar = new QProgressBar(&splash);
     progressBar->setRange(0,100);
     progressBar->setFormat("%p%");
-    progressBar->setFixedWidth(380);
+    progressBar->setFixedWidth(screenSize.width() * 0.40);
+    progressBar->setFixedHeight(screenSize.height() * 0.02);
     progressBar->setAlignment(Qt::AlignCenter);
     progressBar->setTextVisible(true);
     // 让它自动横向拉伸，高度固定
@@ -96,12 +111,13 @@ int main(int argc, char *argv[])
 
     QLabel *versionLabel = new QLabel(QObject::tr("Version 1.0.0"), &splash);
     versionLabel->setAlignment(Qt::AlignCenter);
-    versionLabel->setStyleSheet("font-size:12px; color:rgba(255,255,255,0.6);");
+    versionLabel->setStyleSheet("font-size:" + QString::number(screenSize.height()*0.015) + "px; color:rgba(255,255,255,0.6);");
 
     // 布局
     auto *vlay = new QVBoxLayout(&splash);
-    vlay->setContentsMargins(20,20,20,20);
-    vlay->setSpacing(12);
+    int margin = screenSize.width() * 0.02;
+    vlay->setContentsMargins(margin, margin, margin, margin);
+       vlay->setSpacing(screenSize.height()*0.015);
     vlay->addStretch();                                  // 上方留白
     vlay->addWidget(logoLabel,    0, Qt::AlignHCenter);
     vlay->addWidget(tipLabel);

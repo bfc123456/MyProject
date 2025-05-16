@@ -13,7 +13,7 @@
 #include <QGraphicsBlurEffect>
 
 PatientListWidget::PatientListWidget(QWidget *parent)
-    : QWidget(parent)
+    : FramelessWindow(parent)
 {
     setWindowTitle(tr("患者查询界面"));
 
@@ -257,6 +257,7 @@ PatientListWidget::PatientListWidget(QWidget *parent)
 
     //关联信号与槽
     connect(btnBack, &QPushButton::clicked, this, &PatientListWidget::patientReturnLogin);
+    connect(btnAdd, &QPushButton::clicked, this, &PatientListWidget::patientReturnMonitor);
 
     btnLayout->addWidget(btnBack);
     btnLayout->addStretch();
@@ -375,3 +376,30 @@ void PatientListWidget::changeEvent(QEvent *event)
     }
 }
 
+void PatientListWidget::patientReturnMonitor(){
+    if(!implantMonitor){
+        implantMonitor = std::make_unique<ImplantMonitor>();
+        implantMonitor->setWindowFlags(
+            implantMonitor->windowFlags()
+            | Qt::WindowStaysOnTopHint      // 保证新窗永远在最上
+        );
+    }
+    this->hide();
+    this->close();
+    implantMonitor->show();
+    implantMonitor->raise();
+}
+
+//void PatientListWidget::showKeyboard() {
+//    CustomKeyboard* keyboard = CustomKeyboard::instance(this);  // 获取虚拟键盘实例
+//    keyboard->registerEdit(searchEdit, QPoint(0, 0));  // 注册 QLineEdit 和偏移量
+//    keyboard->showKeyboard();  // 显示虚拟键盘
+//}
+
+//void PatientListWidget::closeEvent(QCloseEvent *event) {
+//    CustomKeyboard* keyboard = CustomKeyboard::instance();
+//    if (keyboard) {
+//        keyboard->closeKeyboard();  // 隐藏虚拟键盘
+//    }
+//    QWidget::closeEvent(event);  // 调用父类的关闭事件
+//}

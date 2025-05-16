@@ -13,7 +13,8 @@
 #include <QtSql/QSqlError>
 #include "databasemanager.h"
 
-ImplantMonitor::ImplantMonitor(QWidget *parent , const QString &sensorId) : QWidget(parent) , m_serial(sensorId) {
+
+ImplantMonitor::ImplantMonitor(QWidget *parent , const QString &sensorId) : FramelessWindow(parent) , m_serial(sensorId) {
 
     this->setFixedSize(1024,600);
     this->setObjectName("Implantonitor");
@@ -482,10 +483,16 @@ void ImplantMonitor::onDataSaved(const MeasurementData &d0) {
 void ImplantMonitor::onReadoutButtonClicked() {
     if (!readoutdialog) {
         readoutdialog = new ReadoutRecordDialog(this);
+         readoutdialog->setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
         // 这里把整个列表一次性传给对话框
         connect(this, &ImplantMonitor::dataListUpdated,readoutdialog, &ReadoutRecordDialog::populateData);
 //        connect(this, &ImplantMonitor::dataListUpdated,readoutdialog, &ReadoutRecordDialog::populateData);
         connect(readoutdialog, &ReadoutRecordDialog::rowDeleted,this, &ImplantMonitor::onRowDeleted);
+        connect(readoutdialog,&ReadoutRecordDialog::onRefreshButtonClicked,this,[this](){
+           qDebug()<<"返回植入位置界面";
+            emit returnImplantationsite();
+            this->close();
+        });
     }
     // 触发对话框更新
     emit dataListUpdated(measurementList);
@@ -508,3 +515,21 @@ void ImplantMonitor::onRowDeleted(int row)
     // 推送最新列表，让对话框刷新
     emit dataListUpdated(measurementList);
 }
+
+void ImplantMonitor::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) {
+        // 系统自动发送的 LanguageChange
+        titleLabel->setText(tr("新植入物"));
+        bpVal->setText(tr("血压\n120/80"));
+        avgVal->setText(tr("平均\n94"));
+        hrVal->setText(tr("心率\n75"));
+        statisticsbtn->setText(tr("读数记录"));
+        startBtn->setText(tr("开始测量"));
+        inputCO->setText(tr("输入心输出量"));
+        inputRHC->setText(tr("输入RHC"));
+        statBtn->setText(tr("审计界面"));
+    }
+}
+

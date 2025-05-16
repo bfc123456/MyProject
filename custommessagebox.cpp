@@ -2,7 +2,7 @@
 
 CustomMessageBox::CustomMessageBox(QWidget *parent, const QString &title, const QString &message,
                                    const QVector<QString> &buttons, int width)
-    : QDialog(parent), userResponse("No")  // 默认用户选择“No”
+    : CloseOnlyWindow(parent), userResponse("No")  // 默认用户选择“No”
 {
     setWindowTitle(title);
     this->setObjectName("Custommessagebox");

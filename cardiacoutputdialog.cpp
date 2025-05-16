@@ -6,7 +6,7 @@
 #include <QLineEdit>
 
 CardiacOutputDialog::CardiacOutputDialog(QString bpValue, QString avgValue, QWidget *parent)
-    : QDialog(parent)
+    : CloseOnlyWindow(parent)
 {
     // 设置窗体样式
     setWindowTitle(tr("输入心输出量"));

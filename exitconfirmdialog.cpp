@@ -4,11 +4,11 @@
 #include <QGraphicsDropShadowEffect>
 
 ExitConfirmDialog::ExitConfirmDialog(QWidget *parent)
-    : QDialog(parent)
+    : CloseOnlyWindow(parent)
 {
     // 设置无边框 + 遮罩背景
-    setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog);
-    setAttribute(Qt::WA_TranslucentBackground);
+//    setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog);
+//    setAttribute(Qt::WA_TranslucentBackground);
     resize(400, 200);
 
     QWidget *mainWidget = new QWidget(this);

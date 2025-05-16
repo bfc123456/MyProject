@@ -1,3 +1,4 @@
+
 #ifndef IMPLANTMONITOR_H
 #define IMPLANTMONITOR_H
 
@@ -13,8 +14,9 @@
 #include "readoutrecorddialog.h"
 #include "measurewidget.h"
 #include "reviewwidget.h"
+#include "FramelessWindow.h"
 
-class ImplantMonitor : public QWidget {
+class ImplantMonitor : public FramelessWindow {
     Q_OBJECT
 public:
     explicit ImplantMonitor(QWidget *parent = nullptr ,  const QString &sensorId = QString());
@@ -51,6 +53,7 @@ private:
 
 signals:
     void dataListUpdated(const QList<MeasurementData>& list);   //表格更新提示
+    void returnImplantationsite();
 
 private slots:
     void openCOClicked();
@@ -63,6 +66,7 @@ private slots:
     void onReadoutButtonClicked();
 //    void onDataListUpdated(const QList<MeasurementData>& list);  //更新结构体
     void onRowDeleted(int row); //删除结构体特定行
+    void changeEvent(QEvent *event) override;
 };
 
 

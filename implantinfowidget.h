@@ -1,3 +1,4 @@
+
 #ifndef IMPLANTINFOWIDGET_H
 #define IMPLANTINFOWIDGET_H
 
@@ -10,8 +11,9 @@
 #include "customkeyboard.h"
 #include "customdateedit.h"
 #include "implantationsite.h"
+#include "FramelessWindow.h"
 
-class ImplantInfoWidget : public QWidget
+class ImplantInfoWidget : public FramelessWindow
 {
     Q_OBJECT
 

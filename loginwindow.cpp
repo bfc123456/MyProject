@@ -15,8 +15,11 @@
 #include "toucheventhandler.h"
 
 LoginWindow::LoginWindow(QWidget *parent)
-    : QWidget(parent)
+    : FramelessWindow (parent)
 {
+    // 1) 去掉系统标题栏和边框
+//    setWindowFlags(Qt::FramelessWindowHint | Qt::Window);
+
     // 读取用户上次选择的语言
     QSettings settings("MyCompany", "MyApp");
     QString languageCode = settings.value("language", "zh_CN").toString();  // 默认中文
@@ -25,8 +28,8 @@ LoginWindow::LoginWindow(QWidget *parent)
     // 设置软件语言
     changeLanguage(languageCode);
 
-    setWindowTitle(tr("医疗设备管理系统"));
-    setFixedSize(1024, 600);
+//    setWindowTitle(tr("医疗设备管理系统"));
+//    setFixedSize(1024, 600);
 
     TouchEventHandler *touchEventHandler = new TouchEventHandler(this);  // 创建触控事件处理器
     this->installEventFilter(touchEventHandler);  // 安装事件过滤器
@@ -81,6 +84,9 @@ LoginWindow::LoginWindow(QWidget *parent)
     btnNewPerson = new QPushButton(tr("🧍 新填入物"),this);
     btnVisit = new QPushButton(tr("🗂 回访"),this);
     btnPatientList = new QPushButton(tr("👥 患者列表"),this);
+    btnNewPerson->setFixedHeight(50);
+    btnVisit->setFixedHeight(50);
+    btnPatientList->setFixedHeight(50);
 
     QString btnStyle = R"(
     QPushButton {
@@ -117,7 +123,7 @@ LoginWindow::LoginWindow(QWidget *parent)
 
     // 创建内部 widget 容器
     QWidget *buttonContainer = new QWidget(this);
-    buttonContainer->setFixedSize(350, 280);  // 控制容器尺寸
+    buttonContainer->setFixedSize(420, 336);  // 控制容器尺寸
     buttonContainer->setStyleSheet(R"(
     QWidget {
         background-color: qlineargradient(
@@ -135,8 +141,8 @@ LoginWindow::LoginWindow(QWidget *parent)
     containerLayout->addWidget(btnNewPerson);
     containerLayout->addWidget(btnVisit);
     containerLayout->addWidget(btnPatientList);
-    containerLayout->setSpacing(20);//按钮之间的间隔
-    containerLayout->setContentsMargins(50, 30, 50, 30);  // 按钮与容器边距（左上右下）
+    containerLayout->setSpacing(10);//按钮之间的间隔
+    containerLayout->setContentsMargins(65, 10, 65, 10);  // 按钮与容器边距（左上右下）
 
     // 设置按钮容器居中
     QVBoxLayout *mainLayout = new QVBoxLayout();
@@ -217,6 +223,38 @@ void LoginWindow::showHiddenWidget() {
     if (!maintenancewidget) {
         maintenancewidget = std::make_unique<MaintenanceWidget>();
     }
+
+    maintenancewidget->setStyleSheet(R"(
+        QWidget {
+             background-color: qlineargradient(
+                 x1: 0, y1: 0, x2: 0, y2: 1,
+                 stop: 0 rgba(30, 50, 80, 0.9),     /* 顶部：偏亮蓝灰，透明度 0.9 */
+                 stop: 1 rgba(10, 25, 50, 0.75)     /* 底部：深蓝，透明度 0.75 */
+             );
+            color: white;
+            font-size: 16px;
+            border-radius: 10px;
+        }
+
+        QLabel {
+            color: white;
+            font-weight: bold;
+        }
+
+        QPushButton {
+            background-color: #4a6283;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            min-height: 30px;
+        }
+
+        QPushButton:pressed {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+    )");
+
     maintenancewidget->show();
 }
 
@@ -307,7 +345,6 @@ void LoginWindow::openImplantWindow() {
 void LoginWindow::closeImplantWindow(){
 
     implantWindow->close();
-//    implantWindow.reset(); //界面关闭，自动销毁并释放内存
 }
 
 void LoginWindow::showLoginWindow() {
@@ -317,9 +354,8 @@ void LoginWindow::showLoginWindow() {
 void LoginWindow::changeEvent(QEvent *event) {
     if (isInitialized && event->type() == QEvent::LanguageChange) {
         // 更新所有界面上的文本
-        setWindowTitle(tr("医疗设备管理系统"));
         if (titleLabel)
-        titleLabel->setText(tr("医疗设备管理系统"));
+        titleLabel->setText("🩺 "+ tr("医疗设备管理系统"));
         btnNewPerson->setText(tr("🧍新填入物"));
         btnVisit->setText(tr("🗂 回访"));
         btnPatientList->setText(tr("👥 患者列表"));
@@ -377,7 +413,6 @@ void LoginWindow::openFollowupFormWindow() {
 
 void LoginWindow::closeFollowupformwindow(){
     followupformwindow->close();
-    followupformwindow.reset(); //界面关闭，自动销毁并释放内存
 }
 
 void LoginWindow::openPatientListWidget() {
@@ -426,161 +461,4 @@ void LoginWindow::openPatientListWidget() {
 
 void LoginWindow::closePatientListWidget(){
     patientlistwidget->close();
-    patientlistwidget.reset(); //界面关闭，自动销毁并释放内存
-}
-
-
-void LoginWindow::closeEvent(QCloseEvent *event)
-{
-    // 添加遮罩层
-    QWidget *overlay = new QWidget(this);
-    overlay->setGeometry(this->rect());
-    overlay->setStyleSheet("background-color: rgba(0, 0, 0, 100);"); // 可调透明度
-    overlay->setAttribute(Qt::WA_TransparentForMouseEvents, false); // 拦截事件
-    overlay->show();
-    overlay->raise();
-
-    // 添加模糊效果
-    QGraphicsBlurEffect *blur = new QGraphicsBlurEffect;
-    blur->setBlurRadius(20);  // 可调强度：20~40
-    this->setGraphicsEffect(blur);
-
-    // 创建提示弹窗
-    QDialog prompt(this);
-    prompt.setStyleSheet(R"(
-        QDialog {
-            background-color: qlineargradient(
-                x1: 0, y1: 0, x2: 0, y2: 1,
-                stop: 0 rgba(15, 34, 67, 200),     /* 深蓝：顶部 */
-                stop: 1 rgba(10, 25, 50, 180)      /* 更深蓝：底部 */
-            );
-            border-radius: 12px;
-        }
-
-        QLabel {
-            color: rgba(255, 255, 255, 230);
-            font-size: 16px;
-            font-weight: bold;
-            background: transparent;   /* 关键！避免白底 */
-        }
-
-        QPushButton {
-            background-color: #007bff; /* 蓝色背景 */
-            color: white;
-            border-radius: 8px;
-            padding: 10px 20px;
-            font-size: 14px;
-            font-weight: bold;
-            border: 2px solid #0056b3; /* 深蓝色边框 */
-        }
-
-        QPushButton:pressed {
-            background-color: #003f7f; /* 按钮按下时的颜色 */
-            border-color: #003f7f; /* 按钮按下时边框颜色 */
-        }
-
-        QPushButton:focus {
-            outline: none;  /* 去掉焦点边框 */
-        }
-    )");
-
-    prompt.setWindowTitle(tr("退出确认"));
-    prompt.setFixedSize(400, 200);
-
-    // 内容布局与按钮
-    QVBoxLayout* mainLayout = new QVBoxLayout(&prompt);
-
-    QLabel* label = new QLabel(tr("确定要退出程序吗？"));
-    label->setAlignment(Qt::AlignCenter);
-    label->setStyleSheet("font-size: 16px;");
-    mainLayout->addWidget(label);
-
-    QHBoxLayout* buttonLayout = new QHBoxLayout;
-
-    // 创建确认与取消按钮
-    QPushButton* cancelButton = new QPushButton(tr("取消"));
-    QPushButton* confirmButton = new QPushButton(tr("确认"));
-
-    // 按钮样式
-    confirmButton->setStyleSheet(R"(
-         QPushButton {
-             background-color: qlineargradient(
-                 x1:0, y1:0, x2:0, y2:1,
-                 stop:0 rgba(255, 99, 71, 180),   /* 红色渐变（上） */
-                 stop:1 rgba(220, 53, 69, 180)    /* 红色渐变（下） */
-             );
-             border: 1px solid rgba(163, 211, 255, 0.6);
-             border-radius: 6px;
-             color: white;
-             font-weight: bold;
-             font-size: 14px;
-             padding: 8px 20px;
-
-         }
-
-         QPushButton:pressed {
-             background-color: qlineargradient(
-                 stop: 0 rgba(47, 106, 158, 200),
-                 stop: 1 rgba(31, 78, 121, 200)
-             );
-             padding-left: 2px;
-             padding-top: 2px;
-         }
-     )");
-
-    cancelButton->setStyleSheet(R"(
-          QPushButton {
-              background-color: qlineargradient(
-                  stop: 0 rgba(110, 220, 145, 180),
-                  stop: 1 rgba(58, 170, 94, 180)
-              );
-              border: 1px solid rgba(168, 234, 195, 0.6);
-              border-radius: 6px;
-              color: white;
-              font-weight: bold;
-              font-size: 14px;
-              padding: 8px 20px;
-          }
-
-          QPushButton:pressed {
-              background-color: qlineargradient(
-                  stop: 0 rgba(44, 128, 73, 200),
-                  stop: 1 rgba(29, 102, 53, 200)
-              );
-              padding-left: 2px;
-              padding-top: 2px;
-          }
-      )");
-
-    // 设置按钮大小
-    cancelButton->setFixedSize(120, 45);
-    confirmButton->setFixedSize(120, 45);
-
-    // 添加按钮到布局
-    buttonLayout->addStretch();
-    buttonLayout->addWidget(cancelButton);
-    buttonLayout->addSpacing(40);
-    buttonLayout->addWidget(confirmButton);
-    buttonLayout->addStretch();
-
-    mainLayout->addLayout(buttonLayout);
-
-    // 设置按钮点击事件
-    connect(cancelButton, &QPushButton::clicked, &prompt, &QDialog::reject);
-    connect(confirmButton, &QPushButton::clicked, &prompt, &QDialog::accept);
-
-    // 弹出确认对话框
-    int result = prompt.exec();
-
-    // 清除遮罩和模糊效果
-    this->setGraphicsEffect(nullptr);
-    overlay->close();
-    overlay->deleteLater();
-
-    // 如果点击确认，执行关闭操作
-    if (result == QDialog::Accepted) {
-        event->accept();  // 关闭窗口
-    } else {
-        event->ignore();  // 不关闭窗口
-    }
 }

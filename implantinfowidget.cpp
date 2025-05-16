@@ -3,7 +3,6 @@
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QDebug>
-#include <QDialog>
 #include <QGraphicsBlurEffect>
 #include <QEvent>
 #include <QMessageBox>
@@ -11,9 +10,10 @@
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
+#include "CloseOnlyWindow.h"
 
 ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
-    : QWidget(parent)
+    : FramelessWindow(parent)
 {
     setWindowTitle(tr("新植入物管理界面"));
     setFixedSize(1024, 600);
@@ -123,7 +123,7 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
 
     currentKeyboard = CustomKeyboard::instance(this);
 
-    // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
+    // 给每个 QLineEdit 注册一次偏移
     currentKeyboard->registerEdit(serialInput);
     currentKeyboard->registerEdit(checksumInput);
     currentKeyboard->registerEdit(implantDoctorInput);
@@ -319,10 +319,11 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(80, 15, 80, 15);
     mainLayout->addWidget(topBar);
+    mainLayout->addSpacing(15);
     mainLayout->addWidget(formWidget);
     mainLayout->addSpacing(30);
     mainLayout->addWidget(buttonWidget);
-    mainLayout->addSpacing(45);
+    mainLayout->addSpacing(15);
     setLayout(mainLayout);
 }
 
@@ -345,111 +346,16 @@ void ImplantInfoWidget::showImplantationSiteWidget(const QString &serial)
     blur->setBlurRadius(20);  // 可调强度：20~40
     this->setGraphicsEffect(blur);
 
-    //创建提示弹窗
-    QDialog prompt(this);
-    prompt.setStyleSheet(R"(
-        QDialog {
-            background-color: qlineargradient(
-                x1: 0, y1: 0, x2: 0, y2: 1,
-                stop: 0 rgba(15, 34, 67, 200),     /* 深蓝：顶部 */
-                stop: 1 rgba(10, 25, 50, 180)      /* 更深蓝：底部 */
-            );
-            border-radius: 12px;
-        }
-
-        QLabel {
-            color: rgba(255, 255, 255, 230);
-            font-size: 16px;
-            font-weight: bold;
-            background: transparent;   /* 关键！避免白底 */
-        }
-    )");
-
-    prompt.setWindowTitle(tr("提示"));
-    prompt.setFixedSize(400, 200);
-
-    //内容布局与按钮
-    QVBoxLayout* mainLayout = new QVBoxLayout(&prompt);
-
-    QLabel* label = new QLabel(tr("请将传感器植入患者体内，点击下一步"));
-    label->setWordWrap(true);
-    label->setAlignment(Qt::AlignCenter);
-    label->setStyleSheet("font-size: 16px;");
-    mainLayout->addWidget(label);
-
-    QHBoxLayout* buttonLayout = new QHBoxLayout;
-    QPushButton* backButton = new QPushButton(tr("返 回"));
-    QPushButton* nextButton = new QPushButton(tr("下一步"));
-
-    // 按钮样式略...
-
-    backButton->setFixedSize(120,45);
-    backButton->setIcon(QIcon(":/image/icons8-return.png"));
-    nextButton->setFixedSize(120,45);
-    nextButton->setIcon(QIcon(":/image/icons8-next.png"));
-
-    backButton->setStyleSheet(R"(
-    QPushButton {
-        background-color: qlineargradient(
-            x1:0, y1:0, x2:0, y2:1,
-            stop:0 rgba(95, 169, 246, 180),
-            stop:1 rgba(49, 122, 198, 180)
-        );
-        border: 1px solid rgba(163, 211, 255, 0.6); /* 半透明高光边框 */
-        border-radius: 6px;
-        color: white;
-        font-weight: bold;
-        font-size: 14px;
-        padding: 8px 20px;
-    }
-
-    QPushButton:pressed {
-        background-color: qlineargradient(
-            stop: 0 rgba(47, 106, 158, 200),
-            stop: 1 rgba(31, 78, 121, 200)
-        );
-        padding-left: 2px;
-        padding-top: 2px;
-    }
-    )");
-
-    nextButton->setStyleSheet(R"(
-    QPushButton {
-        background-color: qlineargradient(
-            stop: 0 rgba(110, 220, 145, 180),
-            stop: 1 rgba(58, 170, 94, 180)
-        );
-        border: 1px solid rgba(168, 234, 195, 0.6);
-        border-radius: 6px;
-        color: white;
-        font-weight: bold;
-        font-size: 14px;
-        padding: 8px 20px;
-    }
-
-    QPushButton:pressed {
-        background-color: qlineargradient(
-            stop: 0 rgba(44, 128, 73, 200),
-            stop: 1 rgba(29, 102, 53, 200)
-        );
-        padding-left: 2px;
-        padding-top: 2px;
-    }
-    )");
-
-    buttonLayout->addStretch();
-    buttonLayout->addWidget(backButton);
-    buttonLayout->addSpacing(40);
-    buttonLayout->addWidget(nextButton);
-    buttonLayout->addStretch();
-
-    mainLayout->addLayout(buttonLayout);
-
-    QObject::connect(backButton, &QPushButton::clicked, &prompt, &QDialog::reject);
-    QObject::connect(nextButton, &QPushButton::clicked, &prompt, &QDialog::accept);
+    CustomMessageBox dlg(
+        this,
+        tr("提示"),
+        tr("请将传感器植入患者体内，点击下一步"),
+        { tr("返 回"), tr("下一步") },
+        400   // 宽度
+    );
 
     // 5. 阻塞显示
-    int result = prompt.exec();
+    int result = dlg.exec();
 
     // 6. 清除遮罩和模糊
     this->setGraphicsEffect(nullptr);
@@ -549,16 +455,15 @@ void ImplantInfoWidget::changeEvent(QEvent *event)
     QWidget::changeEvent(event);
     if (event->type() == QEvent::LanguageChange) {
         // 系统自动发送的 LanguageChange
-        setWindowTitle(tr("新植入物管理界面"));
         titleLabel->setText(tr("新植入物"));
         serialLabel->setText(tr("传感器序列号"));
-        serialInput->setText(tr("请输入传感器序列号"));
+        serialInput->setPlaceholderText(tr("请输入传感器序列号"));
         checksumLabel->setText(tr("校准码"));
-        checksumInput->setText(tr("请输入校准码"));
+        checksumInput->setPlaceholderText(tr("请输入校准码"));
         implantDoctorLabel->setText(tr("植入医生"));
-        implantDoctorInput->setText(tr("请输入植入医生姓名"));
+        implantDoctorInput->setPlaceholderText(tr("请输入植入医生姓名"));
         treatDoctorLabel->setText(tr("治疗医生"));
-        treatDoctorInput->setText(tr("请输入治疗医生姓名"));
+        treatDoctorInput->setPlaceholderText(tr("请输入治疗医生姓名"));
         dateLabel->setText(tr("植入日期"));
         backButton->setText(tr("返回"));
         continueButton->setText(tr("上传"));

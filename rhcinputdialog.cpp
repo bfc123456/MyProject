@@ -6,7 +6,7 @@
 #include <QLineEdit>
 
 RHCInputDialog::RHCInputDialog(QWidget *parent)
-    : QDialog(parent)
+    : CloseOnlyWindow(parent)
 {
     // 设置窗口标题
     setWindowTitle(tr("输入RHC"));
@@ -161,3 +161,12 @@ QString RHCInputDialog::getRHCValue() const {
     return rhcEdit->text();  // 返回在输入框中输入的值
 }
 
+void RHCInputDialog::changeEvent(QEvent *event){
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) {
+        // 系统自动发送的 LanguageChange
+        setWindowTitle(tr("输入RHC"));
+        clearButton->setText(tr("全部清除"));
+        saveButton->setText(tr("保存"));
+    }
+}

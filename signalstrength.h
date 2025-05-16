@@ -1,3 +1,4 @@
+
 #ifndef SIGNALSTRENGTH_H
 #define SIGNALSTRENGTH_H
 

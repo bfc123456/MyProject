@@ -1,4 +1,3 @@
-#pragma once
 
 #include <QDialog>
 #include <QTableWidget>
@@ -24,6 +23,8 @@ private slots:
 
 signals:
     void rowDeleted(int row);
+    void returnImplantationsite();
+    void onRefreshButtonClicked();
 
 private:
     QTableWidget *table;

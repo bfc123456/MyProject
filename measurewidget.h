@@ -1,3 +1,4 @@
+
 #ifndef MEASUREWIDGET_H
 #define MEASUREWIDGET_H
 
@@ -14,8 +15,9 @@
 #include "modernwaveplot.h"
 #include "measurementdata.h"
 #include "customkeyboard.h"
+#include "FramelessWindow.h"
 
-class MeasureWidget : public QWidget
+class MeasureWidget : public FramelessWindow
 {
     Q_OBJECT
 
@@ -31,6 +33,19 @@ private:
     ModernWavePlot *plot;
     QLabel *titleLabel;
     QLabel *idLabel;
+    QLabel *sensormonitor;
+    QLabel *sbptittlle;
+    QLabel *dbptittlle;
+    QLabel *meantittlle;
+    QLabel *heartratetittlle;
+    QLabel *referencetittle;
+    QLabel *refersbptittlle;
+    QLabel *referdbptittlle;
+    QLabel *refermeantittlle;
+    QLabel *positontittle;
+    QLabel *remarklabel;
+    QPushButton *savebtn;
+    QPushButton *returnbtn;
     QLineEdit *systolicPressureEdit;
     QLineEdit *diastolicPressureEdit;
     QLineEdit *avgPressureEdit;
@@ -79,6 +94,7 @@ private slots:
     void updateWaveform();
     double calculateHeartRate();
     void onSaveButtonClicked();
+    void changeEvent(QEvent *event) override;
 };
 
 #endif // MEASUREWIDGET_H

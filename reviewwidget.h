@@ -1,3 +1,4 @@
+
 #ifndef REVIEWWIDGET_H
 #define REVIEWWIDGET_H
 
@@ -14,8 +15,9 @@
 #include "measurementdata.h"
 #include "modernwaveplot.h"
 #include "databasemanager.h"
+#include "FramelessWindow.h"
 
-class ReviewWidget : public QWidget {
+class ReviewWidget : public FramelessWindow{
     Q_OBJECT
 
 public:
@@ -36,10 +38,16 @@ private:
     SettingsWidget *settingswidget;
     QTableWidget *historyTable  = nullptr;
     QPushButton *saveButton;
+    QLabel *titleLabel;
+    QLabel *monitorpressure;
+    QLabel *hrLabel;
+    QLabel *historylabel;
+    QPushButton *backButton;
     QString m_serial;
     QLabel *idLabel;
     ModernWavePlot *bpPlot  = nullptr;
     QList<MeasurementData> m_list;
+    void changeEvent(QEvent *event) override;
 };
 
 #endif // REVIEWWIDGET_H

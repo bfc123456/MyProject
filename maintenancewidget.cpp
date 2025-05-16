@@ -3,11 +3,10 @@
 #include <QHBoxLayout>
 #include <QSerialPortInfo>
 #include <QDebug>
-#include <QLabel>
 #include <QDateTime>
 
 MaintenanceWidget::MaintenanceWidget(QWidget *parent)
-    : QWidget(parent), serialManager(new SerialManager(this))
+    : FramelessWindow(parent), serialManager(new SerialManager(this))
 {
     this->setFixedSize(1024, 600);
 
@@ -25,8 +24,51 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     )");
 
     //设置布局
-    QHBoxLayout *mainLayout = new QHBoxLayout(this);
-    mainLayout->setContentsMargins(10,30,10,30);
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+
+    // 顶部栏部件
+    QWidget *topBar = new QWidget(this);
+    topBar->setFixedHeight(50);
+    topBar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+    // 设置透明背景（如果你使用渐变背景）
+    topBar->setStyleSheet("background-color: transparent;");
+
+    // 系统名称 Label（左侧）
+    titleLabel = new QLabel("🩺 "+ tr("医疗设备管理系统"), this);
+    titleLabel->setStyleSheet("color: white; font-size: 18px; font-weight: bold;");
+    titleLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+
+    //设置按钮（右侧）
+    QPushButton *btnclose = new QPushButton(this);
+    btnclose->setIcon(QIcon(":/image/icons-close.png"));
+    btnclose->setIconSize(QSize(35, 35));
+    btnclose->setFlat(true);  // 去除按钮边框
+    // 设置点击视觉反馈
+    btnclose->setStyleSheet(R"(
+        QPushButton {
+            border: none;
+            background-color: transparent;
+            border-radius: 20px; /* 让 hover/pressed 效果是圆的 */
+        }
+        QPushButton:pressed {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+    )");
+
+    connect(btnclose, &QPushButton::clicked, this, &MaintenanceWidget::onBtnCloseClicked);
+
+
+    //顶部栏布局
+    QHBoxLayout *tittleLayout = new QHBoxLayout(topBar);
+    tittleLayout->addWidget(titleLabel);
+    tittleLayout->addStretch();
+    tittleLayout->addWidget(btnclose);
+    tittleLayout->setContentsMargins(10, 0, 10, 0);  // 左右边距
+
+    mainLayout->addWidget(topBar);
+    QHBoxLayout *secondLayout = new QHBoxLayout();
+    secondLayout->setContentsMargins(10,30,10,30);
 
     //左侧串口连接布局
     QWidget *serialconfigwidget = new QWidget();
@@ -35,7 +77,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     serialconfiglayout->setContentsMargins(10,30,10,30);
 
     // 端口号设置
-    QLabel *portLabel = new QLabel(tr("端口号:"));
+    portLabel = new QLabel(tr("端口号:"));
     portLabel->setStyleSheet("background-color: transparent;");
     portComboBox = new QComboBox(this);
     portComboBox->addItem("COM1");
@@ -47,7 +89,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     portLayout->addWidget(portComboBox);
 
     // 波特率设置
-    QLabel *baudRateLabel = new QLabel(tr("波特率:"));
+    baudRateLabel = new QLabel(tr("波特率:"));
     baudRateLabel->setStyleSheet("background-color: transparent;");
     baudRateComboBox = new QComboBox(this);
     baudRateComboBox->addItem("9600");
@@ -59,7 +101,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     baudRateLayout->addWidget(baudRateComboBox);
 
     // 数据位设置
-    QLabel *dataBitsLabel = new QLabel(tr("数据位:"));
+    dataBitsLabel = new QLabel(tr("数据位:"));
     dataBitsLabel->setStyleSheet("background-color: transparent;");
     dataBitsComboBox = new QComboBox(this);
     dataBitsComboBox->addItem("5");
@@ -72,7 +114,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     dataBitsLayout->addWidget(dataBitsComboBox);
 
     // 校验位设置
-    QLabel *parityLabel = new QLabel(tr("校验位:"));
+    parityLabel = new QLabel(tr("校验位:"));
     parityLabel->setStyleSheet("background-color: transparent;");
     parityComboBox = new QComboBox(this);
     parityComboBox->addItem("None");
@@ -84,7 +126,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     parityLayout->addWidget(parityComboBox);
 
     // 停止位设置
-    QLabel *stopBitsLabel = new QLabel(tr("停止位:"));
+    stopBitsLabel = new QLabel(tr("停止位:"));
     stopBitsLabel->setStyleSheet("background-color: transparent;");
     stopBitsComboBox = new QComboBox(this);
     stopBitsComboBox->addItem("1");
@@ -96,7 +138,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     stopBitsLayout->addWidget(stopBitsComboBox);
 
     // 流控设置
-    QLabel *flowControlLabel = new QLabel(tr("流控制:"));
+    flowControlLabel = new QLabel(tr("流控制:"));
     flowControlLabel->setStyleSheet("background-color: transparent;");
     flowControlComboBox = new QComboBox(this);
     flowControlComboBox->addItem("None");
@@ -158,21 +200,27 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     QVBoxLayout *showdatalayout = new QVBoxLayout(showdatawidget);
     showdatalayout->setContentsMargins(30,30,30,30);
 
-    QLabel *recivedatalable = new QLabel(tr("接收数据"));
+    senddatalabel = new QLabel(tr("发送数据"));
+    senddatalabel->setStyleSheet("background-color: transparent;");
+    sendTextEdit = new QLineEdit(this);
+    sendTextEdit->setFixedHeight(135);
+
+    recivedatalable = new QLabel(tr("接收数据"));
     recivedatalable->setStyleSheet("background-color: transparent;");
     receiveTextEdit = new QTextEdit(this);
     receiveTextEdit->setReadOnly(true);
 
-    QLabel *senddatalabel = new QLabel(tr("发送数据"));
-    senddatalabel->setStyleSheet("background-color: transparent;");
-    sendTextEdit = new QTextEdit(this);
+    // 拿到单例键盘
+    currentKeyboard = CustomKeyboard::instance(this);
 
+    // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
+    currentKeyboard->registerEdit(sendTextEdit, QPoint(-5,350));
 
-    showdatalayout->addWidget(recivedatalable);
-    showdatalayout->addWidget(receiveTextEdit);
-    showdatalayout->addSpacing(10);
     showdatalayout->addWidget(senddatalabel);
     showdatalayout->addWidget(sendTextEdit);
+    showdatalayout->addSpacing(10);
+    showdatalayout->addWidget(recivedatalable);
+    showdatalayout->addWidget(receiveTextEdit);
 
     QHBoxLayout *buttonlayout = new QHBoxLayout();
     buttonlayout->setAlignment(Qt::AlignHCenter);
@@ -332,45 +380,46 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     setStatus(reverseReflectionStatusFrame, false);
 
     // 设置布局
-    QLabel *voltagelabel = new QLabel(tr("电压："));
+    voltagelabel = new QLabel(tr("电压："));
     voltagelabel->setStyleSheet("background-color: transparent;");
     statusLayout->addWidget(voltagelabel);
     statusLayout->addWidget(voltageStatusFrame);
 
     statusLayout->addSpacing(15);
 
-    QLabel *currentlabel = new QLabel(tr("电流："));
+    currentlabel = new QLabel(tr("电流："));
     currentlabel->setStyleSheet("background-color: transparent;");
     statusLayout->addWidget(currentlabel);
     statusLayout->addWidget(currentStatusFrame);
 
     statusLayout->addSpacing(15);
 
-    QLabel *temperaturelabel = new QLabel(tr("温度："));
+    temperaturelabel = new QLabel(tr("温度："));
     temperaturelabel->setStyleSheet("background-color: transparent;");
     statusLayout->addWidget(temperaturelabel);
     statusLayout->addWidget(temperatureStatusFrame);
 
     statusLayout->addSpacing(15);
 
-    QLabel *outputpowerlabel = new QLabel(tr("输出功率："));
+    outputpowerlabel = new QLabel(tr("输出功率："));
     outputpowerlabel->setStyleSheet("background-color: transparent;");
     statusLayout->addWidget(outputpowerlabel);
     statusLayout->addWidget(powerOutputStatusFrame);
 
     statusLayout->addSpacing(15);
 
-    QLabel *reversestandingwavelabel = new QLabel(tr("反向驻波："));
+    reversestandingwavelabel = new QLabel(tr("反向驻波："));
     reversestandingwavelabel->setStyleSheet("background-color: transparent;");
     statusLayout->addWidget(reversestandingwavelabel);
     statusLayout->addWidget(reverseReflectionStatusFrame);
 
     //添加所有布局到总布局
-    mainLayout->addWidget(serialconfigwidget);
-    mainLayout->addSpacing(15);
-    mainLayout->addWidget(showdatawidget);
-    mainLayout->addSpacing(15);
-    mainLayout->addWidget(statuscheckwidget);
+    secondLayout->addWidget(serialconfigwidget);
+    secondLayout->addSpacing(15);
+    secondLayout->addWidget(showdatawidget);
+    secondLayout->addSpacing(15);
+    secondLayout->addWidget(statuscheckwidget);
+    mainLayout->addLayout(secondLayout);
 
     // 连接信号与槽
     connect(connectButton, &QPushButton::clicked, this, &MaintenanceWidget::onConnectSerialPort);
@@ -421,7 +470,7 @@ void MaintenanceWidget::onConnectSerialPort()
 
 void MaintenanceWidget::onSendData()
 {
-    QByteArray data = sendTextEdit->toPlainText().toUtf8();
+    QByteArray data = sendTextEdit->text().toUtf8();
     serialManager->sendData(data);
     qDebug() << "发送数据：" << data;
 }
@@ -534,6 +583,36 @@ void MaintenanceWidget::onDataReceived(const QByteArray &data)
     // 比如，可以将接收到的十六进制数据转换成字符串并显示到界面上
     QString dataString = QString::fromUtf8(data);
     qDebug() << "接收到的数据：" << dataString;
+}
+
+void MaintenanceWidget::onBtnCloseClicked()
+{
+    this->close();
+}
+
+void MaintenanceWidget::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        titleLabel->setText("🩺 "+ tr("医疗设备管理系统"));
+        portLabel->setText(tr("端口号:"));
+        baudRateLabel->setText(tr("波特率:"));
+        dataBitsLabel->setText(tr("数据位:"));
+        parityLabel->setText(tr("校验位:"));
+        stopBitsLabel->setText(tr("停止位:"));
+        flowControlLabel->setText(tr("流控制:"));
+        connectButton->setText(tr("连接串口"));
+        recivedatalable->setText(tr("接收数据"));
+        senddatalabel->setText(tr("发送数据"));
+        sendButton->setText(tr("发送数据"));
+        clearReceiveButton->setText(tr("清空接收区"));
+        clearSendButton->setText(tr("清空发送区"));
+        voltagelabel->setText(tr("电压："));
+        currentlabel->setText(tr("电流："));
+        temperaturelabel->setText(tr("温度："));
+        outputpowerlabel->setText(tr("输出功率："));
+        reversestandingwavelabel->setText(tr("反向驻波："));
+    }
+    QWidget::changeEvent(event);
 }
 
 

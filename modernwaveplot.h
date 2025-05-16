@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include <qwt_plot.h>

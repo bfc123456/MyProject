@@ -1,3 +1,4 @@
+
 #ifndef CUSTOMMESSAGEBOX_H
 #define CUSTOMMESSAGEBOX_H
 
@@ -7,8 +8,9 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QPixmap>
+#include "CloseOnlyWindow.h"
 
-class CustomMessageBox : public QDialog
+class CustomMessageBox : public CloseOnlyWindow
 {
     Q_OBJECT
 

@@ -7,7 +7,7 @@
 #include <QSqlError>
 
 ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
-    : QWidget(parent), m_serial(sensorId){
+    : FramelessWindow(parent), m_serial(sensorId){
 
     this->setStyleSheet(R"(
         QWidget {
@@ -88,7 +88,7 @@ ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
     )");
     topwidget->setFixedHeight(50);
 
-    QLabel *titleLabel = new QLabel(tr("新植入物"));
+    titleLabel = new QLabel(tr("新植入物"));
     titleLabel->setStyleSheet("background-color: transparent; color: white;");
     idLabel = new QLabel();
     idLabel->setText(m_serial);
@@ -147,7 +147,7 @@ ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
 
     QVBoxLayout* implantLayout = new QVBoxLayout(frameImplant);
 
-    QLabel* implantTitle = new QLabel(tr("请点击按钮选择植入位置"), frameImplant);
+    implantTitle = new QLabel(tr("请点击按钮选择植入位置"), frameImplant);
     implantTitle->setFixedSize(350, 50);
     implantTitle->setAlignment(Qt::AlignCenter);
 
@@ -211,9 +211,9 @@ ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
     QVBoxLayout* curveLayout = new QVBoxLayout(frameCurve);
 
     QHBoxLayout* curveTitleLayout = new QHBoxLayout();
-    QLabel* labelCurve = new QLabel(tr("实时波形监测"), frameCurve);
+    labelCurve = new QLabel(tr("实时波形监测"), frameCurve);
     labelCurve->setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent; color: white;");
-    QPushButton* helpButton = new QPushButton(tr("帮助"), frameCurve);
+    helpButton = new QPushButton(tr("帮助"), frameCurve);
     helpButton->setIcon(QIcon(":/image/icons8-help.png"));
     helpButton->setIconSize(QSize(13, 13));
     helpButton->setFixedSize(75, 23);
@@ -221,60 +221,16 @@ ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
 
     connect(helpButton, &QPushButton::clicked, this, [this]() {
         // 创建QDialog作为自定义消息框
-        QDialog *dialog = new QDialog(this);
-        dialog->setFixedSize(400,200);
-        dialog->setWindowTitle("操作提示");
+        CustomMessageBox dlg(
+            this,
+            tr("操作提示"),
+            tr("1. 移动传感器至天线中心，然后缓慢移动\n\n"
+               "2. 确认信号强度逐渐变强然后停止，并重复三次"),
+            { tr("确认") },
+            400  // 对话框宽度
+        );
 
-        // 创建消息标签
-        QLabel *messageLabel1 = new QLabel(tr("1. 移动传感器至天线中心，然后缓慢移动"), dialog);
-        QLabel *messageLabel2 = new QLabel(tr("2. 确认信号强度逐渐变强然后停止，并重复三次"), dialog);
-        //        messageLabel->setWordWrap(true);  // 允许自动换行
-        messageLabel1->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");  // 设置字体和颜色
-        messageLabel2->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");  // 设置字体和颜色
-
-        // 创建确认按钮
-        QPushButton *confirmButton = new QPushButton(tr("确认"), dialog);
-
-        // 设置按钮的样式
-        confirmButton->setStyleSheet(R"(
-                                     QPushButton {
-                                     background-color: qlineargradient(
-                                     x1:0, y1:0, x2:0, y2:1,
-                                     stop:0 rgba(95, 169, 246, 180),
-                                     stop:1 rgba(49, 122, 198, 180)
-                                     );
-                                     border: 1px solid rgba(163, 211, 255, 0.6); /* 半透明高光边框 */
-                                     border-radius: 6px;
-                                     color: white;
-                                     font-weight: bold;
-                                     font-size: 14px;
-                                     padding: 8px 20px;
-                                     }
-
-                                     QPushButton:pressed {
-                                     background-color: qlineargradient(
-                                     stop: 0 rgba(47, 106, 158, 200),
-                                     stop: 1 rgba(31, 78, 121, 200)
-                                     );
-                                     padding-left: 2px;
-                                     padding-top: 2px;
-                                     }
-                                     )");
-        confirmButton->setFixedWidth(100);
-
-        // 创建垂直布局
-        QVBoxLayout *layout = new QVBoxLayout(dialog);
-        layout->addSpacing(20);
-        layout->addWidget(messageLabel1,0,Qt::AlignLeft);  // 添加消息
-        layout->addSpacing(20);
-        layout->addWidget(messageLabel2,0,Qt::AlignLeft);  // 添加消息
-        layout->addSpacing(20);
-        layout->addWidget(confirmButton,0,Qt::AlignCenter);  // 添加确认按钮
-
-        // 连接按钮点击事件
-        connect(confirmButton, &QPushButton::clicked, dialog, &QDialog::accept);  // 点击按钮后接受对话框
-
-        dialog->exec();  // 显示对话框
+        dlg.exec();
     });
 
 
@@ -325,14 +281,14 @@ ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
     frameHeart->setObjectName("frameHeart");
     frameHeart->setFixedHeight(120);
     QVBoxLayout* heartLayout = new QVBoxLayout(frameHeart);
-    QLabel* heartTitle = new QLabel(tr("心率监测"), frameHeart);
+    heartTitle = new QLabel(tr("心率监测"), frameHeart);
     heartTitle->setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent; color: white;");
     heartTitle->setAlignment(Qt::AlignCenter);
     QLabel* heartIcon = new QLabel(frameHeart);
     heartIcon->setPixmap(QPixmap(":/image/icons8-heart.png").scaled(16, 16));
     heartIcon->setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent; color: white;");
     QLabel* heartValue = new QLabel("78", frameHeart);
-    QLabel* heartUnit = new QLabel(tr("次/分钟"), frameHeart);
+    heartUnit = new QLabel(tr("次/分钟"), frameHeart);
     heartValue->setStyleSheet("font-size:22px; color:#3399ff; font-weight:bold;");
     heartUnit->setStyleSheet("color:#888;");
 
@@ -351,7 +307,7 @@ ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
     framePressure->setObjectName("framePressure");
     framePressure->setFixedHeight(120);
     QVBoxLayout* pressureLayout = new QVBoxLayout(framePressure);
-    QLabel* pressureTitle = new QLabel(tr("血压监测"), framePressure);
+    pressureTitle = new QLabel(tr("血压监测"), framePressure);
     pressureTitle->setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent; color: white;");
     QLabel* pressureIcon = new QLabel(framePressure);
     pressureIcon->setPixmap(QPixmap(":/image/icons8-tingzhen.png").scaled(16, 16));
@@ -383,7 +339,7 @@ ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
     frameSignal->setObjectName("frameSignal");
     frameSignal->setFixedHeight(120);
     QVBoxLayout* signalLayout = new QVBoxLayout(frameSignal);
-    QLabel* signalTitle = new QLabel(tr("信号强度"), frameSignal);
+    signalTitle = new QLabel(tr("信号强度"), frameSignal);
     signalTitle->setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent; color: white;");
     QLabel* signalIcon = new QLabel(frameSignal);
     signalIcon->setPixmap(QPixmap(":/image/icons8-signal.png").scaled(16, 16));
@@ -406,7 +362,7 @@ ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
     /********** 第四行：按钮操作 **********/
     QHBoxLayout* fourthRow = new QHBoxLayout();
 
-    QPushButton* returnButton = new QPushButton(tr("返回上级"), this);
+    returnButton = new QPushButton(tr("返回上级"), this);
     returnButton->setFixedSize(120, 45);
     returnButton->setIcon(QIcon(":/image/icons8-return.png"));
     connect(returnButton, &QPushButton::clicked, this, [this]() {
@@ -439,39 +395,45 @@ ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
     )");
 
 
-    QPushButton* calibrateButton = new QPushButton(tr("校准数据"), this);
+    calibrateButton = new QPushButton(tr("校准数据"), this);
     calibrateButton->setFixedSize(120, 45);
     calibrateButton->setIcon(QIcon(":/image/icons8-calibration.png"));
     connect(calibrateButton, &QPushButton::clicked, this, [this]() {
-        //添加遮罩层
-        QWidget *overlay = new QWidget(this);
-        overlay->setStyleSheet("background-color: rgba(0, 0, 0, 100);"); // 可调透明度
-        overlay->setAttribute(Qt::WA_TransparentForMouseEvents, true);  //不拦截
-        overlay->show();
-        overlay->raise();
+    //添加遮罩层
+    QWidget *overlay = new QWidget(this);
+    overlay->setStyleSheet("background-color: rgba(0, 0, 0, 100);"); // 可调透明度
+    overlay->setAttribute(Qt::WA_TransparentForMouseEvents, true);  //不拦截
+    overlay->show();
+    overlay->raise();
 
-        //添加模糊效果
-        QGraphicsBlurEffect *blur = new QGraphicsBlurEffect;
-        blur->setBlurRadius(20);  // 可调强度：20~40
-        this->setGraphicsEffect(blur);
+    //添加模糊效果
+    QGraphicsBlurEffect *blur = new QGraphicsBlurEffect;
+    blur->setBlurRadius(20);  // 可调强度：20~40
+    this->setGraphicsEffect(blur);
 
-        if(!calibrationialog)calibrationialog = new CalibrationDialog(this);
-        connect(calibrationialog,&CalibrationDialog::openmonitorwidget,this,[this](){
-            if(!implantmonitor)implantmonitor = new ImplantMonitor(nullptr,m_serial);
-            implantmonitor->show();
-            this->hide();
-        });
+    if(!calibrationialog)calibrationialog = new CalibrationDialog(this);
+    connect(calibrationialog,&CalibrationDialog::openmonitorwidget,this,[this](){
+        if(!implantmonitor){
+            implantmonitor = new ImplantMonitor(nullptr,m_serial);
+            connect(implantmonitor,&ImplantMonitor::returnImplantationsite,this,[this](){
+//            qDebug()<<"槽函数已触发，植入位置界面打开";
+            this->show();
+            });
+            }
+        implantmonitor->show();
+        this->hide();
+    });
 
-        // 监听关闭信号
-        connect(calibrationialog, &QDialog::finished, this, [=]() {
-            this->setGraphicsEffect(nullptr);
-            overlay->close();
-            overlay->deleteLater();
-            calibrationialog->deleteLater();
-            calibrationialog = nullptr;    // 避免悬空
-        });
+    // 监听关闭信号
+    connect(calibrationialog, &QDialog::finished, this, [=]() {
+        this->setGraphicsEffect(nullptr);
+        overlay->close();
+        overlay->deleteLater();
+        calibrationialog->deleteLater();
+        calibrationialog = nullptr;    // 避免悬空
+    });
 
-        calibrationialog->show();
+    calibrationialog->show();
     });
 
     calibrateButton->setStyleSheet(R"(
@@ -659,4 +621,23 @@ bool ImplantationSite::uploadLocation(const QString &loc)
     return q.exec();
 }
 
+void ImplantationSite::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) {
+        // 系统自动发送的 LanguageChange
+        titleLabel->setText(tr("新植入物"));
+        implantTitle->setText(tr("请点击按钮选择植入位置"));
+        buttonL->setText(tr("左"));
+        buttonR->setText(tr("右"));
+        labelCurve->setText(tr("实时波形监测"));
+        helpButton->setText(tr("帮助"));
+        heartTitle->setText(tr("心率监测"));
+        heartUnit->setText(tr("次/分钟"));
+        pressureTitle->setText(tr("血压监测"));
+        signalTitle->setText(tr("信号强度"));
+        returnButton->setText(tr("返回上级"));
+        calibrateButton->setText(tr("校准数据"));
 
+    }
+}

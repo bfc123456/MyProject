@@ -1,3 +1,4 @@
+
 #ifndef MEASUREMENTDATA_H
 #define MEASUREMENTDATA_H
 

@@ -13,7 +13,7 @@
 #include <QSqlError>
 
 ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
-  : QWidget(parent), m_serial(sensorId) {
+  : FramelessWindow(parent), m_serial(sensorId) {
 
     this->setObjectName("ReviewWidget");
     this->setStyleSheet(R"(
@@ -57,7 +57,7 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
 
     topBar->setFixedHeight(50);
 
-    QLabel *titleLabel = new QLabel(tr("新植入物"), this);
+    titleLabel = new QLabel(tr("新植入物"), this);
     titleLabel->setFixedSize(160, 35);
     titleLabel->setStyleSheet("font-size: 18px; font-weight: bold; color: white;");
     titleLabel->setAlignment(Qt::AlignCenter);
@@ -90,20 +90,6 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
     mainlayout->addWidget(topBar);
     mainlayout->addSpacing(10);
 
-//    QVBoxLayout *informationlayout = new QVBoxLayout();
-
-//    // 血压监测
-//    QLabel *basicinformationlabel = new QLabel("基本信息：");
-//    basicinformationlabel->setStyleSheet("color: white; font-weight: bold;");
-//    QLabel *sensornumberlabel = new QLabel("序列号");
-//    sensornumberlabel->setStyleSheet("color: white; font-weight: bold;");
-//    informationlayout->addSpacing(5);
-//    informationlayout->addWidget(basicinformationlabel);
-//    informationlayout->addWidget(sensornumberlabel);
-//    informationlayout->addSpacing(5);
-//    informationlayout->setContentsMargins(30,0,30,0);
-//    mainlayout->addLayout(informationlayout);
-
     //中间行左侧：血压监测部分
     QHBoxLayout *middlelayout = new QHBoxLayout();
     QWidget *middleliftwidget = new QWidget();
@@ -119,46 +105,9 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
 
     QVBoxLayout *middleliftlayout = new QVBoxLayout(middleliftwidget);
     middleliftlayout->addSpacing(10);
-    QLabel *monitorpressure = new QLabel(tr("血压监测"));
+    monitorpressure = new QLabel(tr("血压监测"));
     monitorpressure->setStyleSheet("color: white;font-size: 15px; font-weight: bold;");
     middleliftlayout->addWidget(monitorpressure);
-
-//    QGridLayout *bpGrid = new QGridLayout();
-//    // 第一行：传感器
-//    QLabel *sensorTitle = new QLabel(tr("传感器"));
-//    QLabel *sensorValue = new QLabel("<b>142/86</b>");
-//    QLabel *sensorUnit = new QLabel("mmHg");
-//    QLabel *sensorPulse = new QLabel("93");
-
-//    // 第二行：参考值
-//    QLabel *refTitle = new QLabel(tr("参考值"));
-//    QLabel *refValue = new QLabel("<b>142/86</b>");
-//    QLabel *refUnit = new QLabel("mmHg");
-//    QLabel *refPulse = new QLabel("93");
-
-//    //设置文本颜色
-//    sensorTitle->setStyleSheet("color: white; font-size: 13px;");
-//    sensorValue->setStyleSheet("color: white;font-size: 15px;");
-//    sensorUnit->setStyleSheet("color: white; font-size: 13px;");
-//    sensorPulse->setStyleSheet("color: white;font-size: 15px;");
-
-//    refTitle->setStyleSheet("color: white; font-size: 13px;");
-//    refValue->setStyleSheet("color: white;font-size: 15px;");
-//    refUnit->setStyleSheet("color: white; font-size: 13px;");
-//    refPulse->setStyleSheet("color: white;font-size: 15px;");
-
-//    // 添加到网格（行, 列）
-//    bpGrid->addWidget(sensorTitle, 0, 0);
-//    bpGrid->addWidget(sensorValue, 0, 1);
-//    bpGrid->addWidget(sensorUnit, 0, 2);
-//    bpGrid->addWidget(sensorPulse, 0, 3);
-
-//    bpGrid->addWidget(refTitle, 1, 0);
-//    bpGrid->addWidget(refValue, 1, 1);
-//    bpGrid->addWidget(refUnit, 1, 2);
-//    bpGrid->addWidget(refPulse, 1, 3);
-//    bpGrid->setContentsMargins(90,0,90,0);
-//    middleliftlayout->addLayout(bpGrid,Qt::AlignCenter);
 
     /**************************波线图的刻度颜色待修正********************************************/
     //波形图区
@@ -192,7 +141,7 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
     QVBoxLayout *heartratetittlelayout = new QVBoxLayout();
     heartratetittlelayout->setContentsMargins(50,10,50,10);
     heartratetittlelayout->addSpacing(50);
-    QLabel *hrLabel = new QLabel(tr("植入位置:"));
+    hrLabel = new QLabel(tr("植入位置:"));
     hrLabel->setStyleSheet("color: white; font-size: 16px; font-weight: bold;");
     QLabel *hrValue = new QLabel();
     QString loc = DatabaseManager::instance().getLocationBySensorId(m_serial).trimmed().toLower();
@@ -242,6 +191,7 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
     historyTable = new QTableWidget(1, 5);
 
     historyTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    historyTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     historyTable->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     historyTable->setHorizontalHeaderLabels(QStringList() << tr("传感器") << tr("参考值") << tr("心率") << tr("位置调整")<< tr("备注"));
     historyTable->horizontalHeader()->setStretchLastSection(true);
@@ -312,7 +262,7 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
         }
     )");
 
-    QLabel *historylabel = new QLabel(tr("历史记录"),historycheckwidget);
+    historylabel = new QLabel(tr("历史记录"),historycheckwidget);
     historylabel->setStyleSheet("color: white;");
     QVBoxLayout *historychecklayout = new QVBoxLayout(historycheckwidget);
     historychecklayout->addWidget(historylabel);
@@ -323,7 +273,7 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
 
 
     // 按钮
-    QPushButton *backButton = new QPushButton(tr("返回"));
+    backButton = new QPushButton(tr("返回"));
     backButton->setFixedSize(135, 35);
     connect(backButton,&QPushButton::clicked,this,&ReviewWidget::returnToImplantmonitor);
     backButton->setIcon(QIcon(":/image/icons8-return.png"));
@@ -428,7 +378,9 @@ void ReviewWidget::showExitConfirmWidget()
     this->setGraphicsEffect(blur);
 
     // 创建提示弹窗
+
     QDialog prompt(this);
+    prompt.setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
     prompt.setStyleSheet(R"(
         QDialog, QWidget {
             background-color: qlineargradient(
@@ -449,7 +401,7 @@ void ReviewWidget::showExitConfirmWidget()
 
     QLabel *label = new QLabel(tr("请确认您的下一步操作"));
     label->setAlignment(Qt::AlignCenter);
-    label->setStyleSheet("font-size: 16px;");
+    label->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
     mainLayout->addWidget(label);
 
     QHBoxLayout *buttonLayout = new QHBoxLayout;
@@ -630,4 +582,25 @@ bool ReviewWidget::uploadToDatabase()
 
     qDebug() << "所有记录上传完成。";
     return true;
+}
+
+void ReviewWidget::changeEvent(QEvent *event){
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) {
+        // 系统自动发送的 LanguageChange
+        titleLabel->setText(tr("新植入物"));
+        monitorpressure->setText(tr("血压监测"));
+        hrLabel->setText(tr("植入位置:"));
+        historyTable->setHorizontalHeaderLabels(
+            QStringList()
+            << tr("传感器")
+            << tr("参考值")
+            << tr("心率")
+            << tr("位置调整")
+            << tr("备注")
+        );
+        historylabel->setText(tr("历史记录"));
+        backButton->setText(tr("返回"));
+        saveButton->setText(tr("保存并返回"));
+    }
 }

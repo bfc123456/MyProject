@@ -1,11 +1,14 @@
+
 #ifndef RHCINPUTDIALOG_H
 #define RHCINPUTDIALOG_H
 
 #include <QDialog>
 #include <QLineEdit>
 #include "customkeyboard.h"
+#include "CloseOnlyWindow.h"
+#include <QEvent>
 
-class RHCInputDialog : public QDialog
+class RHCInputDialog : public CloseOnlyWindow
 {
     Q_OBJECT
 
@@ -23,6 +26,7 @@ private:
     QPushButton *clearButton;
     QPushButton *saveButton;
     CustomKeyboard* currentKeyboard = nullptr;
+    void changeEvent(QEvent *event) override;
 };
 
 #endif // RHCINPUTDIALOG_H

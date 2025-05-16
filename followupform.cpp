@@ -10,7 +10,7 @@
 #include "SerialStore.h"
 
 FollowUpForm::FollowUpForm(QWidget *parent)
-    : QWidget(parent)
+    : FramelessWindow(parent)
 {
     setWindowTitle(tr("回访管理界面"));
     setFixedSize(1024, 600);
@@ -290,10 +290,11 @@ FollowUpForm::FollowUpForm(QWidget *parent)
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(80, 15, 80, 15);
     mainLayout->addWidget(topBar);
+    mainLayout->addSpacing(15);
     mainLayout->addWidget(formWidget);
     mainLayout->addSpacing(30);
     mainLayout->addWidget(buttonWidget);
-    mainLayout->addSpacing(45);
+    mainLayout->addSpacing(15);
     setLayout(mainLayout);
 }
 
@@ -321,13 +322,13 @@ void FollowUpForm::changeEvent(QEvent *event)
         setWindowTitle(tr("新植入物管理界面"));
         titleLabel->setText(tr("回访"));
         serialLabel->setText(tr("传感器序列号"));
-        serialInput->setText(tr("请输入传感器序列号"));
+        serialInput->setPlaceholderText(tr("请输入传感器序列号"));
         checksumLabel->setText(tr("校准码"));
-        checksumInput->setText(tr("请输入校准码"));
+        checksumInput->setPlaceholderText(tr("请输入校准码"));
         implantDoctorLabel->setText(tr("植入医生"));
-        implantDoctorInput->setText(tr("请输入植入医生姓名"));
+        implantDoctorInput->setPlaceholderText(tr("请输入植入医生姓名"));
         treatDoctorLabel->setText(tr("治疗医生"));
-        treatDoctorInput->setText(tr("请输入治疗医生姓名"));
+        treatDoctorInput->setPlaceholderText(tr("请输入治疗医生姓名"));
         dateLabel->setText(tr("植入日期"));
         locationLabel->setText(tr("植入位置"));
         selectcomboBox->setItemText(0, tr("左"));

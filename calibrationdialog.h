@@ -1,3 +1,4 @@
+
 #ifndef CALIBRATIONDIALOG_H
 #define CALIBRATIONDIALOG_H
 
@@ -7,8 +8,9 @@
 #include <QPushButton>
 #include <customkeyboard.h>
 #include <QCloseEvent>
+#include "CloseOnlyWindow.h"
 
-class CalibrationDialog : public QDialog
+class CalibrationDialog : public CloseOnlyWindow
 {
     Q_OBJECT
 
@@ -19,15 +21,15 @@ public:
 signals:
     void openmonitorwidget();
 
-
-//protected:
-//    void closeEvent(QCloseEvent *event) override;
-//    void showEvent(QShowEvent *event) override;
-
 private:
     QLineEdit* inputEdit;
     CustomKeyboard *currentKeyboard;
     bool eventFilterInstalled = false;  // 用来跟踪事件过滤器的安装状态
+    void changeEvent(QEvent *event) override;
+    QLabel* title;
+    QLabel* inputLabel;
+    QPushButton* resetBtn;
+    QPushButton* saveBtn;
 };
 
 #endif // CALIBRATIONDIALOG_H

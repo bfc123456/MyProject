@@ -50,6 +50,7 @@ HEADERS += \
     calibrationdialog.h \
     cardiacoutputdialog.h \
     circularprogressbar.h \
+    closeonlywindow.h \
     customdateedit.h \
     customkeyboard.h \
     custommessagebox.h \
@@ -57,6 +58,7 @@ HEADERS += \
     exitconfirmdialog.h \
     followupform.h \
 #    historycheck.h \
+    framelesswindow.h \
     global.h \
     implantationsite.h \
     implantdatabase.h \
