@@ -486,12 +486,12 @@ void ImplantMonitor::onReadoutButtonClicked() {
          readoutdialog->setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
         // 这里把整个列表一次性传给对话框
         connect(this, &ImplantMonitor::dataListUpdated,readoutdialog, &ReadoutRecordDialog::populateData);
-//        connect(this, &ImplantMonitor::dataListUpdated,readoutdialog, &ReadoutRecordDialog::populateData);
         connect(readoutdialog, &ReadoutRecordDialog::rowDeleted,this, &ImplantMonitor::onRowDeleted);
         connect(readoutdialog,&ReadoutRecordDialog::onRefreshButtonClicked,this,[this](){
            qDebug()<<"返回植入位置界面";
-            emit returnImplantationsite();
-            this->close();
+           measurementList.clear();
+           emit returnImplantationsite();
+           this->close();
         });
     }
     // 触发对话框更新

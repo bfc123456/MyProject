@@ -21,18 +21,18 @@ RHCInputDialog::RHCInputDialog(QWidget *parent)
     QGridLayout *gridLayout = new QGridLayout();
 
     // 创建输入框和分隔符
-    QLineEdit *raInput1 = new QLineEdit(this);
+    raInput1 = new QLineEdit(this);
 
-    QLineEdit *rvInput1 = new QLineEdit(this);
-    QLineEdit *rvInput2 = new QLineEdit(this);
+    rvInput1 = new QLineEdit(this);
+    rvInput2 = new QLineEdit(this);
     QLabel *rvdivider = new QLabel("/", this);
 
-    QLineEdit *paInput1 = new QLineEdit(this);
-    QLineEdit *paInput2 = new QLineEdit(this);
-    QLineEdit *paInput3 = new QLineEdit(this);
+    paInput1 = new QLineEdit(this);
+    paInput2 = new QLineEdit(this);
+    paInput3 = new QLineEdit(this);
     QLabel *padivider = new QLabel("/", this);
 
-    QLineEdit *pcwpInput1 = new QLineEdit(this);
+    pcwpInput1 = new QLineEdit(this);
 
     // 设置QLineEdit样式
     raInput1->setStyleSheet("QLineEdit { border: 1px solid #ccd1d9; border-radius: 5px; padding: 5px; background-color: #ffffff; color: black; }");
@@ -150,6 +150,7 @@ RHCInputDialog::RHCInputDialog(QWidget *parent)
 
     mainlayout->addLayout(gridLayout);
     mainlayout->addLayout(btnlayout);
+    connect(clearButton,&QPushButton::clicked,this,&RHCInputDialog::clearAllFields);
 }
 
 
@@ -169,4 +170,14 @@ void RHCInputDialog::changeEvent(QEvent *event){
         clearButton->setText(tr("全部清除"));
         saveButton->setText(tr("保存"));
     }
+}
+
+void RHCInputDialog::clearAllFields(){
+    raInput1->clear();
+    rvInput1->clear();
+    rvInput2->clear();
+    paInput1->clear();
+    paInput2->clear();
+    paInput3->clear();
+    pcwpInput1->clear();
 }

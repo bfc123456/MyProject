@@ -23,6 +23,7 @@ SOURCES += \
     customkeyboard.cpp \
     custommessagebox.cpp \
     databasemanager.cpp \
+    debugmodeselector.cpp \
     exitconfirmdialog.cpp \
     followupform.cpp \
 #    historycheck.cpp \
@@ -44,6 +45,7 @@ SOURCES += \
     settingswidget.cpp \
     signalstrength.cpp \
     toucheventhandler.cpp \
+    udpdebugwidget.cpp \
     udpmanager.cpp
 
 HEADERS += \
@@ -55,6 +57,7 @@ HEADERS += \
     customkeyboard.h \
     custommessagebox.h \
     databasemanager.h \
+    debugmodeselector.h \
     exitconfirmdialog.h \
     followupform.h \
 #    historycheck.h \
@@ -78,6 +81,7 @@ HEADERS += \
     settingswidget.h \
     signalstrength.h \
     toucheventhandler.h \
+    udpdebugwidget.h \
     udpmanager.h
 
 FORMS += \

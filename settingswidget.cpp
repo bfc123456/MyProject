@@ -18,18 +18,18 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     : FramelessWindow(parent)
 {
 //    setWindowTitle(tr("设置界面"));
-//    this->setFixedSize(1024, 600);
-    this->setObjectName("settingswidget");
-    this->setStyleSheet(
-                R"(
-                #settingswidget{
-                        background-color: qlineargradient(
-                            x1: 0, y1: 0,
-                            x2: 1, y2: 1,
-                            stop: 0 rgba(30, 60, 100, 255),      /* 更暗靛蓝：左下 */
-                            stop: 0.5 rgba(18, 35, 65, 255),   /* 中段冷蓝 */
-                            stop: 1 rgba(6, 30, 50, 255)     /* 右上：深蓝灰 */
-                        );}
+    this->setFixedSize(1024, 600);
+    this->setObjectName("SettingsWidget");
+    this->setStyleSheet(R"(
+    QWidget#SettingsWidget {
+        background-color: qlineargradient(
+            x1: 0, y1: 1,
+            x2: 1, y2: 0,
+            stop: 0 rgba(6, 15, 30, 255),      /* 更暗靛蓝：左下 */
+            stop: 0.5 rgba(18, 35, 65, 255),   /* 中段冷蓝 */
+            stop: 1 rgba(30, 60, 100, 255)     /* 右上：深蓝灰 */
+        );
+    }
     )");
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);

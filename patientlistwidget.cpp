@@ -120,7 +120,7 @@ PatientListWidget::PatientListWidget(QWidget *parent)
     // 拿到单例键盘
     currentKeyboard = CustomKeyboard::instance(this);
 
-    // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
+    // 给每个 QLineEdit 注册一次偏移（如果默认偏移都一样，就写同一个 QPoint）
     currentKeyboard->registerEdit(searchEdit,QPoint(0, 0));
 
     btnSearch = new QPushButton();

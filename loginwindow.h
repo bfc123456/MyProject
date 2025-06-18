@@ -17,7 +17,10 @@
 #include "implantinfowidget.h"
 #include "CloseOnlyWindow.h"
 #include "FramelessWindow.h"
+#include "udpdebugwidget.h"
 #include <memory>
+#include <QStackedWidget>
+
 
 class LoginWindow : public FramelessWindow   {
     Q_OBJECT
@@ -41,6 +44,7 @@ private:
 
     QElapsedTimer clickTimer; //连续点击记录器
     QTranslator translator;//翻译器
+    QStackedWidget *stackedWidget;
 
     void showHiddenWidget();
     void changeEvent(QEvent *event) override;
@@ -51,6 +55,7 @@ private:
     std::unique_ptr<FollowUpForm> followupformwindow;
     std::unique_ptr<PatientListWidget> patientlistwidget;
     std::unique_ptr<MaintenanceWidget> maintenancewidget;
+    std::unique_ptr<udpDebugWidget> udpdebugwidget;
 
 private slots:
     void onSettingClicked();

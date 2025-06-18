@@ -8,8 +8,8 @@
 MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     : FramelessWindow(parent), serialManager(new SerialManager(this))
 {
-    this->setFixedSize(1024, 600);
-
+    this->resize(1024, 600);
+    this->setWindowFlag(Qt::WindowStaysOnTopHint);
     this->setStyleSheet(R"(
         QWidget {
              background-color: qlineargradient(
@@ -18,20 +18,52 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
                  stop: 1 rgba(10, 25, 50, 0.75)     /* 底部：深蓝，透明度 0.75 */
              );
             color: white;
-            font-size: 14px;
+            font-size: 16px;
             border-radius: 10px;
         }
+
+        QLabel {
+            color: white;
+            font-weight: bold;
+        }
+
+        QPushButton {
+            background-color: #4a6283;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            min-height: 30px;
+        }
+
+        QPushButton:pressed {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
     )");
+
+
+//    this->setStyleSheet(R"(
+//        QWidget {
+//             background-color: qlineargradient(
+//                 x1: 0, y1: 0, x2: 0, y2: 1,
+//                 stop: 0 rgba(30, 50, 80, 0.9),     /* 顶部：偏亮蓝灰，透明度 0.9 */
+//                 stop: 1 rgba(10, 25, 50, 0.75)     /* 底部：深蓝，透明度 0.75 */
+//             );
+//            color: white;
+//            font-size: 14px;
+//            border-radius: 10px;
+//        }
+//    )");
 
     //设置布局
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
     // 顶部栏部件
     QWidget *topBar = new QWidget(this);
-    topBar->setFixedHeight(50);
     topBar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    topBar->setMinimumWidth(50);
 
-    // 设置透明背景（如果你使用渐变背景）
+    // 设置透明背景（渐变背景）
     topBar->setStyleSheet("background-color: transparent;");
 
     // 系统名称 Label（左侧）
@@ -67,13 +99,15 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     tittleLayout->setContentsMargins(10, 0, 10, 0);  // 左右边距
 
     mainLayout->addWidget(topBar);
+
     QHBoxLayout *secondLayout = new QHBoxLayout();
     secondLayout->setContentsMargins(10,30,10,30);
 
     //左侧串口连接布局
     QWidget *serialconfigwidget = new QWidget();
-    serialconfigwidget->setFixedWidth(200);
+    serialconfigwidget->setMinimumWidth(200);
     QVBoxLayout *serialconfiglayout = new QVBoxLayout(serialconfigwidget);
+    serialconfigwidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     serialconfiglayout->setContentsMargins(10,30,10,30);
 
     // 端口号设置
@@ -196,8 +230,9 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
 
     //右侧信息显示布局
     QWidget *showdatawidget = new QWidget();
-    showdatawidget->setFixedWidth(520);
+    showdatawidget->setMinimumWidth(520);
     QVBoxLayout *showdatalayout = new QVBoxLayout(showdatawidget);
+    showdatawidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     showdatalayout->setContentsMargins(30,30,30,30);
 
     senddatalabel = new QLabel(tr("发送数据"));
@@ -329,7 +364,8 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
 
     //右侧状态显示布局
     QWidget *statuscheckwidget = new QWidget();
-    statuscheckwidget->setFixedWidth(200);
+    statuscheckwidget->setMinimumWidth(200);
+    statuscheckwidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     statuscheckwidget->setObjectName("statuscheckwidget");
     statuscheckwidget->setStyleSheet(R"(
     QWidget#statuscheckwidget{

@@ -1,6 +1,5 @@
 #include "measurewidget.h"
 #include <qwt_plot_grid.h>
-#include <qwt_plot_curve.h>
 #include <qwt_series_data.h>
 #include "circularprogressbar.h"
 #include <QGridLayout>

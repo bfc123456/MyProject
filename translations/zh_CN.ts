@@ -1,33 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.1">
+<TS version="2.1" language="zh_CN">
 <context>
     <name>CalibrationDialog</name>
     <message>
         <location filename="../calibrationdialog.cpp" line="11"/>
         <location filename="../calibrationdialog.cpp" line="17"/>
         <source>校准传感器</source>
-        <translation type="unfinished"></translation>
+        <translation>校准传感器</translation>
     </message>
     <message>
         <location filename="../calibrationdialog.cpp" line="55"/>
         <source>PA导管平均值</source>
-        <translation type="unfinished"></translation>
+        <translation>PA导管平均值</translation>
     </message>
     <message>
         <location filename="../calibrationdialog.cpp" line="61"/>
         <source>输入校准值...</source>
-        <translation type="unfinished"></translation>
+        <translation>输入校准值...</translation>
     </message>
     <message>
         <location filename="../calibrationdialog.cpp" line="91"/>
         <source>重新校准</source>
-        <translation type="unfinished"></translation>
+        <translation>重新校准</translation>
     </message>
     <message>
         <location filename="../calibrationdialog.cpp" line="95"/>
         <source>保存</source>
-        <translation type="unfinished"></translation>
+        <translation>保存</translation>
     </message>
 </context>
 <context>

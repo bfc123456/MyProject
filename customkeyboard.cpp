@@ -42,6 +42,45 @@ CustomKeyboard::CustomKeyboard(QWidget *parent)
     mainLay->addWidget(stackedWidget);
     setLayout(mainLay);
 
+    this->setStyleSheet(R"(
+        QWidget {
+            background-color: qlineargradient(
+                x1: 0, y1: 0, x2: 0, y2: 1,
+                stop: 0 rgba(20, 30, 50, 240),  /* 更深的顶部颜色 */
+                stop: 1 rgba(10, 20, 40, 240)   /* 更深的底部颜色 */
+            );
+            border-radius: 15px;
+            color: white;
+        }
+
+        QPushButton {
+            background-color: qlineargradient(
+                x1: 0, y1: 0, x2: 0, y2: 1,
+                stop: 0 rgba(60, 90, 160, 200),  /* 更深的按钮颜色 */
+                stop: 1 rgba(40, 60, 120, 200)
+            );
+            border: 1px solid rgba(100, 150, 200, 0.6); /* 半透明边框 */
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        QPushButton:pressed {
+            background-color: qlineargradient(
+                stop: 0 rgba(30, 50, 90, 240),
+                stop: 1 rgba(20, 40, 80, 240)
+            );
+            padding-left: 3px;
+            padding-top: 3px;
+        }
+
+        QPushButton:focus {
+            outline: none;  /* 移除按钮焦点边框 */
+        }
+    )");
+
+
     // 默认居中显示
     QRect area;
     if (parentWidget()) {

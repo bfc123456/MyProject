@@ -13,6 +13,7 @@
 #include "settingswidget.h"
 #include "CustomMessageBox.h"
 #include "toucheventhandler.h"
+#include "debugmodeselector.h"
 
 LoginWindow::LoginWindow(QWidget *parent)
     : FramelessWindow (parent)
@@ -47,7 +48,15 @@ LoginWindow::LoginWindow(QWidget *parent)
     topBar->setStyleSheet("background-color: transparent;");
 
     // 系统名称 Label（左侧）
-    titleLabel = new QLabel("🩺 "+ tr("医疗设备管理系统"), this);
+    // 系统名称 Label（左侧）
+    QLabel *iconLabel = new QLabel(this);
+    QPixmap pix(":/image/icons8-tingzhen.png");
+    // 缩放到合适大小，比如 24×24
+    pix = pix.scaled(24, 24, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    iconLabel->setPixmap(pix);
+    iconLabel->setFixedSize(pix.size());
+
+    titleLabel = new QLabel(tr("医疗设备管理系统"), this);
     titleLabel->setStyleSheet("color: white; font-size: 18px; font-weight: bold;");
     titleLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
@@ -74,6 +83,7 @@ LoginWindow::LoginWindow(QWidget *parent)
 
     //顶部栏布局
     QHBoxLayout *topLayout = new QHBoxLayout(topBar);
+    topLayout->addWidget(iconLabel);
     topLayout->addWidget(titleLabel);
     topLayout->addStretch();
     topLayout->addWidget(btnSettings);
@@ -81,9 +91,16 @@ LoginWindow::LoginWindow(QWidget *parent)
 
 
     // 创建按钮
-    btnNewPerson = new QPushButton(tr("🧍 新填入物"),this);
-    btnVisit = new QPushButton(tr("🗂 回访"),this);
-    btnPatientList = new QPushButton(tr("👥 患者列表"),this);
+    btnNewPerson = new QPushButton(tr("新填入物"),this);
+    btnNewPerson->setIcon(QIcon(":/image/icons8-add-94.png"));
+    btnNewPerson->setIconSize(QSize(30, 30));
+    btnVisit = new QPushButton(tr("回\u3000\u3000访"),this);
+    btnVisit->setIcon(QIcon(":/image/icons8-change-94.png"));
+    btnVisit->setIconSize(QSize(30, 30));
+    btnPatientList = new QPushButton(tr("患者列表"),this);
+    btnPatientList->setIcon(QIcon(":/image/icons8-list-94.png"));
+    btnPatientList->setIconSize(QSize(30, 30));
+
     btnNewPerson->setFixedHeight(50);
     btnVisit->setFixedHeight(50);
     btnPatientList->setFixedHeight(50);
@@ -220,42 +237,39 @@ void LoginWindow::onSettingClicked()
 }
 
 void LoginWindow::showHiddenWidget() {
-    if (!maintenancewidget) {
-        maintenancewidget = std::make_unique<MaintenanceWidget>();
-    }
 
-    maintenancewidget->setStyleSheet(R"(
-        QWidget {
-             background-color: qlineargradient(
-                 x1: 0, y1: 0, x2: 0, y2: 1,
-                 stop: 0 rgba(30, 50, 80, 0.9),     /* 顶部：偏亮蓝灰，透明度 0.9 */
-                 stop: 1 rgba(10, 25, 50, 0.75)     /* 底部：深蓝，透明度 0.75 */
-             );
-            color: white;
-            font-size: 16px;
-            border-radius: 10px;
+    //添加遮罩层
+    QWidget *overlay = new QWidget(this);
+    overlay->setGeometry(this->rect());
+    overlay->setStyleSheet("background-color: rgba(0, 0, 0, 100);"); // 可调透明度
+    overlay->setAttribute(Qt::WA_TransparentForMouseEvents, false); // 拦截事件
+    overlay->show();
+    overlay->raise();
+
+    //添加模糊效果
+    QGraphicsBlurEffect *blur = new QGraphicsBlurEffect;
+    blur->setBlurRadius(20);  // 可调强度：20~40
+    this->setGraphicsEffect(blur);
+    DebugModeSelector *selector = new DebugModeSelector(this);
+    connect(selector,&DebugModeSelector::modeSelected,this,[=](QString mode){
+        if(mode == "serial"){
+            if (!maintenancewidget) {
+                maintenancewidget = std::make_unique<MaintenanceWidget>();
+            }
+            maintenancewidget->show();
+        }else if(mode == "udp"){
+            if (!udpdebugwidget) {
+                udpdebugwidget = std::make_unique<udpDebugWidget>();
+            }
+            udpdebugwidget->show();
         }
+    });
+    selector->exec(); //模态弹出
 
-        QLabel {
-            color: white;
-            font-weight: bold;
-        }
-
-        QPushButton {
-            background-color: #4a6283;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-weight: bold;
-            min-height: 30px;
-        }
-
-        QPushButton:pressed {
-            background-color: rgba(255, 255, 255, 0.3);
-        }
-    )");
-
-    maintenancewidget->show();
+    // 清除遮罩和模糊
+    this->setGraphicsEffect(nullptr);
+    overlay->close();
+    overlay->deleteLater();
 }
 
 void LoginWindow::changeLanguage(const QString &languageCode)
@@ -355,10 +369,10 @@ void LoginWindow::changeEvent(QEvent *event) {
     if (isInitialized && event->type() == QEvent::LanguageChange) {
         // 更新所有界面上的文本
         if (titleLabel)
-        titleLabel->setText("🩺 "+ tr("医疗设备管理系统"));
-        btnNewPerson->setText(tr("🧍新填入物"));
-        btnVisit->setText(tr("🗂 回访"));
-        btnPatientList->setText(tr("👥 患者列表"));
+        titleLabel->setText(tr("医疗设备管理系统"));
+        btnNewPerson->setText(tr("新填入物"));
+        btnVisit->setText(tr("回\u3000\u3000访"));
+        btnPatientList->setText(tr("患者列表"));
     }
     QWidget::changeEvent(event);
 }

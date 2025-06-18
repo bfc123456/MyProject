@@ -17,16 +17,24 @@ public:
     ~RHCInputDialog();
     QString getRHCValue() const;
 
-private:
-    QLineEdit *raEdit;  // RA输入框
-    QLineEdit *rvEdit;  // RV输入框
-    QLineEdit *paEdit;  // PA输入框
-    QLineEdit *pcwpEdit; // PCWP输入框
+private: 
     QLineEdit *rhcEdit;
+    QLineEdit *raInput1;
+
+    QLineEdit *rvInput1;
+    QLineEdit *rvInput2;
+    QLineEdit *paInput1;
+    QLineEdit *paInput2;
+    QLineEdit *paInput3;
+
+    QLineEdit *pcwpInput1;
     QPushButton *clearButton;
     QPushButton *saveButton;
     CustomKeyboard* currentKeyboard = nullptr;
     void changeEvent(QEvent *event) override;
+
+private slots:
+    void clearAllFields();
 };
 
 #endif // RHCINPUTDIALOG_H

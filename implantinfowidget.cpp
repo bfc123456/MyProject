@@ -212,6 +212,7 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
             stop: 0 rgba(47, 106, 158, 200),
             stop: 1 rgba(31, 78, 121, 200)
         );
+
         padding-left: 2px;
         padding-top: 2px;
     }
