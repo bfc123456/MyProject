@@ -19,6 +19,7 @@ SOURCES += \
     calibrationdialog.cpp \
     cardiacoutputdialog.cpp \
     circularprogressbar.cpp \
+    customcombobox.cpp \
     customdateedit.cpp \
     customkeyboard.cpp \
     custommessagebox.cpp \
@@ -35,7 +36,9 @@ SOURCES += \
     loginwindow.cpp \
     main.cpp \
     maintenancewidget.cpp \
-    measurewidget.cpp \
+    measurementdialog.cpp \
+    measurementtrendwidget.cpp \
+#    measurewidget.cpp \
     modernwaveplot.cpp \
     patientlistwidget.cpp \
     readoutrecorddialog.cpp \
@@ -53,6 +56,7 @@ HEADERS += \
     cardiacoutputdialog.h \
     circularprogressbar.h \
     closeonlywindow.h \
+    customcombobox.h \
     customdateedit.h \
     customkeyboard.h \
     custommessagebox.h \
@@ -70,8 +74,11 @@ HEADERS += \
     languagemanager.h \
     loginwindow.h \
     maintenancewidget.h \
+#    measurement_result.h \
     measurementdata.h \
-    measurewidget.h \
+    measurementdialog.h \
+    measurementtrendwidget.h \
+#    measurewidget.h \
     modernwaveplot.h \
     patientlistwidget.h \
     readoutrecorddialog.h \

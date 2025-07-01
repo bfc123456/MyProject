@@ -8,15 +8,12 @@
 
 struct MeasurementData {
     int     order;             // 序号
-    QString sensorSystolic;
-    QString sensorDiastolic;
-    QString sensorAvg;
-    QString heartRate;
-    QString refSystolic;
-    QString refDiastolic;
-    QString refAvg;
-    QString angle;
-    QString note;
+    QString sensorId;          // 传感器号
+    QString timestamp;         // 时间戳
+    QString sensorSystolic;      //收缩压（最大值）
+    QString sensorDiastolic;     //舒张压（最小值）
+    QString sensorAvg;      // 平均值
+    QString heartRate;  // 心率
     QVector<QPointF>  points;
 };
 

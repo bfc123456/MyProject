@@ -38,6 +38,15 @@
         <file>image/icons8-doubleRight.png</file>
         <file>image/connectIcons .png</file>
         <file>image/disconnectIcons .png</file>
+        <file>image/animation.gif</file>
+        <file>image/icons8-return100.png</file>
+        <file>image/Done.png</file>
+        <file>image/FaHeartbeat.png</file>
+        <file>image/IconParkOutlineAverage.png</file>
+        <file>image/IconParkOutlineMaximum.png</file>
+        <file>image/IconParkOutlineMin.png</file>
+        <file>image/icons8-home.png</file>
+        <file>image/icons8-excel-100.png</file>
     </qresource>
     <qresource prefix="/translations">
         <file>translations/en_US.qm</file>

@@ -26,7 +26,18 @@ CustomKeyboard::CustomKeyboard(QWidget *parent)
     : QWidget(parent)
 {
     setParent(parent);
-    setFixedSize(470, 250);
+
+    // 获取屏幕分辨率
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->geometry();
+    int screenWidth = screenGeometry.width();
+    int screenHeight = screenGeometry.height();
+
+    // 计算缩放比例
+    scaleX = (float)screenWidth / 1024;
+    scaleY = (float)screenHeight / 600;
+
+    setFixedSize(580*scaleX, 280*scaleY);
     setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
     setAttribute(Qt::WA_ShowWithoutActivating);
 
@@ -38,45 +49,55 @@ CustomKeyboard::CustomKeyboard(QWidget *parent)
     stackedWidget->setCurrentIndex(1);
 
     QVBoxLayout *mainLay = new QVBoxLayout(this);
-    mainLay->setContentsMargins(5,5,5,5);
+    mainLay->setContentsMargins(5*scaleX,5*scaleY,5*scaleX,5*scaleY);
     mainLay->addWidget(stackedWidget);
     setLayout(mainLay);
 
     this->setStyleSheet(R"(
+        /* 键盘容器：深色调 + 柔和渐变 */
         QWidget {
             background-color: qlineargradient(
                 x1: 0, y1: 0, x2: 0, y2: 1,
-                stop: 0 rgba(20, 30, 50, 240),  /* 更深的顶部颜色 */
-                stop: 1 rgba(10, 20, 40, 240)   /* 更深的底部颜色 */
+                stop: 0 rgba(20, 30, 50, 255),  /* 固态深色，减少性能消耗 */
+                stop: 1 rgba(10, 20, 40, 255)
             );
-            border-radius: 15px;
+            border-radius: 12px;  /* 适度圆角，兼顾工业感 */
             color: white;
         }
 
+        /* 通用按钮：纯色 + 清晰按压反馈 */
         QPushButton {
-            background-color: qlineargradient(
-                x1: 0, y1: 0, x2: 0, y2: 1,
-                stop: 0 rgba(60, 90, 160, 200),  /* 更深的按钮颜色 */
-                stop: 1 rgba(40, 60, 120, 200)
-            );
-            border: 1px solid rgba(100, 150, 200, 0.6); /* 半透明边框 */
-            border-radius: 8px;
+            background-color: #3A5F9F;  /* 固态主色，比渐变更省性能 */
+            border: 1px solid #5A7FBF;  /* 稍亮边框，区分按钮 */
+            border-radius: 6px;         /* 小圆角，贴合嵌入式风格 */
             color: white;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 16px;            /* 嵌入式屏幕建议 16-20px */
+            padding: 10px 12px;         /* 加大内边距，方便触摸 */
+            margin: 4px;                /* 按键间距，避免误触 */
         }
 
+        /* 按压状态：明显深色变化 */
         QPushButton:pressed {
-            background-color: qlineargradient(
-                stop: 0 rgba(30, 50, 90, 240),
-                stop: 1 rgba(20, 40, 80, 240)
-            );
-            padding-left: 3px;
-            padding-top: 3px;
+            background-color: #2A4F8F;  /* 深一级的主色 */
+            border-color: #4A6FAF;      /* 边框同步加深 */
+            /* 嵌入式无需复杂动画，仅颜色变化更直观 */
         }
 
+        /* 移除焦点边框（嵌入式触摸操作少用键盘导航） */
         QPushButton:focus {
-            outline: none;  /* 移除按钮焦点边框 */
+            outline: none;
+        }
+
+        /* 特殊按键：功能分区（如 Shift、Hide） */
+        QPushButton#shiftBtn {
+            background-color: #FFA500;  /* 橙色区分功能键 */
+            color: #2E3B5F;             /* 深色文字更醒目 */
+            font-size: 14px;            /* 缩小字体，适配短文本 */
+        }
+
+        QPushButton#hideBtn {
+            background-color: #32CD32;  /* 绿色区分隐藏键 */
         }
     )");
 
@@ -139,9 +160,9 @@ void CustomKeyboard::attachTo(QLineEdit *edit, const QPoint &offset)
     QRect screen = QGuiApplication::primaryScreen()->availableGeometry();
     QSize kbSize = size();
     if (global.x() + kbSize.width() > screen.right())
-        global.setX(screen.right() - kbSize.width() - 10);
+        global.setX(screen.right() - kbSize.width() - 10*scaleX);
     if (global.y() + kbSize.height() > screen.bottom())
-        global.setY(screen.bottom() - kbSize.height() - 10);
+        global.setY(screen.bottom() - kbSize.height() - 10*scaleY);
 
     move(global);
     show();
@@ -158,7 +179,7 @@ QWidget* CustomKeyboard::createNumKeyboard()
 {
     QWidget *page = new QWidget(this);
     QVBoxLayout *vlay = new QVBoxLayout(page);
-    vlay->setSpacing(5);
+    vlay->setSpacing(5*scaleY);
     auto makeRow = [&](QStringList keys){
         QHBoxLayout *h = new QHBoxLayout;
         for (auto &k : keys) {
@@ -190,7 +211,7 @@ QWidget* CustomKeyboard::createAlphaKeyboard()
 {
     QWidget *page = new QWidget(this);
     QVBoxLayout *vlay = new QVBoxLayout(page);
-    vlay->setSpacing(5);
+    vlay->setSpacing(5*scaleY);
     auto makeAlphaRow = [&](QStringList keys){
         QHBoxLayout *h = new QHBoxLayout;
         for (auto &k : keys) {
@@ -222,7 +243,7 @@ QWidget* CustomKeyboard::createAlphaKeyboard()
     bottom->addWidget(shift);
     QPushButton *space = new QPushButton("Space", page);
     space->setFocusPolicy(Qt::NoFocus);
-    space->setMinimumWidth(180);
+    space->setMinimumWidth(180*scaleX);
     connect(space, &QPushButton::clicked, [=](){ emit keyPressed(" "); });
     bottom->addWidget(space);
     QPushButton *num = new QPushButton("?123", page);

@@ -13,12 +13,24 @@
 #include <QEvent>
 #include <QImage>
 #include <QPixmap>
-
+#include <QScreen>
 SettingsWidget::SettingsWidget( QWidget *parent)
     : FramelessWindow(parent)
 {
-//    setWindowTitle(tr("设置界面"));
-    this->setFixedSize(1024, 600);
+
+    // 获取屏幕分辨率
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->geometry();
+    int screenWidth = screenGeometry.width();
+    int screenHeight = screenGeometry.height();
+
+    // 计算缩放比例
+    float scaleX = (float)screenWidth / 1024;
+    float scaleY = (float)screenHeight / 600;
+
+    // 设置窗口初始大小
+    this->resize(1024 * scaleX, 600 * scaleY);  // 设置为基于目标分辨率的大小
+
     this->setObjectName("SettingsWidget");
     this->setStyleSheet(R"(
     QWidget#SettingsWidget {
@@ -36,7 +48,7 @@ SettingsWidget::SettingsWidget( QWidget *parent)
 
     // 顶部栏部件
     QWidget *topBar = new QWidget(this);
-    topBar->setFixedHeight(50);
+    topBar->setFixedHeight(50 * scaleY);
     topBar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
     // 设置透明背景（如果你使用渐变背景）
@@ -44,13 +56,13 @@ SettingsWidget::SettingsWidget( QWidget *parent)
 
     // 系统名称 Label（左侧）
     titleLabel = new QLabel("🩺 "+ tr("医疗设备管理系统"), this);
-    titleLabel->setStyleSheet("color: white; font-size: 18px; font-weight: bold;");
+    titleLabel->setStyleSheet("color: white; font-size: 25px; font-weight: bold;");
     titleLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
     //设置按钮（右侧）
     QPushButton *btnclose = new QPushButton(this);
     btnclose->setIcon(QIcon(":/image/icons-close.png"));
-    btnclose->setIconSize(QSize(35, 35));
+    btnclose->setIconSize(QSize(24 * scaleX, 24 * scaleY));
     btnclose->setFlat(true);  // 去除按钮边框
     // 设置点击视觉反馈
     btnclose->setStyleSheet(R"(
@@ -72,12 +84,12 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     tittleLayout->addWidget(titleLabel);
     tittleLayout->addStretch();
     tittleLayout->addWidget(btnclose);
-    tittleLayout->setContentsMargins(10, 0, 10, 0);  // 左右边距
+    tittleLayout->setContentsMargins(10 * scaleX, 0, 10 * scaleX, 0);  // 左右边距
 
     mainLayout->addWidget(topBar);
 
     QWidget *topWidget = new QWidget();
-    topWidget->setFixedHeight(320);
+    topWidget->setFixedHeight(320 * scaleY);
     topWidget->setStyleSheet(R"(
         QWidget {
             background-color: qlineargradient(
@@ -96,27 +108,27 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     )");
 
     QVBoxLayout*mainbottomLayout = new QVBoxLayout();
-    mainbottomLayout->setContentsMargins(180, 30, 180, 30);
+    mainbottomLayout->setContentsMargins(180 * scaleX, 30 * scaleY, 180 * scaleX, 30 * scaleY);
     QVBoxLayout *topLayout = new QVBoxLayout(topWidget);
 
     systemSettingsLabel = new QLabel(tr("系统设置"));
     systemSettingsLabel->setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 20px; font-weight: bold; color: white;");
-    systemSettingsLabel->setFixedHeight(40);
+    systemSettingsLabel->setFixedHeight(40 * scaleY);
     topLayout->addWidget(systemSettingsLabel);
 
     // 信号强度滑块区域
     QHBoxLayout *signalLayout = new QHBoxLayout();
     signalStrengthLabel = new QLabel(tr("最小信号强度"));
-    signalStrengthLabel->setFixedSize(250, 40);
+    signalStrengthLabel->setFixedSize(250 * scaleX, 40 * scaleY);
     signalStrengthLabel->setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px; font-weight: bold; color: white;");
 
     signalStrengthSlider = new QSlider(Qt::Horizontal);
     signalStrengthSlider->setRange(0, 100);
     signalStrengthSlider->setValue(70);
-    signalStrengthSlider->setFixedWidth(160);
+    signalStrengthSlider->setFixedWidth(160 * scaleX);
 
     QLabel *signalStrengthValue = new QLabel("70%");
-    signalStrengthValue->setFixedSize(50, 40);
+    signalStrengthValue->setFixedSize(50 * scaleX, 40 * scaleY);
     signalStrengthValue->setAlignment(Qt::AlignCenter);
     signalStrengthValue->setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px; font-weight: bold; color: white;");
 
@@ -152,8 +164,8 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     image3.invertPixels();
     pixmapModify = QPixmap::fromImage(image3);
     modifyButton->setIcon(QIcon(pixmapModify));
-    modifyButton->setIconSize(QSize(20, 20));
-    modifyButton->setFixedSize(115, 40);
+    modifyButton->setIconSize(QSize(20 * scaleX, 20 * scaleY));
+    modifyButton->setFixedSize(115 * scaleX, 40 * scaleY);
 
     signalLayout->addWidget(signalStrengthLabel);
     signalLayout->addWidget(signalStrengthSlider);
@@ -166,7 +178,7 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     QHBoxLayout *languageLayout = new QHBoxLayout();
     languageLabel = new QLabel(tr("语言设置"));
     languageLabel->setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px; font-weight: bold; color: white;");
-    languageComboBox = new QComboBox(this);
+    languageComboBox = new CustomComboBox(25 * scaleY,this);
     languageComboBox->setStyleSheet(R"(
     QComboBox {
         font-family: 'Microsoft YaHei';
@@ -191,7 +203,7 @@ SettingsWidget::SettingsWidget( QWidget *parent)
 
     languageComboBox->addItem(tr("中文"), "zh_CN");
     languageComboBox->addItem(tr("英语"), "en_US");
-    languageComboBox->setFixedSize(150, 40);
+    languageComboBox->setFixedSize(150 * scaleX, 40 * scaleY);
 
     QString currentLang = LanguageManager::instance().currentLanguage();
     int idx = languageComboBox->findData(currentLang);
@@ -236,7 +248,7 @@ SettingsWidget::SettingsWidget( QWidget *parent)
 
     QImage rebootImage = rebootIcon.toImage(); rebootImage.invertPixels();
     rebootButton->setIcon(QIcon(QPixmap::fromImage(rebootImage)));
-    rebootButton->setFixedSize(115, 40);
+    rebootButton->setFixedSize(115 * scaleX, 40 * scaleY);
     connect(rebootButton, &QPushButton::clicked, this, &SettingsWidget::onRebootClicked);
     rebootLayout->addWidget(rebootLabel);
     rebootLayout->addWidget(rebootButton);
@@ -271,7 +283,7 @@ SettingsWidget::SettingsWidget( QWidget *parent)
 
     QImage shutdownImage = shutdownIcon.toImage(); shutdownImage.invertPixels();
     shutdownButton->setIcon(QIcon(QPixmap::fromImage(shutdownImage)));
-    shutdownButton->setFixedSize(115, 40);
+    shutdownButton->setFixedSize(115 * scaleX, 40 * scaleY);
     connect(shutdownButton, &QPushButton::clicked, this, &SettingsWidget::onShutdownClicked);
     shutdownLayout->addWidget(shutdownLabel);
     shutdownLayout->addWidget(shutdownButton);
@@ -300,11 +312,11 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     }
     )");
 
-    bottomWidget->setFixedHeight(120);
+    bottomWidget->setFixedHeight(120 * scaleY);
     QVBoxLayout *bottomLayout = new QVBoxLayout(bottomWidget);
 
     systemInfoLabel = new QLabel(tr("系统信息"));
-    systemInfoLabel->setFixedHeight(40);
+    systemInfoLabel->setFixedHeight(40 * scaleY);
     softwareVersionLabel1 = new QLabel(tr("   软件版本:"));
     softwareVersionLabel2 = new QLabel("V1.0.0   ");
     softwareVersionLabel2->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
@@ -372,4 +384,5 @@ void SettingsWidget::changeEvent(QEvent *event)
 
 void SettingsWidget::onBtnCloseClicked(){
     this->close();
+    emit requestDelete(this);  // 通知外部处理删除
 }

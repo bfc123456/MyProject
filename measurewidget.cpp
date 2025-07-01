@@ -8,14 +8,22 @@
 #include <QGraphicsBlurEffect>
 #include <QDialog>
 #include <QTimer>
+#include <QGuiApplication>
+#include <QScreen>
 #include "CustomMessageBox.h"
 
 MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
     : FramelessWindow(parent), m_serial(sensorId)
 {
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->geometry();
+    int screenWidth = screenGeometry.width();
+    int screenHeight = screenGeometry.height();
+    scaleX = static_cast<float>(screenWidth) / 1024;
+    scaleY = static_cast<float>(screenHeight) / 600;
 
     QVBoxLayout *mainlayout = new QVBoxLayout(this);
-    mainlayout->setContentsMargins(30, 15, 30, 15);
+    mainlayout->setContentsMargins(30*scaleX, 15*scaleY, 30*scaleX, 15*scaleY);
     this->setObjectName("Measurewidget");
     this->setStyleSheet(R"(
     QWidget#Measurewidget {
@@ -50,7 +58,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
          }
     )");
 
-    topwidget->setFixedHeight(50);
+    topwidget->setFixedHeight(50*scaleY);
 
     //状态栏标题
     titleLabel = new QLabel(tr("新植入物"));
@@ -58,15 +66,15 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
     idLabel = new QLabel();
     idLabel->setText(m_serial);
     idLabel->setStyleSheet("background-color: transparent; color: white;");
-    titleLabel->setFixedWidth(120);
+    titleLabel->setFixedWidth(120*scaleX);
     titleLabel->setAlignment(Qt::AlignCenter);
-    idLabel->setFixedWidth(120);
+    idLabel->setFixedWidth(120*scaleX);
     idLabel->setAlignment(Qt::AlignCenter);
 
     //设置按键
     QPushButton *btnSettings = new QPushButton(this);
     btnSettings->setIcon(QIcon(":/image/icons8-shezhi.png"));
-    btnSettings->setIconSize(QSize(24, 24));
+    btnSettings->setIconSize(QSize(24*scaleX, 24*scaleY));
     btnSettings->setFlat(true);
     btnSettings->setStyleSheet(R"(
                                QPushButton {
@@ -87,7 +95,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
     topLayout->addStretch();
     topLayout->addWidget(btnSettings);
     mainlayout->addWidget(topwidget);
-    mainlayout->addSpacing(10);
+    mainlayout->addSpacing(10*scaleY);
     //设置中间左侧布局
     QHBoxLayout *middleLayout = new QHBoxLayout();
     QWidget *middleliftwidget = new QWidget(this);
@@ -103,12 +111,12 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
 
     )");
     QHBoxLayout *middleliftLayout = new QHBoxLayout(middleliftwidget);
-    middleliftwidget->setFixedSize(250,250);
+    middleliftwidget->setFixedSize(250*scaleX,250*scaleY);
     middleliftLayout->setAlignment(Qt::AlignCenter);
 
     //设置图形比例布局
     CircularProgressBar *progressBar = new CircularProgressBar(middleliftwidget);
-    progressBar->setFixedSize(120, 120); // 缩小为 70x70
+    progressBar->setFixedSize(120*scaleX, 120*scaleY); // 缩小为 70x70
     progressBar->setProgress(90); // 设置进度 90%
     middleliftLayout->addWidget(progressBar,Qt::AlignCenter);
 
@@ -126,7 +134,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
      border-radius: 10px;
      }
     )");
-    middlerightwidget->setFixedSize(700,250);
+    middlerightwidget->setFixedSize(700*scaleX,250*scaleY);
     QHBoxLayout *middlerightLayout = new QHBoxLayout(middlerightwidget);
 
     // 创建实例
@@ -154,10 +162,10 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
 //    middlerightLayout->setContentsMargins(15,5,15,5);
 
     middleLayout->addWidget(middleliftwidget);
-    middleLayout->addSpacing(10);
+    middleLayout->addSpacing(10*scaleX);
     middleLayout->addWidget(middlerightwidget);
     mainlayout->addLayout(middleLayout);
-    mainlayout->addSpacing(10);
+    mainlayout->addSpacing(10*scaleY);
 
     //创建底部布局
     QHBoxLayout *bottomlayout = new QHBoxLayout ();
@@ -246,7 +254,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
     realdataLayout->addLayout(meanlayout);
     realdataLayout->addLayout(heartratelayout);
     bottomliftlayout->addLayout(realdataLayout);
-    bottomliftlayout->addSpacing(10);
+    bottomliftlayout->addSpacing(10*scaleY);
     referencetittle = new QLabel(tr("参考值"));
     referencetittle->setStyleSheet("background-color: transparent; color: #7DDFFF; font-size: 18px;");
     bottomliftlayout->addWidget(referencetittle);
@@ -279,7 +287,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
     QHBoxLayout *refersbpinputlayout = new QHBoxLayout();
     referinputsbpdata = new QLineEdit();
     referinputsbpdata->setPlaceholderText(tr("请输入参考收缩压..."));
-    referinputsbpdata->setFixedHeight(30);
+    referinputsbpdata->setFixedHeight(30*scaleY);
     referinputsbpdata->setStyleSheet(modernLineEditStyle);
     QLabel * referinputsbpunit = new QLabel("mmHg");
     referinputsbpunit->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
@@ -295,7 +303,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
     QHBoxLayout *referdbpinputlayout = new QHBoxLayout();
     referinputdbpdata = new QLineEdit();
     referinputdbpdata->setPlaceholderText(tr("请输入参考舒张压..."));
-    referinputdbpdata->setFixedHeight(30);
+    referinputdbpdata->setFixedHeight(30*scaleY);
     referinputdbpdata->setStyleSheet(modernLineEditStyle);
     QLabel * referinputdbpunit = new QLabel("mmHg");
     referinputdbpunit->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
@@ -311,7 +319,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
     QHBoxLayout *refermeaninputlayout = new QHBoxLayout();
     refermeaninputdata = new QLineEdit();
     refermeaninputdata->setPlaceholderText(tr("请输入参考平均值..."));
-    refermeaninputdata->setFixedHeight(30);
+    refermeaninputdata->setFixedHeight(30*scaleY);
     refermeaninputdata->setStyleSheet(modernLineEditStyle);
     QLabel * refermeaninputunit = new QLabel("mmHg");
     refermeaninputunit->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
@@ -414,10 +422,10 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
     currentKeyboard = CustomKeyboard::instance(this);
 
     // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
-    currentKeyboard->registerEdit(referinputsbpdata, QPoint(259,-300));
-    currentKeyboard->registerEdit(referinputdbpdata, QPoint(70,-300));
-    currentKeyboard->registerEdit(refermeaninputdata, QPoint(-119,-300));
-    currentKeyboard->registerEdit(remarklineedit, QPoint(-351,-300));
+    currentKeyboard->registerEdit(referinputsbpdata, QPoint(259*scaleX,-300*scaleY));
+    currentKeyboard->registerEdit(referinputdbpdata, QPoint(70*scaleX,-300*scaleY));
+    currentKeyboard->registerEdit(refermeaninputdata, QPoint(-119*scaleX,-300*scaleY));
+    currentKeyboard->registerEdit(remarklineedit, QPoint(-351*scaleX,-300*scaleY));
 
     bottomlayout->addWidget(bottomliftwidget);
     bottomlayout->addSpacing(25);
@@ -425,12 +433,12 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
 
     //放置主布局
     mainlayout->addLayout(bottomlayout);
-    mainlayout->addSpacing(10);
+    mainlayout->addSpacing(10*scaleX);
     
     //创建保存按钮
     QHBoxLayout *savebtnlayout = new QHBoxLayout();
     savebtn = new QPushButton(tr("保存"));
-    savebtn->setFixedSize(120,35);
+    savebtn->setFixedSize(120*scaleX,35*scaleY);
     connect(savebtn,&QPushButton::clicked,this,&MeasureWidget::openSaveConfirm);
     savebtn->setStyleSheet(R"(
     QPushButton {
@@ -457,7 +465,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
     )");
 
     returnbtn = new QPushButton(tr("返回"));
-    returnbtn->setFixedSize(120,35);
+    returnbtn->setFixedSize(120*scaleX,35*scaleY);
     connect(returnbtn,&QPushButton::clicked,this,&MeasureWidget::returnImplantmonitor);
     returnbtn->setStyleSheet(R"(
     QPushButton {
@@ -489,7 +497,7 @@ MeasureWidget::MeasureWidget(QWidget *parent , const QString &sensorId)
     savebtnlayout->addWidget(savebtn);
 
     mainlayout->addLayout(savebtnlayout);
-    mainlayout->addSpacing(5);
+    mainlayout->addSpacing(5*scaleY);
 
     startMeasurement();
 }
@@ -532,7 +540,7 @@ void MeasureWidget::openSaveConfirm(){
         tr("提示"),
         tr("数据保存成功"),
         { tr("确 认") },
-        400      // 对话框宽度
+        400*scaleY      // 对话框宽度
     );
 
     int result = dlg.exec();

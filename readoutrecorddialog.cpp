@@ -1,8 +1,20 @@
 #include "readoutrecorddialog.h"
+#include <QGuiApplication>
+#include <QScreen>
 
 ReadoutRecordDialog::ReadoutRecordDialog(QWidget *parent) : QDialog(parent) {
+
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->geometry();
+    int screenWidth = screenGeometry.width();
+    int screenHeight = screenGeometry.height();
+
+    // 计算缩放比例
+    scaleX = (float)screenWidth / 1024;
+    scaleY = (float)screenHeight / 600;
+
     this->setWindowTitle("读数记录");
-    this->setFixedSize(800, 300);
+    this->setFixedSize(800*scaleX, 300*scaleY);
     this->setObjectName("mainwidget");
     this->setStyleSheet(R"(
     QWidget#mainwidget{
@@ -23,7 +35,7 @@ ReadoutRecordDialog::ReadoutRecordDialog(QWidget *parent) : QDialog(parent) {
     titleLabel->setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent; color: white;");
     btnRefresh = new QPushButton("重新校准");
     btnRefresh->setIcon(QIcon(":/image/icons8-calibration.png"));
-    btnRefresh->setFixedSize(120, 40);
+    btnRefresh->setFixedSize(120*scaleX, 40*scaleY);
     btnRefresh->setStyleSheet(R"(
         QPushButton {
             background-color: rgba(255, 255, 255, 0.3);           /* 半透明浅灰 */
@@ -43,7 +55,7 @@ ReadoutRecordDialog::ReadoutRecordDialog(QWidget *parent) : QDialog(parent) {
     )");
 
     btnDelete = new QPushButton("删除");
-    btnDelete->setFixedSize(120, 40);
+    btnDelete->setFixedSize(120*scaleX, 40*scaleY);
     btnDelete->setIcon(QIcon(":/image/delete.png"));
     btnDelete->setStyleSheet(R"(
         QPushButton {
@@ -72,31 +84,25 @@ ReadoutRecordDialog::ReadoutRecordDialog(QWidget *parent) : QDialog(parent) {
     topLayout->addWidget(titleLabel);
     topLayout->addStretch();
     topLayout->addWidget(btnRefresh);
-    topLayout->addSpacing(10);
+    topLayout->addSpacing(10*scaleX);
     topLayout->addWidget(btnDelete);
 
     // 表格
-    table = new QTableWidget(0, 6, this);
-    QStringList headers = {"序号", "传感器", "参考值", "心率", "位置","备注"};
+    table = new QTableWidget(0, 5, this);
+    QStringList headers = {"序号", "舒张压", "收缩压", "平均值", "心率"};
     table->setHorizontalHeaderLabels(headers);
 
     auto *h = table->horizontalHeader();
 
     // 0、1、2 列：Interactive (或者 Fixed)，并手动设置初始宽度
-    h->setSectionResizeMode(0, QHeaderView::Interactive);
-    h->setSectionResizeMode(1, QHeaderView::Interactive);
-    h->setSectionResizeMode(2, QHeaderView::Interactive);
-    table->setColumnWidth(0, 50);
-    table->setColumnWidth(1, 200);
-    table->setColumnWidth(2, 200);
-
-    // 3、4、5 列：Stretch，平分“Interactive”列之外的所有剩余宽度
+    h->setSectionResizeMode(0, QHeaderView::Stretch);
+    h->setSectionResizeMode(1, QHeaderView::Stretch);
+    h->setSectionResizeMode(2, QHeaderView::Stretch);
     h->setSectionResizeMode(3, QHeaderView::Stretch);
     h->setSectionResizeMode(4, QHeaderView::Stretch);
-    h->setSectionResizeMode(5, QHeaderView::Stretch);
 
     table->verticalHeader()->setVisible(false); //隐藏左侧行号
-//    table->setSelectionMode(QAbstractItemView::NoSelection);
+
     table->setEditTriggers(QAbstractItemView::NoEditTriggers);  //关闭所有编辑触发器
     table->setStyleSheet(R"(
         QTableWidget {
@@ -144,17 +150,10 @@ void ReadoutRecordDialog::populateData(const QList<MeasurementData> &list) {
         };
 
         table->setItem(i, 0, makeCenteredItem(QString::number(d.order)));
-        table->setItem(i, 1, makeCenteredItem(
-            d.sensorSystolic + "/" +
-            d.sensorDiastolic + " (" +
-            d.sensorAvg + ")"));
-        table->setItem(i, 2, makeCenteredItem(
-            d.refSystolic + "/" +
-            d.refDiastolic + " (" +
-            d.refAvg + ")"));
-        table->setItem(i, 3, makeCenteredItem(d.heartRate));
-        table->setItem(i, 4, makeCenteredItem(d.angle));
-        table->setItem(i, 5, makeCenteredItem(d.note));
+        table->setItem(i, 1, makeCenteredItem(d.sensorSystolic));
+        table->setItem(i, 2, makeCenteredItem(d.sensorDiastolic));
+        table->setItem(i, 3, makeCenteredItem(d.sensorAvg));
+        table->setItem(i, 4, makeCenteredItem(d.heartRate));
     }
 }
 

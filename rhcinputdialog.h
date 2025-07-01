@@ -33,6 +33,9 @@ private:
     CustomKeyboard* currentKeyboard = nullptr;
     void changeEvent(QEvent *event) override;
 
+    float scaleX;
+    float scaleY;
+
 private slots:
     void clearAllFields();
 };

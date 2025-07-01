@@ -19,6 +19,10 @@ public:
     explicit SettingsWidget(QWidget *parent = nullptr);
     ~SettingsWidget();
 
+signals:
+    void requestDelete(SettingsWidget* self);
+    void settingsWidgetClose();
+
 protected:
     void changeEvent(QEvent *event) override;
 

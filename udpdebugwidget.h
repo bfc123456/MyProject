@@ -68,6 +68,9 @@ private:
     void updatePlot2(float value, qint64 timestamp);
     float parseBigEndianFloat(const QByteArray& data, int offset);
 
+    float scaleX;
+    float scaleY;
+
 
 private slots:
     //接收UDP发送的数据

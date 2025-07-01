@@ -58,6 +58,9 @@ private:
     QString m_locationChoice;   // 记录“左”或“右”
     bool insertImplantationSite();
     void changeEvent(QEvent *event) override;
+
+    float scaleX;
+    float scaleY;
 };
 
 #endif // IMPLANTINFOWIDGET_H

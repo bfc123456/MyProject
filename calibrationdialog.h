@@ -30,6 +30,9 @@ private:
     QLabel* inputLabel;
     QPushButton* resetBtn;
     QPushButton* saveBtn;
+
+    float scaleX;
+    float scaleY;
 };
 
 #endif // CALIBRATIONDIALOG_H

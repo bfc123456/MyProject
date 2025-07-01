@@ -4,11 +4,21 @@
 #include <QSerialPortInfo>
 #include <QDebug>
 #include <QDateTime>
+#include <QGuiApplication>
+#include <QScreen>
 
 MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     : FramelessWindow(parent), serialManager(new SerialManager(this))
 {
-    this->resize(1024, 600);
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->geometry();
+    int screenWidth = screenGeometry.width();
+    int screenHeight = screenGeometry.height();
+
+    scaleX = (float)screenWidth / 1024;
+    scaleY = (float)screenHeight / 600;
+
+    this->resize(1024*scaleX, 600*scaleY);
     this->setWindowFlag(Qt::WindowStaysOnTopHint);
     this->setStyleSheet(R"(
         QWidget {
@@ -42,26 +52,13 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     )");
 
 
-//    this->setStyleSheet(R"(
-//        QWidget {
-//             background-color: qlineargradient(
-//                 x1: 0, y1: 0, x2: 0, y2: 1,
-//                 stop: 0 rgba(30, 50, 80, 0.9),     /* 顶部：偏亮蓝灰，透明度 0.9 */
-//                 stop: 1 rgba(10, 25, 50, 0.75)     /* 底部：深蓝，透明度 0.75 */
-//             );
-//            color: white;
-//            font-size: 14px;
-//            border-radius: 10px;
-//        }
-//    )");
-
     //设置布局
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
     // 顶部栏部件
     QWidget *topBar = new QWidget(this);
     topBar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    topBar->setMinimumWidth(50);
+    topBar->setMinimumWidth(50*scaleX);
 
     // 设置透明背景（渐变背景）
     topBar->setStyleSheet("background-color: transparent;");
@@ -74,7 +71,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     //设置按钮（右侧）
     QPushButton *btnclose = new QPushButton(this);
     btnclose->setIcon(QIcon(":/image/icons-close.png"));
-    btnclose->setIconSize(QSize(35, 35));
+    btnclose->setIconSize(QSize(35*scaleX, 35*scaleY));
     btnclose->setFlat(true);  // 去除按钮边框
     // 设置点击视觉反馈
     btnclose->setStyleSheet(R"(
@@ -96,19 +93,19 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     tittleLayout->addWidget(titleLabel);
     tittleLayout->addStretch();
     tittleLayout->addWidget(btnclose);
-    tittleLayout->setContentsMargins(10, 0, 10, 0);  // 左右边距
+    tittleLayout->setContentsMargins(10*scaleX, 0, 10*scaleX, 0);  // 左右边距
 
     mainLayout->addWidget(topBar);
 
     QHBoxLayout *secondLayout = new QHBoxLayout();
-    secondLayout->setContentsMargins(10,30,10,30);
+    secondLayout->setContentsMargins(10*scaleX,30*scaleY,10*scaleX,30*scaleY);
 
     //左侧串口连接布局
     QWidget *serialconfigwidget = new QWidget();
-    serialconfigwidget->setMinimumWidth(200);
+    serialconfigwidget->setMinimumWidth(200*scaleX);
     QVBoxLayout *serialconfiglayout = new QVBoxLayout(serialconfigwidget);
     serialconfigwidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
-    serialconfiglayout->setContentsMargins(10,30,10,30);
+    serialconfiglayout->setContentsMargins(10*scaleX,30*scaleY,10*scaleX,30*scaleY);
 
     // 端口号设置
     portLabel = new QLabel(tr("端口号:"));
@@ -117,7 +114,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     portComboBox->addItem("COM1");
     portComboBox->addItem("COM2");
     portComboBox->addItem("COM3");
-    portComboBox->setFixedSize(80,30);
+    portComboBox->setFixedSize(80*scaleX,30*scaleY);
     QHBoxLayout *portLayout = new QHBoxLayout;
     portLayout->addWidget(portLabel);
     portLayout->addWidget(portComboBox);
@@ -129,7 +126,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     baudRateComboBox->addItem("9600");
     baudRateComboBox->addItem("19200");
     baudRateComboBox->addItem("115200");
-    baudRateComboBox->setFixedSize(80,30);
+    baudRateComboBox->setFixedSize(80*scaleX,30*scaleY);
     QHBoxLayout *baudRateLayout = new QHBoxLayout;
     baudRateLayout->addWidget(baudRateLabel);
     baudRateLayout->addWidget(baudRateComboBox);
@@ -142,7 +139,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     dataBitsComboBox->addItem("6");
     dataBitsComboBox->addItem("7");
     dataBitsComboBox->addItem("8");
-    dataBitsComboBox->setFixedSize(80,30);
+    dataBitsComboBox->setFixedSize(80*scaleX,30*scaleY);
     QHBoxLayout *dataBitsLayout = new QHBoxLayout;
     dataBitsLayout->addWidget(dataBitsLabel);
     dataBitsLayout->addWidget(dataBitsComboBox);
@@ -166,7 +163,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     stopBitsComboBox->addItem("1");
     stopBitsComboBox->addItem("1.5");
     stopBitsComboBox->addItem("2");
-    stopBitsComboBox->setFixedSize(80,30);
+    stopBitsComboBox->setFixedSize(80*scaleX,30*scaleY);
     QHBoxLayout *stopBitsLayout = new QHBoxLayout;
     stopBitsLayout->addWidget(stopBitsLabel);
     stopBitsLayout->addWidget(stopBitsComboBox);
@@ -178,7 +175,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     flowControlComboBox->addItem("None");
     flowControlComboBox->addItem("RTS/CTS");
     flowControlComboBox->addItem("XON/XOFF");
-    flowControlComboBox->setFixedSize(80,30);
+    flowControlComboBox->setFixedSize(80*scaleX,30*scaleY);
     QHBoxLayout *flowControlLayout = new QHBoxLayout;
     flowControlLayout->addWidget(flowControlLabel);
     flowControlLayout->addWidget(flowControlComboBox);
@@ -221,7 +218,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     //连接按钮
     connectButton = new QPushButton(tr("连接串口"));
     connectButton->setIcon(QIcon(":/image/icons8-connect.png"));
-    connectButton->setFixedWidth(150);
+    connectButton->setFixedWidth(150*scaleX);
 
     serialconfiglayout->addStretch();
     serialconfiglayout->addWidget(connectButton, 0, Qt::AlignHCenter);
@@ -230,15 +227,15 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
 
     //右侧信息显示布局
     QWidget *showdatawidget = new QWidget();
-    showdatawidget->setMinimumWidth(520);
+    showdatawidget->setMinimumWidth(520*scaleX);
     QVBoxLayout *showdatalayout = new QVBoxLayout(showdatawidget);
     showdatawidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    showdatalayout->setContentsMargins(30,30,30,30);
+    showdatalayout->setContentsMargins(30*scaleX,30*scaleY,30*scaleX,30*scaleY);
 
     senddatalabel = new QLabel(tr("发送数据"));
     senddatalabel->setStyleSheet("background-color: transparent;");
     sendTextEdit = new QLineEdit(this);
-    sendTextEdit->setFixedHeight(135);
+    sendTextEdit->setFixedHeight(135*scaleY);
 
     recivedatalable = new QLabel(tr("接收数据"));
     recivedatalable->setStyleSheet("background-color: transparent;");
@@ -249,11 +246,11 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     currentKeyboard = CustomKeyboard::instance(this);
 
     // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
-    currentKeyboard->registerEdit(sendTextEdit, QPoint(-5,350));
+    currentKeyboard->registerEdit(sendTextEdit, QPoint(-5*scaleX,350*scaleY));
 
     showdatalayout->addWidget(senddatalabel);
     showdatalayout->addWidget(sendTextEdit);
-    showdatalayout->addSpacing(10);
+    showdatalayout->addSpacing(10*scaleY);
     showdatalayout->addWidget(recivedatalable);
     showdatalayout->addWidget(receiveTextEdit);
 
@@ -262,17 +259,17 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     sendButton = new QPushButton(tr("发送数据"));
     clearReceiveButton = new QPushButton(tr("清空接收区"));
     clearSendButton = new QPushButton(tr("清空发送区"));
-    sendButton->setFixedWidth(135);
-    clearReceiveButton->setFixedWidth(135);
-    clearSendButton->setFixedWidth(135);
+    sendButton->setFixedWidth(135*scaleX);
+    clearReceiveButton->setFixedWidth(135*scaleX);
+    clearSendButton->setFixedWidth(135*scaleX);
 
 
     buttonlayout->addWidget(sendButton);
-    buttonlayout->addSpacing(10);
+    buttonlayout->addSpacing(10*scaleX);
     buttonlayout->addWidget(clearReceiveButton);
-    buttonlayout->addSpacing(10);
+    buttonlayout->addSpacing(10*scaleX);
     buttonlayout->addWidget(clearSendButton);
-    showdatalayout->addSpacing(15);
+    showdatalayout->addSpacing(15*scaleX);
     showdatalayout->addLayout(buttonlayout);
 
     serialconfigwidget->setObjectName("serialconfigwidget");
@@ -364,7 +361,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
 
     //右侧状态显示布局
     QWidget *statuscheckwidget = new QWidget();
-    statuscheckwidget->setMinimumWidth(200);
+    statuscheckwidget->setMinimumWidth(200*scaleX);
     statuscheckwidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     statuscheckwidget->setObjectName("statuscheckwidget");
     statuscheckwidget->setStyleSheet(R"(
@@ -399,7 +396,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     )");
 
     QVBoxLayout *statusLayout = new QVBoxLayout(statuscheckwidget);
-    statusLayout->setContentsMargins(10,30,10,30);
+    statusLayout->setContentsMargins(10*scaleX,30*scaleY,10*scaleX,30*scaleY);
 
     // 创建frame用来显示状态信息
     voltageStatusFrame = new QFrame();
@@ -421,28 +418,28 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     statusLayout->addWidget(voltagelabel);
     statusLayout->addWidget(voltageStatusFrame);
 
-    statusLayout->addSpacing(15);
+    statusLayout->addSpacing(15*scaleY);
 
     currentlabel = new QLabel(tr("电流："));
     currentlabel->setStyleSheet("background-color: transparent;");
     statusLayout->addWidget(currentlabel);
     statusLayout->addWidget(currentStatusFrame);
 
-    statusLayout->addSpacing(15);
+    statusLayout->addSpacing(15*scaleY);
 
     temperaturelabel = new QLabel(tr("温度："));
     temperaturelabel->setStyleSheet("background-color: transparent;");
     statusLayout->addWidget(temperaturelabel);
     statusLayout->addWidget(temperatureStatusFrame);
 
-    statusLayout->addSpacing(15);
+    statusLayout->addSpacing(15*scaleY);
 
     outputpowerlabel = new QLabel(tr("输出功率："));
     outputpowerlabel->setStyleSheet("background-color: transparent;");
     statusLayout->addWidget(outputpowerlabel);
     statusLayout->addWidget(powerOutputStatusFrame);
 
-    statusLayout->addSpacing(15);
+    statusLayout->addSpacing(15*scaleY);
 
     reversestandingwavelabel = new QLabel(tr("反向驻波："));
     reversestandingwavelabel->setStyleSheet("background-color: transparent;");
@@ -451,9 +448,9 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
 
     //添加所有布局到总布局
     secondLayout->addWidget(serialconfigwidget);
-    secondLayout->addSpacing(15);
+    secondLayout->addSpacing(15*scaleX);
     secondLayout->addWidget(showdatawidget);
-    secondLayout->addSpacing(15);
+    secondLayout->addSpacing(15*scaleX);
     secondLayout->addWidget(statuscheckwidget);
     mainLayout->addLayout(secondLayout);
 

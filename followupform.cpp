@@ -6,312 +6,233 @@
 #include <QDebug>
 #include <QDialog>
 #include <QAbstractItemView>
+#include <QMovie>
 #include "global.h"
 #include "SerialStore.h"
+#include <QGuiApplication>
+#include <QScreen>
+#include <QGraphicsBlurEffect>
+
+static const char* rawOperationTips = QT_TRANSLATE_NOOP("App", R"(
+<div style='font-weight: bold; font-size: 17px; margin-bottom: 10px;'>信号校准指南</div>
+<div style='line-height: 1.8;'>
+    <span style='color: #4CD964;'>①</span> 将传感器紧贴胸口<br>
+    <span style='color: #4CD964;'>②</span> 缓慢移动寻找最佳位置<br>
+    <span style='color: #4CD964;'>③</span> 信号稳定 <span style='color: #00C853; font-weight: bold;'>5秒</span> 后自动弹窗<br>
+    <span style='color: #4CD964;'>④</span> 确认后开始专业测量
+</div>
+)");
 
 FollowUpForm::FollowUpForm(QWidget *parent)
     : FramelessWindow(parent)
 {
-    setWindowTitle(tr("回访管理界面"));
-    setFixedSize(1024, 600);
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->geometry();
+    int screenWidth = screenGeometry.width();
+    int screenHeight = screenGeometry.height();
 
-    // 顶部栏
+    float scaleX = (float)screenWidth / 1024;
+    float scaleY = (float)screenHeight / 600;
+
+    this->showFullScreen();
+
     QWidget *topBar = new QWidget(this);
     topBar->setStyleSheet(R"(
       QWidget {
-          background-color: qlineargradient(
-              x1: 0, y1: 0, x2: 0, y2: 1,
+          background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
               stop: 0 rgba(25, 50, 75, 0.9),
-              stop: 1 rgba(10, 20, 30, 0.85)
-          );
+              stop: 1 rgba(10, 20, 30, 0.85));
           border-radius: 10px;
-          border: 1px solid rgba(255, 255, 255, 0.08); /* 边缘高光 */
+          border: 1px solid rgba(255, 255, 255, 0.08);
       }
-
       QLabel {
           color: white;
           font-weight: bold;
           font-size: 16px;
       }
     )");
+    topBar->setFixedHeight(40 * scaleY);
 
-    topBar->setFixedHeight(50);
+    labelSensor= new QLabel(this);
+    labelSensor->setAlignment(Qt::AlignCenter);
+    labelSensor->setStyleSheet(R"(
+        QLabel {
+            color: white;
+            font-size: 14px;
+            background-color: transparent;
+            border: none;
+        }
+    )");
+    labelSensor->setText(fetchSensorIds());
 
-    titleLabel = new QLabel(tr("回访"), this);
-    titleLabel->setFixedSize(160, 35);
-    titleLabel->setAutoFillBackground(false);                   // 不自动填充背景
-    titleLabel->setAttribute(Qt::WA_TranslucentBackground);     // 启用透明背景
-//    titleLabel->setAlignment(Qt::AlignVCenter);
+    backButton = new QPushButton(this);
+    connect(backButton, &QPushButton::clicked, this, &FollowUpForm::followReturnToLogin);
+    backButton->setIcon(QIcon(":/image/icons8-return100.png"));
+    backButton->setIconSize(QSize(30 * scaleX, 30 * scaleY));
+    backButton->setFixedSize(65 * scaleX, 30 * scaleY);
+    backButton->setFlat(true);
+    backButton->setStyleSheet(R"(
+        QPushButton {
+            border: none;
+            background-color: transparent;
+            border-radius: 20px;
+        }
+        QPushButton:pressed {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+    )");
 
     QPushButton *btnSettings = new QPushButton(this);
     btnSettings->setIcon(QIcon(":/image/icons8-shezhi.png"));
-    btnSettings->setIconSize(QSize(24, 24));
+    btnSettings->setIconSize(QSize(30 * scaleX, 30 * scaleY));
     btnSettings->setFlat(true);
     btnSettings->setStyleSheet(R"(
-                               QPushButton {
-                               border: none;
-                               background-color: transparent;
-                               border-radius: 20px;
-                               }
-                               QPushButton:pressed {
-                               background-color: rgba(255, 255, 255, 0.2);
-                               }
-                               )");
-    connect(btnSettings, &QPushButton::clicked, this, &FollowUpForm::openSettingsWindow);  // 连接点击事件到槽函数
+        QPushButton {
+            border: none;
+            background-color: transparent;
+            border-radius: 20px;
+        }
+        QPushButton:pressed {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+    )");
+    connect(btnSettings, &QPushButton::clicked, this, &FollowUpForm::openMeasureSettingsWindow);
+
     QHBoxLayout *topLayout = new QHBoxLayout(topBar);
-    topLayout->addWidget(titleLabel);
+    topLayout->addWidget(backButton);
+    topLayout->addStretch();
+    topLayout->addWidget(labelSensor);
     topLayout->addStretch();
     topLayout->addWidget(btnSettings);
-    topLayout->setContentsMargins(10, 0, 10, 0);
+    topLayout->setContentsMargins(10 * scaleX, 0, 10 * scaleX, 0);
 
-    // 表单部分
-    serialLabel = new QLabel(tr("传感器序列号"));
-    serialLabel->setFixedSize(180, 40);
-    serialLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
-    serialInput = new QLineEdit();
-    serialInput->setFixedSize(400, 50);
-    serialInput->setPlaceholderText(tr("请输入传感器序列号"));
+    QWidget *middleWidget = new QWidget(this);
+    middleWidget->setFixedHeight(480 * scaleY);
 
-    checksumLabel = new QLabel(tr("校准码"));
-    checksumLabel->setFixedSize(180, 40);
-    checksumLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
-    checksumInput = new QLineEdit();
-    checksumInput->setFixedSize(400, 50);
-    checksumInput->setPlaceholderText(tr("请输入校准码"));
+    QVBoxLayout *middleLayout = new QVBoxLayout(middleWidget);
 
-    implantDoctorLabel = new QLabel(tr("植入医生"));
-    implantDoctorLabel->setFixedSize(180, 40);
-    implantDoctorLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
-    implantDoctorInput = new QLineEdit();
-    implantDoctorInput->setFixedSize(400, 50);
-    implantDoctorInput->setPlaceholderText(tr("请输入植入医生姓名"));
-
-    treatDoctorLabel = new QLabel(tr("治疗医生"));
-    treatDoctorLabel->setFixedSize(180, 40);
-    treatDoctorLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
-    treatDoctorInput = new QLineEdit();
-    treatDoctorInput->setFixedSize(400, 50);
-    treatDoctorInput->setPlaceholderText(tr("请输入治疗医生姓名"));
-
-    currentKeyboard = CustomKeyboard::instance(this);
-
-    // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
-    currentKeyboard->registerEdit(serialInput);
-    currentKeyboard->registerEdit(checksumInput);
-    currentKeyboard->registerEdit(implantDoctorInput);
-    currentKeyboard->registerEdit(treatDoctorInput);
-
-    dateLabel = new QLabel(tr("植入日期"));
-    dateLabel->setFixedSize(180, 40);
-    dateLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
-    implantDateInput = new QDateEdit(this);
-    implantDateInput->setCalendarPopup(true);
-    implantDateInput->setDate(QDate(2025, 1, 1));    // 设置默认日期为2025年1月1日
-
-    implantDateInput->setFixedSize(400, 50);
-    implantDateInput->setCalendarPopup(true);
-
-    locationLabel = new QLabel(tr("植入位置"));
-    locationLabel->setFixedSize(160, 40);
-    locationLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
-    //  创建 QComboBox 对象
-    selectcomboBox = new QComboBox(this);
-    selectcomboBox->setFixedSize(400, 50);
-    // 添加下拉选项“左”与“右”
-    selectcomboBox->addItem(tr("左"));
-    selectcomboBox->addItem(tr("右"));
-
-    selectcomboBox->setMinimumWidth(150);
-
-    //设置默认选中项
-    selectcomboBox->setCurrentIndex(0);
-
-    // 监听用户选择的变化，连接信号槽
-    connect(selectcomboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            [=](int index){
-        // 根据 index 实现相应的业务逻辑
-        qDebug() << "当前选择的选项索引为:" << index;
-    });
-
-    QGridLayout *formLayout = new QGridLayout();
-    formLayout->addWidget(serialLabel, 0, 0);
-    formLayout->addWidget(serialInput, 1, 0);
-    formLayout->addWidget(implantDoctorLabel, 0, 1);
-    formLayout->addWidget(implantDoctorInput, 1, 1);
-    formLayout->addWidget(checksumLabel, 2, 0);
-    formLayout->addWidget(checksumInput, 3, 0);
-    formLayout->addWidget(treatDoctorLabel, 2, 1);
-    formLayout->addWidget(treatDoctorInput, 3, 1);
-    formLayout->addWidget(dateLabel, 4, 0);
-    formLayout->addWidget(implantDateInput, 5, 0);
-    formLayout->addWidget(locationLabel, 4, 1);
-    formLayout->addWidget(selectcomboBox, 5, 1);
-
-    QWidget *formWidget = new QWidget();
-    formWidget->setFixedHeight(350);
-    formWidget->setStyleSheet(R"(
-    QWidget {
-        background-color: qlineargradient(
-            x1: 0, y1: 0, x2: 0, y2: 1,
-            stop: 0 rgba(25, 50, 75, 0.9),
-            stop: 1 rgba(10, 20, 30, 0.85)
-        );
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.08); /* 边缘高光 */
-    }
-
-    QLabel {
-        color: white;
-        font-weight: bold;
-        font-size: 14px;
-    }
-
-    /* 输入控件样式 */
-    QLineEdit, QDateEdit,QComboBox {
-        background-color: qlineargradient(
-            x1: 0, y1: 0, x2: 0, y2: 1,
-            stop: 0 #32495d,
-            stop: 1 #1f2e3b
-        );
-        border: 1px solid #3e5261;
-        border-radius: 4px;
-        padding: 6px;
-        color: white;
-        font-size: 14px;
-    }
-
-    /* 选中状态高亮 */
-    QLineEdit:focus, QDateEdit:focus {
-        border: 1px solid #66bbee;
-        background-color: #2c3e4f;
-    }
-
+    QWidget *card = new QWidget();
+    card->setFixedSize(600 * scaleX, 220 * scaleY);
+    card->setStyleSheet(R"(
+        background-color: rgba(255, 255, 255, 0.03);
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.1);
     )");
+    QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect();
+    shadow->setBlurRadius(30);
+    shadow->setColor(QColor(0, 0, 0, 80));
+    shadow->setOffset(0, 8);
+    card->setGraphicsEffect(shadow);
 
+    QLabel *animationDisplay = new QLabel();
+    animationDisplay->setFixedSize(210 * scaleX, 210 * scaleY);
+    animationDisplay->setAlignment(Qt::AlignCenter);
 
+    // 加载高分辨率、医疗风格的动图
+    QMovie *movie = new QMovie(":/image/animation.gif"); // 使用高质量 .gif 路径
+    movie->setScaledSize(animationDisplay->size());
+    movie->setSpeed(75); // 可根据实际需要调节速度（100 = 1x速率）
+    animationDisplay->setMovie(movie);
+    movie->start();
 
-    formWidget->setLayout(formLayout);
-
-    // 按钮部分
-    backButton = new QPushButton(tr("返回"));
-    connect(backButton, &QPushButton::clicked, this, &FollowUpForm::followReturnToLogin);
-    backButton->setIcon(QIcon(":/image/icons8-return.png"));
-
-    backButton->setStyleSheet(R"(
-    QPushButton {
-        background-color: qlineargradient(
-            x1:0, y1:0, x2:0, y2:1,
-            stop:0 rgba(95, 169, 246, 180),
-            stop:1 rgba(49, 122, 198, 180)
-        );
-        border: 1px solid rgba(163, 211, 255, 0.6); /* 半透明高光边框 */
-        border-radius: 6px;
-        color: white;
-        font-weight: bold;
-        font-size: 14px;
-        padding: 8px 20px;
-    }
-
-    QPushButton:pressed {
-        background-color: qlineargradient(
-            stop: 0 rgba(47, 106, 158, 200),
-            stop: 1 rgba(31, 78, 121, 200)
-        );
-        padding-left: 2px;
-        padding-top: 2px;
-    }
-    )");
-
-    continueButton = new QPushButton(tr("继续"));
-    continueButton->setIcon(QIcon(":/image/icons8-next.png"));
-
-    continueButton->setStyleSheet(R"(
-    QPushButton {
-        background-color: qlineargradient(
-            stop: 0 rgba(110, 220, 145, 180),
-            stop: 1 rgba(58, 170, 94, 180)
-        );
-        border: 1px solid rgba(168, 234, 195, 0.6);
-        border-radius: 6px;
-        color: white;
-        font-weight: bold;
-        font-size: 14px;
-        padding: 8px 20px;
-    }
-
-    QPushButton:pressed {
-        background-color: qlineargradient(
-            stop: 0 rgba(44, 128, 73, 200),
-            stop: 1 rgba(29, 102, 53, 200)
-        );
-        padding-left: 2px;
-        padding-top: 2px;
-    }
-    )");
-
-    backButton->setFixedSize(120, 40);
-    continueButton->setFixedSize(120, 40);
-
-    QHBoxLayout *buttonLayout = new QHBoxLayout();
-    buttonLayout->setContentsMargins(20, 0, 20, 0);
-    buttonLayout->addWidget(backButton);
-    buttonLayout->addStretch();
-    buttonLayout->addWidget(continueButton);
-
-    QWidget *buttonWidget = new QWidget();
-    buttonWidget->setFixedHeight(70);
-
-    buttonWidget->setStyleSheet(R"(
-    /* 外层容器，带渐变 + 边缘高光 */
-    QWidget {
-        background-color: qlineargradient(
-            x1: 0, y1: 0, x2: 0, y2: 1,
-            stop: 0 rgba(25, 50, 75, 0.9),
-            stop: 1 rgba(10, 20, 30, 0.85)
-        );
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.08); /* 边缘高光 */
-    }
-    )");
-
-
-
-    buttonWidget->setLayout(buttonLayout);
-    // 连接按钮
-    connect(backButton, &QPushButton::clicked, this, [this](){
-        this->close();                      // 关闭当前表单（FollowUpForm）
-        if (globalLoginWindowPointer) {
-            globalLoginWindowPointer->show();         // 再次显示主界面
+    // 添加卡片式背景风格
+    animationDisplay->setStyleSheet(R"(
+        QLabel {
+            background-color: rgba(255, 255, 255, 0.04);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 5px;
         }
-    });
-    connect(continueButton, &QPushButton::clicked, this, &FollowUpForm::showImplantionSite);
+    )");
 
-    // 主布局
+    progress = new CircularProgressBar();
+    progress->setProgress(80);
+    progress->setFixedSize(210 * scaleX, 210 * scaleY);
+
+    QHBoxLayout *cardLayout = new QHBoxLayout(card);
+    cardLayout->addWidget(animationDisplay);
+    cardLayout->addSpacing(20 * scaleX);
+    cardLayout->addWidget(progress);
+
+    operationTips = new QLabel(this);
+    operationTips->setFixedSize(720 * scaleX, 170 * scaleY);
+
+    operationTips->setText(
+        QCoreApplication::translate("App", rawOperationTips)
+    );
+
+    operationTips->setAlignment(Qt::AlignTop | Qt::AlignLeft);
+    operationTips->setTextInteractionFlags(Qt::TextBrowserInteraction);
+    operationTips->setStyleSheet(R"(
+        QLabel {
+            background-color: rgba(30, 41, 59, 200);
+            color: #ECEFF1;
+            font-size: 12px;
+            border-radius: 18px;
+            padding: 5px 6px;
+            border: 2px solid rgba(100, 210, 150, 0.2);
+            font-family: "Microsoft YaHei UI";
+            line-height: 1;
+        }
+    )");
+
+    QHBoxLayout *tipLayout = new QHBoxLayout();
+    tipLayout->addStretch();
+    tipLayout->addWidget(operationTips);
+    tipLayout->addStretch();
+
+    middleLayout->addSpacing(15 * scaleY);
+    middleLayout->addWidget(card, 0, Qt::AlignCenter);
+    middleLayout->addSpacing(15 * scaleY);
+    middleLayout->addLayout(tipLayout);
+
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(80, 15, 80, 15);
+    mainLayout->setContentsMargins(80 * scaleX, 15 * scaleY, 80 * scaleX, 15 * scaleY);
     mainLayout->addWidget(topBar);
-    mainLayout->addSpacing(15);
-    mainLayout->addWidget(formWidget);
-    mainLayout->addSpacing(30);
-    mainLayout->addWidget(buttonWidget);
-    mainLayout->addSpacing(15);
+    mainLayout->addSpacing(15 * scaleY);
+    mainLayout->addWidget(middleWidget);
+    mainLayout->addSpacing(15 * scaleY);
+
     setLayout(mainLayout);
+
+    timer = new QTimer(this);
+    timer->start(100);
+    connect(timer, &QTimer::timeout, this, &FollowUpForm::checkProgress);
+    connect(this, &FollowUpForm::progressThresholdReached, this, &FollowUpForm::openMeasurementDialog);
 }
 
 FollowUpForm::~FollowUpForm() {}
 
-void FollowUpForm::showImplantionSite(){
-    m_serial  = serialInput->text().trimmed();
-    ImplantationSite* implantationsite = new ImplantationSite(this,m_serial);
-    connect(implantationsite, &ImplantationSite::returnRequested, this, [this, implantationsite]() {
-        implantationsite->hide();
-        this->show();
-        implantationsite->deleteLater();
-    });
-    implantationsite->setWindowFlags(Qt::Window);
-    implantationsite->setFixedSize(1024, 600);
-    implantationsite->show();
-    this->hide();
+//void FollowUpForm::showImplantionSite(){
+//    m_serial  = serialInput->text().trimmed();
+//    ImplantationSite* implantationsite = new ImplantationSite(this,m_serial);
+//    connect(implantationsite, &ImplantationSite::returnRequested, this, [this, implantationsite]() {
+//        implantationsite->hide();
+//        this->show();
+//        implantationsite->deleteLater();
+//    });
+//    implantationsite->setWindowFlags(Qt::Window);
+//    implantationsite->setFixedSize(1024, 600);
+//    implantationsite->show();
+//    this->hide();
+//}
+
+void FollowUpForm::checkProgress() {
+    if (!progress) return;
+
+    int value = progress->progress();
+//    qDebug()<<"数值： "<<value;
+    if (value >= 75) {
+        continuousTime++;
+        if (continuousTime >= 5) {
+            timer->stop(); // 停止计时器
+            emit progressThresholdReached();
+            qDebug()<<"信号已发出";
+        }
+    } else {
+        // 数值回落，重置计时器
+        continuousTime = 0;
+    }
 }
 
 void FollowUpForm::changeEvent(QEvent *event)
@@ -319,22 +240,101 @@ void FollowUpForm::changeEvent(QEvent *event)
     QWidget::changeEvent(event);
     if (event->type() == QEvent::LanguageChange) {
         // 系统自动发送的 LanguageChange
-        setWindowTitle(tr("新植入物管理界面"));
-        titleLabel->setText(tr("回访"));
-        serialLabel->setText(tr("传感器序列号"));
-        serialInput->setPlaceholderText(tr("请输入传感器序列号"));
-        checksumLabel->setText(tr("校准码"));
-        checksumInput->setPlaceholderText(tr("请输入校准码"));
-        implantDoctorLabel->setText(tr("植入医生"));
-        implantDoctorInput->setPlaceholderText(tr("请输入植入医生姓名"));
-        treatDoctorLabel->setText(tr("治疗医生"));
-        treatDoctorInput->setPlaceholderText(tr("请输入治疗医生姓名"));
-        dateLabel->setText(tr("植入日期"));
-        locationLabel->setText(tr("植入位置"));
-        selectcomboBox->setItemText(0, tr("左"));
-        selectcomboBox->setItemText(1, tr("右"));
-        backButton->setText(tr("返回"));
-        continueButton->setText(tr("继续"));
 
+        operationTips->setText(
+                    QCoreApplication::translate("App", rawOperationTips)
+                );
     }
+    QWidget::changeEvent(event);
+}
+
+void FollowUpForm::openMeasurementDialog() {
+//    if (!measurementDialog) {
+    QWidget *overlay = new QWidget(this);
+    overlay->setGeometry(this->rect());
+    overlay->setStyleSheet("background-color: rgba(0, 0, 0, 100);"); // 可调透明度
+    overlay->setAttribute(Qt::WA_TransparentForMouseEvents, false); // 拦截事件
+    overlay->show();
+    overlay->raise();
+
+    //添加模糊效果
+    QGraphicsBlurEffect *blur = new QGraphicsBlurEffect;
+    blur->setBlurRadius(20);  // 可调强度：20~40
+    this->setGraphicsEffect(blur);
+
+    QString sensorId = labelSensor->text();
+
+    measurementDialog = new MeasurementDialog(sensorId, 80, this);
+    qDebug() << "对话框已打开";
+
+    // 设置为模态对话框
+    measurementDialog->setModal(true);  // 使对话框为模态，阻止其他操作
+    measurementDialog->show();  // 显示对话框
+
+    connect(measurementDialog, &MeasurementDialog::exitOverlay, this,
+        [this, overlayPtr = overlay]() {
+            this->setGraphicsEffect(nullptr);
+
+            if (overlayPtr) {
+                overlayPtr->close();
+                overlayPtr->deleteLater();
+            }
+
+            if (this->measurementDialog) {
+                this->measurementDialog->deleteLater();
+                this->measurementDialog = nullptr;
+            }
+        });
+    connect(measurementDialog,&MeasurementDialog::closeFollowUpForm,this, &FollowUpForm::followReturnToLogin);
+}
+
+void FollowUpForm::openMeasureSettingsWindow() {
+    if (!settingswidgetMrasure) {
+        settingswidgetMrasure = new SettingsWidget(nullptr);              // 必须无父
+        settingswidgetMrasure->setWindowFlags(Qt::Window);               // 设置顶层窗口
+
+        // 安全关闭处理
+        connect(settingswidgetMrasure, &SettingsWidget::requestDelete, this, [=]() {
+            settingswidgetMrasure->deleteLater();
+            settingswidgetMrasure = nullptr;
+            this->show();
+            this->showFullScreen();      //不修改 flags，只重新 show
+            this->resize(QGuiApplication::primaryScreen()->availableGeometry().size()); // 确保尺寸恢复
+            QTimer::singleShot(0, this, SLOT(update())); // 强制刷新绘制（或者用 this->update()）
+        });
+    }
+
+    settingswidgetMrasure->show();
+    settingswidgetMrasure->raise();
+    settingswidgetMrasure->activateWindow();
+
+    this->hide();  // ✅ 主界面隐藏
+}
+
+QString FollowUpForm::fetchSensorIds() const
+{
+    // 取默认连接
+    QSqlDatabase db = QSqlDatabase::database();
+    if (!db.isOpen()) {
+        qWarning() << "数据库未打开！";
+        return tr("传感器ID未知");
+    }
+
+    QSqlQuery query(db);
+    if (!query.exec("SELECT sensor_id FROM sensor_info")) {
+        qWarning() << "查询 sensor_info 失败：" << query.lastError().text();
+        return tr("传感器ID未知");
+    }
+
+    QStringList sensors;
+    while (query.next()) {
+        QString id = query.value(0).toString().trimmed();
+        if (!id.isEmpty())
+            sensors << id;
+    }
+
+    if (sensors.isEmpty())
+        return tr("传感器ID查询为空");
+
+    return sensors.join(", ");
 }

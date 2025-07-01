@@ -68,6 +68,9 @@ private:
     // 拖拽辅助
     bool                       m_dragging;
     QPoint                     m_dragPosition;
+
+    float scaleX;
+    float scaleY;
 };
 
 #endif // CUSTOMKEYBOARD_H

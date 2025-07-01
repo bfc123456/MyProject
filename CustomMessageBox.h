@@ -27,6 +27,8 @@ private:
     QVBoxLayout *mainLayout;
     QHBoxLayout *buttonLayout;
     QString userResponse;
+    float scaleX;
+    float scaleY;
 
     const QString defaultIconPath = ":image/exclamation_mark.png";  // 默认图标路径
 };

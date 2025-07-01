@@ -12,6 +12,10 @@ public:
 
 signals:
     void modeSelected(QString mode);
+
+private:
+    float scaleX;
+    float scaleY;
 };
 
 #endif // DEBUGMODESELECTOR_H

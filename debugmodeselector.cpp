@@ -2,10 +2,22 @@
 #include <QBoxLayout>
 #include <QPushButton>
 #include <QLabel>
+#include <QGuiApplication>
+#include <QScreen>
 
 DebugModeSelector::DebugModeSelector(QWidget *parent) : CloseOnlyWindow(parent)
 {
-     setFixedSize(400, 280);
+    // 获取屏幕分辨率
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->geometry();
+    int screenWidth = screenGeometry.width();
+    int screenHeight = screenGeometry.height();
+
+    // 计算缩放比例
+    scaleX = (float)screenWidth / 1024;
+    scaleY = (float)screenHeight / 600;
+
+    setFixedSize(400*scaleX, 280*scaleY);
 
     this->setStyleSheet(R"(
         QWidget {
@@ -34,8 +46,8 @@ DebugModeSelector::DebugModeSelector(QWidget *parent) : CloseOnlyWindow(parent)
     QHBoxLayout *tittlelayout = new QHBoxLayout(this);
     QPushButton *serialBtn = new QPushButton("串口\n调试",this);
     QPushButton *udpBtn = new QPushButton("网络\n调试",this);
-    serialBtn->setMinimumSize(100, 100);
-    udpBtn->setMinimumSize(100, 100);
+    serialBtn->setMinimumSize(100*scaleX, 100*scaleY);
+    udpBtn->setMinimumSize(100*scaleX, 100*scaleY);
 
     serialBtn->setStyleSheet(R"(
         QPushButton {
@@ -86,11 +98,11 @@ DebugModeSelector::DebugModeSelector(QWidget *parent) : CloseOnlyWindow(parent)
         }
     )");
 
-    mainlayout->addSpacing(50);
+    mainlayout->addSpacing(50*scaleY);
     tittlelayout->addWidget(serialBtn);
-    tittlelayout->addSpacing(100);
+    tittlelayout->addSpacing(100*scaleY);
     tittlelayout->addWidget(udpBtn);
-    tittlelayout->setContentsMargins(50,0,50,0);
+    tittlelayout->setContentsMargins(50*scaleX,0,50*scaleX,0);
     mainlayout->addLayout(tittlelayout);
     mainlayout->addStretch();
 

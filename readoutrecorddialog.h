@@ -30,4 +30,6 @@ private:
     QTableWidget *table;
     QPushButton *btnRefresh;
     QPushButton *btnDelete;
+    float scaleX;
+    float scaleY;
 };

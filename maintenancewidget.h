@@ -81,6 +81,9 @@ private:
     void onDataReceived(const QByteArray &data);  //处理UDP监听的数据
     void changeEvent(QEvent *event) override;
 
+    float scaleX;
+    float scaleY;
+
 };
 
 #endif // MAINTENANCEWIDGET_H

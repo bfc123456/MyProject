@@ -2,14 +2,24 @@
 #include <QIcon>
 #include <QStyle>
 #include <QGraphicsDropShadowEffect>
+#include <QGuiApplication>
+#include <QScreen>
 
 ExitConfirmDialog::ExitConfirmDialog(QWidget *parent)
     : CloseOnlyWindow(parent)
 {
     // 设置无边框 + 遮罩背景
-//    setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog);
-//    setAttribute(Qt::WA_TranslucentBackground);
-    resize(400, 200);
+    // 获取屏幕分辨率
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->geometry();
+    int screenWidth = screenGeometry.width();
+    int screenHeight = screenGeometry.height();
+
+    // 计算缩放比例
+    scaleX = (float)screenWidth / 1024;
+    scaleY = (float)screenHeight / 600;
+
+    resize(400*scaleX, 200*scaleY);
 
     QWidget *mainWidget = new QWidget(this);
     mainWidget->setObjectName("mainWidget");
@@ -21,12 +31,12 @@ ExitConfirmDialog::ExitConfirmDialog(QWidget *parent)
     )");
 
     QVBoxLayout *mainLayout = new QVBoxLayout(mainWidget);
-    mainLayout->setContentsMargins(20, 20, 20, 20);
-    mainLayout->setSpacing(20);
+    mainLayout->setContentsMargins(20*scaleX, 20*scaleY, 20*scaleX, 20*scaleY);
+    mainLayout->setSpacing(20*scaleY);
 
     // 顶部关闭按钮
     closeButton = new QPushButton("✖");
-    closeButton->setFixedSize(24, 24);
+    closeButton->setFixedSize(24*scaleX, 24*scaleY);
     closeButton->setStyleSheet("QPushButton { color: white; background: transparent; border: none; font-size: 14px; }");
     connect(closeButton, &QPushButton::clicked, this, &QDialog::reject);
 
@@ -47,8 +57,8 @@ ExitConfirmDialog::ExitConfirmDialog(QWidget *parent)
     returnButton = new QPushButton(" 返回主界面");
     returnButton->setIcon(QIcon(":/icons/home.png"));
 
-    shutdownButton->setFixedSize(100, 32);
-    returnButton->setFixedSize(100, 32);
+    shutdownButton->setFixedSize(100*scaleX, 32*scaleY);
+    returnButton->setFixedSize(100*scaleX, 32*scaleY);
 
     QString buttonStyle = R"(
         QPushButton {
@@ -70,7 +80,7 @@ ExitConfirmDialog::ExitConfirmDialog(QWidget *parent)
     QHBoxLayout *buttonLayout = new QHBoxLayout();
     buttonLayout->addStretch();
     buttonLayout->addWidget(shutdownButton);
-    buttonLayout->addSpacing(40);
+    buttonLayout->addSpacing(40*scaleX);
     buttonLayout->addWidget(returnButton);
     buttonLayout->addStretch();
 

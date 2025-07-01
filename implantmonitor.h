@@ -51,22 +51,40 @@ private:
     QString m_serial;
     bool m_isLeft  = true;  // 默认
 
+    float scaleX;
+    float scaleY;
+
+    QTimer *measurementTimer;
+    QVector<QPointF> points;
+    int currentTime = 0;  // 当前时间（秒）
+
+    double minValue;     // 用于保存波形数据的最小值
+    double maxValue;     // 用于保存波形数据的最大值
+    double avgValue;     // 用于保存波形数据的平均值
+    double heartRate;    // 用于保存波形数据的心率
+
 signals:
     void dataListUpdated(const QList<MeasurementData>& list);   //表格更新提示
     void returnImplantationsite();
+    void dataSaved(const MeasurementData &d);
 
 private slots:
     void openCOClicked();
     void openRHCClicked();
-    void openMeasureClicked();
+//    void openMeasureClicked();
     void openReviewClicked();
     //    void openReadoutClicked();
     void OpenSettingsRequested();
-    void onDataSaved(const MeasurementData &d);
+//    void onDataSaved(const MeasurementData &d);
     void onReadoutButtonClicked();
 //    void onDataListUpdated(const QList<MeasurementData>& list);  //更新结构体
     void onRowDeleted(int row); //删除结构体特定行
     void changeEvent(QEvent *event) override;
+    void startMeasurement();
+    void updateWaveform();
+    double calculateHeartRate();
+    void openSaveConfirm();
+//    void onSaveButtonClicked();
 };
 
 

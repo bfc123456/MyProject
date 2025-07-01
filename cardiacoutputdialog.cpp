@@ -4,18 +4,31 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QLineEdit>
+#include <QGuiApplication>
+#include <QScreen>
 
 CardiacOutputDialog::CardiacOutputDialog(QString bpValue, QString avgValue, QWidget *parent)
     : CloseOnlyWindow(parent)
 {
+    // 获取屏幕分辨率
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->geometry();
+
+    int screenWidth = screenGeometry.width();
+    int screenHeight = screenGeometry.height();
+
+    // 计算缩放比例
+    scaleX = (float)screenWidth / 1024;
+    scaleY = (float)screenHeight / 600;
+
     // 设置窗体样式
     setWindowTitle(tr("输入心输出量"));
     this->setStyleSheet("background-color: #18273E;");
-    this->setFixedSize(350,180);
+    this->setFixedSize(350*scaleX,180*scaleY);
 
     // 主布局
     QVBoxLayout *mainlayout = new QVBoxLayout(this);
-    mainlayout->setContentsMargins(15,15,15,15);
+    mainlayout->setContentsMargins(15*scaleX,15*scaleY,15*scaleX,15*scaleY);
 
     // 血压/平均值布局
     QLabel *bpLabel = new QLabel(bpValue,this);
@@ -26,7 +39,7 @@ CardiacOutputDialog::CardiacOutputDialog(QString bpValue, QString avgValue, QWid
     QVBoxLayout *dataunitLayout = new QVBoxLayout();
     QHBoxLayout *dataLayout = new QHBoxLayout();
     dataLayout->addWidget(bpLabel);
-    dataLayout->addSpacing(10);
+    dataLayout->addSpacing(10*scaleX);
     dataLayout->addWidget(avgLabel);
     dataunitLayout->addLayout(dataLayout);
     dataunitLayout->addWidget(unitLabel);
@@ -39,9 +52,9 @@ CardiacOutputDialog::CardiacOutputDialog(QString bpValue, QString avgValue, QWid
     // 心输出量输入框
     QLabel *coTitle = new QLabel(tr("心输出量"),this);
     coTitle->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
-    coTitle->setFixedHeight(40);
+    coTitle->setFixedHeight(40*scaleY);
     coEdit = new QLineEdit;
-    coEdit->setFixedSize(135,35);
+    coEdit->setFixedSize(135*scaleX,35*scaleY);
     coEdit->setStyleSheet(R"(
         QLineEdit {
             padding-left: 8px;
@@ -57,20 +70,20 @@ CardiacOutputDialog::CardiacOutputDialog(QString bpValue, QString avgValue, QWid
     currentKeyboard = CustomKeyboard::instance(this);
 
     // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
-    currentKeyboard->registerEdit(coEdit,QPoint(-185, 0));
+    currentKeyboard->registerEdit(coEdit,QPoint(-185*scaleX, 0));
 
 
     QLabel *coUnit = new QLabel("L/Min",this);
     coUnit->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
-    coUnit->setFixedHeight(40);
+    coUnit->setFixedHeight(40*scaleY);
 
     // 创建输入框布局
     QHBoxLayout *coLayout = new QHBoxLayout();
     coLayout->addStretch();
     coLayout->addWidget(coTitle);
-    coLayout->addSpacing(10);
+    coLayout->addSpacing(10*scaleX);
     coLayout->addWidget(coEdit);
-    coLayout->addSpacing(5);
+    coLayout->addSpacing(5*scaleX);
     coLayout->addWidget(coUnit);
     coLayout->addStretch();
     mainlayout->addLayout(coLayout);
@@ -78,8 +91,8 @@ CardiacOutputDialog::CardiacOutputDialog(QString bpValue, QString avgValue, QWid
     // 设置按钮样式
     QPushButton *backBtn = new QPushButton(tr("返回"),this);
     QPushButton *okBtn = new QPushButton(tr("保存"),this);
-    backBtn->setFixedSize(120,45);
-    okBtn->setFixedSize(120,45);
+    backBtn->setFixedSize(120*scaleX,45*scaleY);
+    okBtn->setFixedSize(120*scaleX,45*scaleY);
 
     backBtn->setStyleSheet(R"(
         QPushButton {
@@ -131,7 +144,7 @@ CardiacOutputDialog::CardiacOutputDialog(QString bpValue, QString avgValue, QWid
     // 返回按钮与保存按钮的布局
     QHBoxLayout *btnLayout = new QHBoxLayout();
     btnLayout->addWidget(backBtn);
-    btnLayout->addStretch(1);
+    btnLayout->addStretch(1*scaleX);
     btnLayout->addWidget(okBtn);
     mainlayout->addLayout(btnLayout);
 

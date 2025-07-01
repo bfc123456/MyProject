@@ -84,6 +84,8 @@ private:
     QString selectedAngle ;
     QString m_serial;
     CustomKeyboard *currentKeyboard;
+    float scaleX;
+    float scaleY;
 
 private slots:
     void OpenSettingsRequested();

@@ -4,18 +4,30 @@
 #include <QFont>
 #include <QMessageBox>
 #include "customkeyboard.h"
+#include <QGuiApplication>
+#include <QScreen>
 
 CalibrationDialog::CalibrationDialog(QWidget* parent)
     : CloseOnlyWindow(parent)
 {
+    // 获取屏幕分辨率
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->geometry();
+    int screenWidth = screenGeometry.width();
+    int screenHeight = screenGeometry.height();
+
+    // 计算缩放比例
+    scaleX = (float)screenWidth / 1024;
+    scaleY = (float)screenHeight / 600;
+
     setWindowTitle(tr("校准传感器"));
-    setFixedSize(400, 280);
+    setFixedSize(400*scaleX, 280*scaleY);
     setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 14px;");
 
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
     title = new QLabel(tr("校准传感器"));
-    title->setFixedWidth(180);
+    title->setFixedWidth(180*scaleX);
     title->setAlignment(Qt::AlignCenter);
     title->setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent; color: white;");
     mainLayout->addWidget(title, 0, Qt::AlignHCenter);
@@ -23,15 +35,15 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
     // 数值显示
     QHBoxLayout* valueLayout = new QHBoxLayout;
     QLabel* bpValue = new QLabel("120/80");
-    bpValue->setFixedWidth(80);
+    bpValue->setFixedWidth(80*scaleX);
     bpValue->setAlignment(Qt::AlignCenter);
     bpValue->setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent; color: white;");
     QLabel* pulseValue = new QLabel("94");
-    pulseValue->setFixedWidth(80);
+    pulseValue->setFixedWidth(80*scaleX);
     pulseValue->setAlignment(Qt::AlignCenter);
     pulseValue->setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent; color: white;");
     QLabel* unit = new QLabel("mmHg");
-    unit->setFixedWidth(120);
+    unit->setFixedWidth(120*scaleX);
     unit->setAlignment(Qt::AlignCenter);
     unit->setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent; color: white;");
 
@@ -43,7 +55,7 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
 
     valueLayout->addStretch();
     valueLayout->addWidget(bpValue);
-    valueLayout->addSpacing(10);
+    valueLayout->addSpacing(10*scaleX);
     valueLayout->addWidget(pulseValue);
     valueLayout->addStretch();
 
@@ -53,13 +65,13 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
     // 输入区域
     QHBoxLayout* inputLayout = new QHBoxLayout;
     inputLabel = new QLabel(tr("PA导管平均值"));
-    inputLabel->setFixedWidth(150);
-    inputLabel->setFixedHeight(40);
+    inputLabel->setFixedWidth(150*scaleX);
+    inputLabel->setFixedHeight(40*scaleY);
     inputLabel->setAlignment(Qt::AlignCenter);
     inputLabel->setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent; color: white;");
     inputEdit = new QLineEdit();
     inputEdit->setPlaceholderText(tr("输入校准值..."));
-    inputEdit->setFixedSize(120,35);
+    inputEdit->setFixedSize(120*scaleX,35*scaleY);
     inputEdit->setFocusPolicy(Qt::ClickFocus);  // 只有点击时才能获取焦
     inputEdit->setStyleSheet(R"(
         QLineEdit {
@@ -75,27 +87,27 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
     currentKeyboard = CustomKeyboard::instance(this);
 
     // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
-    currentKeyboard->registerEdit(inputEdit,QPoint(-250, 0));
+    currentKeyboard->registerEdit(inputEdit,QPoint(-250*scaleX, 0));
 
     inputLayout->addWidget(inputLabel);
     inputLayout->addWidget(inputEdit);
     inputLayout->addStretch();
-    inputLayout->setContentsMargins(50, 0, 0, 0);
+    inputLayout->setContentsMargins(50*scaleX, 0, 0, 0);
 
     mainLayout->addLayout(inputLayout);
 
-    mainLayout->addSpacing(20);
+    mainLayout->addSpacing(20*scaleY);
 
     // 按钮区域
     QHBoxLayout* buttonLayout = new QHBoxLayout;
     resetBtn = new QPushButton(tr("重新校准"));
     resetBtn->setIcon(QIcon(":/image/icons8-refresh.png"));
-    resetBtn->setIconSize(QSize(20, 20));
-    resetBtn->setFixedSize(115, 40);
+    resetBtn->setIconSize(QSize(20*scaleX, 20*scaleY));
+    resetBtn->setFixedSize(115*scaleX, 40*scaleY);
     saveBtn = new QPushButton(tr("保存"));
     saveBtn->setIcon(QIcon(":/image/icons8-save.png"));
-    saveBtn->setIconSize(QSize(20, 20));
-    saveBtn->setFixedSize(115, 40);
+    saveBtn->setIconSize(QSize(20*scaleX, 20*scaleY));
+    saveBtn->setFixedSize(115*scaleX, 40*scaleY);
 
     resetBtn->setStyleSheet(R"(
     QPushButton {
@@ -145,12 +157,12 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
         padding-top: 2px;
     }
     )");
-    mainLayout->addSpacing(20);
+    mainLayout->addSpacing(20*scaleY);
     buttonLayout->addWidget(resetBtn);
     buttonLayout->addStretch();
     buttonLayout->addWidget(saveBtn);
     mainLayout->addLayout(buttonLayout);
-    mainLayout->addSpacing(20);
+    mainLayout->addSpacing(20*scaleY);
 
     // 连接按钮槽
     connect(saveBtn, &QPushButton::clicked, this, [this](){

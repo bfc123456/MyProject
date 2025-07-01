@@ -11,12 +11,23 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include "CloseOnlyWindow.h"
+#include <QGuiApplication>
+#include <QScreen>
 
 ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     : FramelessWindow(parent)
 {
-    setWindowTitle(tr("新植入物管理界面"));
-    setFixedSize(1024, 600);
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->geometry();
+    int screenWidth = screenGeometry.width();
+    int screenHeight = screenGeometry.height();
+
+    // 计算缩放比例
+    scaleX = (float)screenWidth / 1024;
+    scaleY = (float)screenHeight / 600;
+
+    // 设置窗口初始大小
+    this->resize(1024 * scaleX, 600 * scaleY);  // 设置为基于目标分辨率的大小
     this->setObjectName("ImplantinfoWidget");
     this->setStyleSheet(R"(
     QWidget#ImplantinfoWidget {
@@ -51,11 +62,11 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
         }
     )");
 
-    topBar->setFixedHeight(50);
+    topBar->setFixedHeight(50*scaleY);
 
 
     titleLabel = new QLabel(tr("新植入物"), this);
-    titleLabel->setFixedSize(160, 35);
+    titleLabel->setFixedSize(160*scaleX, 35*scaleY);
     titleLabel->setAutoFillBackground(false);                   // 不自动填充背景
     titleLabel->setAttribute(Qt::WA_TranslucentBackground);     // 启用透明背景
     titleLabel->setStyleSheet("font-size: 18px; font-weight: bold; color: white;");
@@ -64,7 +75,7 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     QPushButton *btnSettings = new QPushButton(this);
     connect(btnSettings, &QPushButton::clicked, this, &ImplantInfoWidget::openSettingsWindow);  // 连接点击事件到槽函数
     btnSettings->setIcon(QIcon(":/image/icons8-shezhi.png"));
-    btnSettings->setIconSize(QSize(24, 24));
+    btnSettings->setIconSize(QSize(24*scaleX, 24*scaleY));
     btnSettings->setFlat(true);
     btnSettings->setStyleSheet(R"(
                                QPushButton {
@@ -80,45 +91,45 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     topLayout->addWidget(titleLabel);
     topLayout->addStretch();
     topLayout->addWidget(btnSettings);
-    topLayout->setContentsMargins(10, 0, 10, 0);
+    topLayout->setContentsMargins(10*scaleX, 0*scaleY, 10*scaleX, 0*scaleY);
 
     // 表单部分
     serialLabel = new QLabel(tr("传感器序列号"));
-    serialLabel->setFixedSize(180, 40);
+    serialLabel->setFixedSize(180*scaleX, 40*scaleY);
     serialLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     serialInput = new QLineEdit();
-    serialInput->setFixedSize(400, 50);
+    serialInput->setFixedSize(400*scaleX, 50*scaleY);
     serialInput->setPlaceholderText(tr("请输入传感器序列号"));
 
     checksumLabel = new QLabel(tr("校准码"));
-    checksumLabel->setFixedSize(180, 40);
+    checksumLabel->setFixedSize(180*scaleX, 40*scaleY);
     checksumLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     checksumInput = new QLineEdit();
-    checksumInput->setFixedSize(400, 50);
+    checksumInput->setFixedSize(400*scaleX, 50*scaleY);
     checksumInput->setPlaceholderText(tr("请输入校准码"));
 
     implantDoctorLabel = new QLabel(tr("植入医生"));
-    implantDoctorLabel->setFixedSize(180, 40);
+    implantDoctorLabel->setFixedSize(180*scaleX,40*scaleY);
     implantDoctorLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     implantDoctorInput = new QLineEdit();
-    implantDoctorInput->setFixedSize(400, 50);
+    implantDoctorInput->setFixedSize(400*scaleX, 50*scaleY);
     implantDoctorInput->setPlaceholderText(tr("请输入植入医生姓名"));
 
     treatDoctorLabel = new QLabel(tr("治疗医生"));
-    treatDoctorLabel->setFixedSize(180, 40);
+    treatDoctorLabel->setFixedSize(180*scaleX, 40*scaleY);
     treatDoctorLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     treatDoctorInput = new QLineEdit();
-    treatDoctorInput->setFixedSize(400, 50);
+    treatDoctorInput->setFixedSize(400*scaleX, 50*scaleY);
     treatDoctorInput->setPlaceholderText(tr("请输入治疗医生姓名"));
 
     dateLabel = new QLabel(tr("植入日期"));
-    dateLabel->setFixedSize(180, 40);
+    dateLabel->setFixedSize(180*scaleX, 40*scaleY);
     dateLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     implantDateInput = new QDateEdit(this);
     implantDateInput->setCalendarPopup(true);
     implantDateInput->setDate(QDate(2025, 1, 1));    // 设置默认日期为2025年1月1日
 
-    implantDateInput->setFixedSize(400, 50);
+    implantDateInput->setFixedSize(400*scaleX, 50*scaleY);
     implantDateInput->setCalendarPopup(true);
 
     currentKeyboard = CustomKeyboard::instance(this);
@@ -142,7 +153,7 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     formLayout->addWidget(implantDateInput, 5, 0);
 
     QWidget *formWidget = new QWidget();
-    formWidget->setFixedHeight(350);
+    formWidget->setFixedHeight(350*scaleY);
     formWidget->setStyleSheet(R"(
     QWidget {
         background-color: qlineargradient(
@@ -218,16 +229,13 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     }
     )");
 
-    continueButton = new QPushButton(tr("上传"));
-    continueButton->setIcon(QIcon(":/image/icons8-updata.png"));
+    continueButton = new QPushButton(tr("继续"));
+    continueButton->setIcon(QIcon(":/image/icons8-next.png"));
     connect(continueButton, &QPushButton::clicked, this, [this]() {
-        // 如果按钮当前是“上传”，就执行插入逻辑
-        if (continueButton->text() == tr("上传")) {
+
             bool ok = insertNewSensor();  // 返回 true／false
             if (ok) {
-                // 上传成功：改成“继续”，但不跳转
-                continueButton->setText(tr("继续"));
-                continueButton->setIcon(QIcon(":/image/icons8-next.png"));
+               showImplantationSiteWidget(m_serial);
             } else {
                 //添加遮罩层
                 QWidget *overlay = new QWidget(this);
@@ -258,13 +266,7 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
                 overlay->close();
                 overlay->deleteLater();
             }
-        }
-        // 如果按钮当前是“继续”，就打开下一个界面
-        else if (continueButton->text() == tr("继续")) {
-            showImplantationSiteWidget(m_serial);
-        }
     });
-
 
     continueButton->setStyleSheet(R"(
     QPushButton {
@@ -290,11 +292,11 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     }
     )");
 
-    backButton->setFixedSize(120, 40);
-    continueButton->setFixedSize(120, 40);
+    backButton->setFixedSize(120*scaleX, 40*scaleY);
+    continueButton->setFixedSize(120*scaleX, 40*scaleY);
 
     QWidget *buttonWidget = new QWidget();
-    buttonWidget->setFixedHeight(70);
+    buttonWidget->setFixedHeight(70*scaleY);
     buttonWidget->setStyleSheet(R"(
     /* 外层容器，带渐变 + 边缘高光 */
     QWidget {
@@ -309,7 +311,7 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     )");
 
     QHBoxLayout *buttonLayout = new QHBoxLayout(buttonWidget);
-    buttonLayout->setContentsMargins(20, 10, 20, 10);
+    buttonLayout->setContentsMargins(20*scaleX, 10*scaleY, 20*scaleX, 10*scaleY);
     buttonLayout->addWidget(backButton);
     buttonLayout->addStretch();
     buttonLayout->addWidget(continueButton);
@@ -318,13 +320,13 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
 
     // 主布局
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(80, 15, 80, 15);
+    mainLayout->setContentsMargins(80*scaleX, 15*scaleY, 80*scaleX, 15*scaleY);
     mainLayout->addWidget(topBar);
-    mainLayout->addSpacing(15);
+    mainLayout->addSpacing(15*scaleY);
     mainLayout->addWidget(formWidget);
-    mainLayout->addSpacing(30);
+    mainLayout->addSpacing(30*scaleY);
     mainLayout->addWidget(buttonWidget);
-    mainLayout->addSpacing(15);
+    mainLayout->addSpacing(15*scaleY);
     setLayout(mainLayout);
 }
 
@@ -352,7 +354,7 @@ void ImplantInfoWidget::showImplantationSiteWidget(const QString &serial)
         tr("提示"),
         tr("请将传感器植入患者体内，点击下一步"),
         { tr("返 回"), tr("下一步") },
-        400   // 宽度
+        400*scaleY   // 宽度
     );
 
     // 5. 阻塞显示
@@ -367,7 +369,7 @@ void ImplantInfoWidget::showImplantationSiteWidget(const QString &serial)
     if (result == QDialog::Accepted) {
         ImplantationSite* implantationSite = new ImplantationSite(this,serial);
         implantationSite->setWindowFlags(Qt::Window);
-        implantationSite->setFixedSize(1024, 600);
+        implantationSite->setFixedSize(1024*scaleX, 600*scaleY);
         connect(implantationSite, &ImplantationSite::returnRequested, this, [this, implantationSite]() {
             implantationSite->hide();
             this->show();
@@ -467,8 +469,7 @@ void ImplantInfoWidget::changeEvent(QEvent *event)
         treatDoctorInput->setPlaceholderText(tr("请输入治疗医生姓名"));
         dateLabel->setText(tr("植入日期"));
         backButton->setText(tr("返回"));
-        continueButton->setText(tr("上传"));
-
+        continueButton->setText(tr("继续"));
     }
 }
 

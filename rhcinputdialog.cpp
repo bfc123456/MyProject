@@ -4,18 +4,29 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QLineEdit>
+#include <QGuiApplication>
+#include <QScreen>
 
 RHCInputDialog::RHCInputDialog(QWidget *parent)
     : CloseOnlyWindow(parent)
 {
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->geometry();
+    int screenWidth = screenGeometry.width();
+    int screenHeight = screenGeometry.height();
+
+    // 计算缩放比例
+    scaleX = (float)screenWidth / 1024;
+    scaleY = (float)screenHeight / 600;
+
     // 设置窗口标题
     setWindowTitle(tr("输入RHC"));
     this->setStyleSheet("background-color: #18273E;");
-    this->setFixedSize(500,250);
+    this->setFixedSize(500*scaleX,250*scaleY);
 
 
     QVBoxLayout *mainlayout = new QVBoxLayout(this);
-    mainlayout->setContentsMargins(15,15,15,15);
+    mainlayout->setContentsMargins(15*scaleX,15*scaleY,15*scaleX,15*scaleY);
 
     // 创建网格布局
     QGridLayout *gridLayout = new QGridLayout();
@@ -55,13 +66,13 @@ RHCInputDialog::RHCInputDialog(QWidget *parent)
     currentKeyboard = CustomKeyboard::instance(this);
 
     // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
-    currentKeyboard->registerEdit(raInput1, QPoint(-170,0));
+    currentKeyboard->registerEdit(raInput1, QPoint(-170*scaleX,0));
     currentKeyboard->registerEdit(rvInput1);
-    currentKeyboard->registerEdit(rvInput2, QPoint(-170,0));
+    currentKeyboard->registerEdit(rvInput2, QPoint(-170*scaleX,0));
     currentKeyboard->registerEdit(paInput1);
-    currentKeyboard->registerEdit(paInput2, QPoint(-170,0));
-    currentKeyboard->registerEdit(paInput3 , QPoint(-170,0));
-    currentKeyboard->registerEdit(pcwpInput1 , QPoint(-170,0));
+    currentKeyboard->registerEdit(paInput2, QPoint(-170*scaleX,0));
+    currentKeyboard->registerEdit(paInput3 , QPoint(-170*scaleX,0));
+    currentKeyboard->registerEdit(pcwpInput1 , QPoint(-170*scaleX,0));
 
     // 设置QLabel样式
     rvdivider->setStyleSheet("QLabel { font-size: 18px; color: #aaaaaa; }");
@@ -90,9 +101,9 @@ RHCInputDialog::RHCInputDialog(QWidget *parent)
     QHBoxLayout *btnlayout = new QHBoxLayout();
     clearButton = new QPushButton(tr("全部清除"), this);
     clearButton->setIcon(QIcon(":/image/delete.png"));
-    clearButton->setFixedSize(120,35);
+    clearButton->setFixedSize(120*scaleX,35*scaleY);
     saveButton = new QPushButton(tr("保存"), this);
-    saveButton->setFixedSize(120,35);
+    saveButton->setFixedSize(120*scaleX,35*scaleY);
     saveButton->setIcon(QIcon(":/image/icons8-save.png"));
 
     clearButton->setStyleSheet(R"(
@@ -143,7 +154,7 @@ RHCInputDialog::RHCInputDialog(QWidget *parent)
     }
     )");
 
-    saveButton->setFixedWidth(120);
+    saveButton->setFixedWidth(120*scaleX);
     btnlayout->addWidget(clearButton);
     btnlayout->addStretch();
     btnlayout->addWidget(saveButton);

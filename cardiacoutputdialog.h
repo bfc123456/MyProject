@@ -20,6 +20,9 @@ public:
 private:
     QLineEdit *coEdit;
     CustomKeyboard* currentKeyboard = nullptr;
+
+    float scaleX;
+    float scaleY;
 };
 
 #endif // CARDIACOUTPUTDIALOG_H

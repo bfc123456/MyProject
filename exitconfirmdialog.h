@@ -24,6 +24,8 @@ private:
     QPushButton *shutdownButton;
     QPushButton *returnButton;
     QPushButton *closeButton;
+    float scaleX;
+    float scaleY;
 };
 
 #endif // EXITCONFIRMDIALOG_H

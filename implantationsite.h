@@ -69,6 +69,9 @@ private:
     bool isClicked = false;  //按钮状态
     QString selectedPos;
     void changeEvent(QEvent *event) override;
+
+    float scaleX;
+    float scaleY;
 };
 
 #endif // IMPLANTATIONSITE_H

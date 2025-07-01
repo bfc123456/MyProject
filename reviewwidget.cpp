@@ -11,9 +11,20 @@
 #include "global.h"
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QGuiApplication>
+#include <QScreen>
 
 ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
   : FramelessWindow(parent), m_serial(sensorId) {
+
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->geometry();
+    int screenWidth = screenGeometry.width();
+    int screenHeight = screenGeometry.height();
+
+    // 计算缩放比例
+    scaleX = (float)screenWidth / 1024;
+    scaleY = (float)screenHeight / 600;
 
     this->setObjectName("ReviewWidget");
     this->setStyleSheet(R"(
@@ -30,11 +41,11 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
 
 
     setWindowTitle(tr("新植入物审查界面"));
-    setFixedSize(1024, 600);
+    setFixedSize(1024*scaleX, 600*scaleY);
 
     //创建主布局
     QVBoxLayout *mainlayout= new QVBoxLayout(this);
-    mainlayout->setContentsMargins(25,15,25,15);
+    mainlayout->setContentsMargins(25*scaleX,15*scaleY,25*scaleX,15*scaleY);
     // 顶部栏
     QWidget *topBar = new QWidget(this);
     topBar->setObjectName("TopBar");
@@ -55,10 +66,10 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
           }
     )");
 
-    topBar->setFixedHeight(50);
+    topBar->setFixedHeight(50*scaleY);
 
     titleLabel = new QLabel(tr("新植入物"), this);
-    titleLabel->setFixedSize(160, 35);
+    titleLabel->setFixedSize(160*scaleX, 35*scaleY);
     titleLabel->setStyleSheet("font-size: 18px; font-weight: bold; color: white;");
     titleLabel->setAlignment(Qt::AlignCenter);
 
@@ -68,7 +79,7 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
 
     QPushButton *btnSettings = new QPushButton(this);
     btnSettings->setIcon(QIcon(":/image/icons8-shezhi.png"));
-    btnSettings->setIconSize(QSize(24, 24));
+    btnSettings->setIconSize(QSize(24*scaleX, 24*scaleY));
     btnSettings->setFlat(true);
     btnSettings->setStyleSheet(R"(
                                QPushButton {
@@ -83,17 +94,17 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
     connect(btnSettings, &QPushButton::clicked, this, &ReviewWidget::OpenSettingsRequested);
 
     QHBoxLayout *topLayout = new QHBoxLayout(topBar);
-    topLayout->setContentsMargins(10, 0, 10, 0);
+    topLayout->setContentsMargins(10*scaleX, 0, 10*scaleX, 0);
     topLayout->addWidget(titleLabel, 0, Qt::AlignLeft);
     topLayout->addWidget(idLabel, 1, Qt::AlignCenter);
     topLayout->addWidget(btnSettings, 0, Qt::AlignRight);
     mainlayout->addWidget(topBar);
-    mainlayout->addSpacing(10);
+    mainlayout->addSpacing(10*scaleY);
 
     //中间行左侧：血压监测部分
     QHBoxLayout *middlelayout = new QHBoxLayout();
     QWidget *middleliftwidget = new QWidget();
-    middleliftwidget->setFixedSize(470,220);
+    middleliftwidget->setFixedSize(470*scaleX,220*scaleY);
     middleliftwidget->setObjectName("chartview");
     middleliftwidget->setStyleSheet(R"(
         #chartview {
@@ -104,7 +115,7 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
     )");
 
     QVBoxLayout *middleliftlayout = new QVBoxLayout(middleliftwidget);
-    middleliftlayout->addSpacing(10);
+    middleliftlayout->addSpacing(10*scaleY);
     monitorpressure = new QLabel(tr("血压监测"));
     monitorpressure->setStyleSheet("color: white;font-size: 15px; font-weight: bold;");
     middleliftlayout->addWidget(monitorpressure);
@@ -121,14 +132,14 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
     bpPlot->setLineColor(QColor(100, 180, 255));  //曲线颜色
     bpPlot->setFillColor(QColor(40, 120, 200, 30), -1);   //波形底部填充
 
-    middleliftlayout->addSpacing(15);
+    middleliftlayout->addSpacing(15*scaleY);
     middleliftlayout->addWidget(bpPlot);
     middlelayout->addWidget(middleliftwidget);
-    middlelayout->addSpacing(10);
+    middlelayout->addSpacing(10*scaleX);
 
     // 中间右侧：心率监测部分
     QWidget *middlerightwidget = new QWidget();
-    middlerightwidget->setFixedSize(420,220);//-120
+    middlerightwidget->setFixedSize(420*scaleX,220*scaleY);//-120
     middlerightwidget->setObjectName("HeartContainer");
     middlerightwidget->setStyleSheet(R"(
         #HeartContainer {
@@ -139,13 +150,13 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
     )");
     QHBoxLayout *middlerightlayout = new QHBoxLayout(middlerightwidget);
     QVBoxLayout *heartratetittlelayout = new QVBoxLayout();
-    heartratetittlelayout->setContentsMargins(50,10,50,10);
-    heartratetittlelayout->addSpacing(50);
+    heartratetittlelayout->setContentsMargins(50*scaleX,10*scaleY,50*scaleX,10*scaleY);
+    heartratetittlelayout->addSpacing(50*scaleY);
     hrLabel = new QLabel(tr("植入位置:"));
     hrLabel->setStyleSheet("color: white; font-size: 16px; font-weight: bold;");
     QLabel *hrValue = new QLabel();
     QString loc = DatabaseManager::instance().getLocationBySensorId(m_serial).trimmed().toLower();
-    hrValue->setStyleSheet("color: white; font-size: 20px; font-weight: bold;");
+    hrValue->setStyleSheet("color: white; font-size: 28px; font-weight: bold;");
 
     // 映射数据库查询结果为中文
     if (loc == "left") {
@@ -162,17 +173,17 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
 
     heartratetittlelayout->addWidget(hrLabel);
     heartratetittlelayout->addWidget(hrValue);
-    heartratetittlelayout->addSpacing(50);
-    heartratetittlelayout->setContentsMargins(25,0,25,0);
+    heartratetittlelayout->addSpacing(50*scaleY);
+    heartratetittlelayout->setContentsMargins(25*scaleX,0,25*scaleX,0);
     middlerightlayout->addLayout(heartratetittlelayout);
 
     QLabel *heartImageLabel = new QLabel();
-    heartImageLabel->setPixmap(QPixmap(":/image/newbody.png").scaled(500, 180, Qt::KeepAspectRatio));
+    heartImageLabel->setPixmap(QPixmap(":/image/newbody.png").scaled(500*scaleX, 180*scaleY, Qt::KeepAspectRatio));
     middlerightlayout->addWidget(heartImageLabel);
-    middlerightlayout->addSpacing(30);
+    middlerightlayout->addSpacing(30*scaleX);
 
     middlelayout->addWidget(middlerightwidget);
-    middlelayout->setContentsMargins(15,0,15,0);
+    middlelayout->setContentsMargins(15*scaleX,0,15*scaleX,0);
     mainlayout->addLayout(middlelayout);
 
     // 历史记录
@@ -188,14 +199,14 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
         }
     )");
 
-    historyTable = new QTableWidget(1, 5);
+    historyTable = new QTableWidget(1, 6);
 
     historyTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     historyTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     historyTable->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    historyTable->setHorizontalHeaderLabels(QStringList() << tr("传感器") << tr("参考值") << tr("心率") << tr("位置调整")<< tr("备注"));
+    historyTable->setHorizontalHeaderLabels(QStringList() << tr("传感器ID") << tr("舒张压") << tr("收缩压") << tr("平均值") << tr("心率") << tr("测量时间"));
     historyTable->horizontalHeader()->setStretchLastSection(true);
-    historyTable->setMinimumHeight(120);
+    historyTable->setMinimumHeight(120*scaleY);
     historyTable->verticalHeader()->setStyleSheet(R"(
         QHeaderView {
             background-color: #1f1f1f;
@@ -267,18 +278,18 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
     QVBoxLayout *historychecklayout = new QVBoxLayout(historycheckwidget);
     historychecklayout->addWidget(historylabel);
     historychecklayout->addWidget(historyTable);
-    historylayout->addSpacing(15);
+    historylayout->addSpacing(15*scaleX);
     historylayout->addWidget(historycheckwidget);
-    historylayout->addSpacing(15);
+    historylayout->addSpacing(15*scaleX);
 
 
     // 按钮
     backButton = new QPushButton(tr("返回"));
-    backButton->setFixedSize(135, 35);
+    backButton->setFixedSize(135*scaleX, 35*scaleY);
     connect(backButton,&QPushButton::clicked,this,&ReviewWidget::returnToImplantmonitor);
     backButton->setIcon(QIcon(":/image/icons8-return.png"));
     saveButton = new QPushButton(tr("保存并返回"));
-    saveButton->setFixedSize(135, 35);
+    saveButton->setFixedSize(135*scaleX, 35*scaleY);
     saveButton->setIcon(QIcon(":/image/icons8-save.png"));
     backButton->setStyleSheet(R"(
         QPushButton {
@@ -334,7 +345,7 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
     buttonLayout->addWidget(backButton);
     buttonLayout->addStretch();
     buttonLayout->addWidget(saveButton);
-    buttonLayout->setContentsMargins(15,0,15,0);
+    buttonLayout->setContentsMargins(15*scaleX,0,15*scaleX,0);
 
     connect(saveButton,&QPushButton::clicked,this,[this](){
         uploadToDatabase();
@@ -350,9 +361,9 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
     });
 
     // 主体布局
-    mainlayout->addSpacing(10);
+    mainlayout->addSpacing(10*scaleY);
     mainlayout->addLayout(historylayout);
-    mainlayout->addSpacing(10);
+    mainlayout->addSpacing(10*scaleY);
     mainlayout->addLayout(buttonLayout);
 }
 
@@ -394,7 +405,7 @@ void ReviewWidget::showExitConfirmWidget()
         }
     )");
     prompt.setWindowTitle(tr("提示"));
-    prompt.setFixedSize(400, 200);
+    prompt.setFixedSize(400*scaleX, 200*scaleY);
 
     // 内容布局与按钮
     QVBoxLayout *mainLayout = new QVBoxLayout(&prompt);
@@ -409,9 +420,9 @@ void ReviewWidget::showExitConfirmWidget()
     QPushButton *returnButton = new QPushButton(tr("返回主界面"));
 
     // 按钮样式略...
-    exitButton->setFixedSize(135, 45);
+    exitButton->setFixedSize(135*scaleX, 45*scaleY);
     exitButton->setIcon(QIcon(":/image/icons8-shutdown.png"));
-    returnButton->setFixedSize(135, 45);
+    returnButton->setFixedSize(135*scaleX, 45*scaleY);
     returnButton->setIcon(QIcon(":/image/icons8-return.png"));
 
     exitButton->setStyleSheet(R"(
@@ -463,7 +474,7 @@ void ReviewWidget::showExitConfirmWidget()
 
     buttonLayout->addStretch();
     buttonLayout->addWidget(exitButton);
-    buttonLayout->addSpacing(40);
+    buttonLayout->addSpacing(40*scaleY);
     buttonLayout->addWidget(returnButton);
     buttonLayout->addStretch();
 
@@ -511,11 +522,12 @@ void ReviewWidget::setDataList(const QList<MeasurementData> &list) {
             return it;
         };
 
-        historyTable->setItem(row, 0, mk(d.sensorSystolic + "/" + d.sensorDiastolic + " (" + d.sensorAvg + ")"));
-        historyTable->setItem(row, 1, mk(d.refSystolic    + "/" + d.refDiastolic    + " (" + d.refAvg    + ")"));
-        historyTable->setItem(row, 2, mk(d.heartRate));
-        historyTable->setItem(row, 3, mk(d.angle));
-        historyTable->setItem(row, 4, mk(d.note));
+        historyTable->setItem(row, 0, mk(d.sensorId ));
+        historyTable->setItem(row, 1, mk(d.sensorSystolic));
+        historyTable->setItem(row, 2, mk(d.sensorDiastolic));
+        historyTable->setItem(row, 3, mk(d.sensorAvg));
+        historyTable->setItem(row, 4, mk(d.heartRate));
+        historyTable->setItem(row, 5, mk(d.timestamp));
     }
 
     // 一打开就默认画第一行（如果有的话）
@@ -539,31 +551,32 @@ bool ReviewWidget::uploadToDatabase()
     QSqlQuery q(db);
     q.prepare(R"(
         INSERT INTO measurements_data_update
-          (sensor,      sensor_val,
-           reference_val, heart_rate,
-           position_adjust, note)
+          (sensor_id,      systolic,
+           diastolic,      avg_value,
+           heart_rate,     timestamp)
         VALUES
-          (:sensor,     :sensorVal,
-           :ref,        :hr,
-           :pos,        :note)
+          (:sensorID,     :sys,
+           :dia,          :avg,
+           :hr,           :ts)
     )");
 
     int rows = historyTable->rowCount();
     for (int r = 0; r < rows; ++r) {
         // 从 tableWidget 里取出每一行的各列
-        QString sensorReading = historyTable->item(r, 0)->text();   // 传感器读数
-        QString refVal        = historyTable->item(r, 1)->text();
-        double  hrVal         = historyTable->item(r, 2)->text().toDouble();
-        QString posAdj        = historyTable->item(r, 3)->text();
-        QString note          = historyTable->item(r, 4)->text();
+        QString sensorID    = historyTable->item(r, 0)->text();   // 传感器读数
+        QString systolic    = historyTable->item(r, 1)->text();
+        QString diastolic   = historyTable->item(r, 2)->text();
+        QString avgValue    = historyTable->item(r, 3)->text();
+        QString heartRate   = historyTable->item(r, 4)->text();
+        QString timestamp   = historyTable->item(r, 5)->text();
 
         // 3) 绑定值
-        q.bindValue(":sensor",    m_serial);         // 外键：序列号
-        q.bindValue(":sensorVal", sensorReading);   // 新列：传感器读数
-        q.bindValue(":ref",       refVal);
-        q.bindValue(":hr",        hrVal);
-        q.bindValue(":pos",       posAdj);
-        q.bindValue(":note",      note);
+        q.bindValue(":sensorID",    m_serial);         // 外键：序列号
+        q.bindValue(":sys",         systolic);   // 新列：传感器读数
+        q.bindValue(":dia",         diastolic);
+        q.bindValue(":avg",         avgValue);
+        q.bindValue(":hr",          heartRate);
+        q.bindValue(":ts",          timestamp);
 
         // 4) 执行并检查
         if (!q.exec()) {
@@ -593,11 +606,12 @@ void ReviewWidget::changeEvent(QEvent *event){
         hrLabel->setText(tr("植入位置:"));
         historyTable->setHorizontalHeaderLabels(
             QStringList()
-            << tr("传感器")
-            << tr("参考值")
+            << tr("传感器ID")
+            << tr("舒张压")
+            << tr("收缩压")
+            << tr("平均值")
             << tr("心率")
-            << tr("位置调整")
-            << tr("备注")
+            << tr("测量时间")
         );
         historylabel->setText(tr("历史记录"));
         backButton->setText(tr("返回"));

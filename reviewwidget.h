@@ -48,6 +48,9 @@ private:
     ModernWavePlot *bpPlot  = nullptr;
     QList<MeasurementData> m_list;
     void changeEvent(QEvent *event) override;
+
+    float scaleX;
+    float scaleY;
 };
 
 #endif // REVIEWWIDGET_H

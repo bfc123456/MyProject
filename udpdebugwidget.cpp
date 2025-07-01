@@ -5,11 +5,24 @@
 #include <QBuffer>
 #include <cstring>
 #include <QSplitter>
+#include <QGuiApplication>
+#include <QScreen>
 
 udpDebugWidget::udpDebugWidget(QWidget *parent)
     : FramelessWindow(parent), udpSocket(new QUdpSocket(this)) {
 
-    this->resize(1024, 600);
+    // 获取屏幕分辨率
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->geometry();
+    int screenWidth = screenGeometry.width();
+    int screenHeight = screenGeometry.height();
+
+    // 计算缩放比例
+    scaleX = (float)screenWidth / 1024;
+    scaleY = (float)screenHeight / 600;
+
+    this->resize(1024*scaleX, 600*scaleY);
+    this->setWindowFlag(Qt::WindowStaysOnTopHint);
     timer.start();
 
     // 主应用样式
@@ -58,7 +71,7 @@ udpDebugWidget::udpDebugWidget(QWidget *parent)
     titleLabel->setStyleSheet("font-size: 18px; font-weight: bold; background: transparent; border: none;");
     auto btnClose = new QPushButton(this);
     btnClose->setIcon(QIcon(":/image/icons-close.png"));
-    btnClose->setIconSize(QSize(32, 32));
+    btnClose->setIconSize(QSize(32*scaleX, 32*scaleY));
     btnClose->setFlat(true);
     btnClose->setStyleSheet(R"(
         QPushButton {
@@ -76,28 +89,28 @@ udpDebugWidget::udpDebugWidget(QWidget *parent)
     topLayout->addWidget(titleLabel);
     topLayout->addStretch();
     topLayout->addWidget(btnClose);
-    topLayout->setContentsMargins(10, 10, 10, 10);
+    topLayout->setContentsMargins(10*scaleX, 10*scaleY, 10*scaleX, 10*scaleY);
 
     // side widget
     QWidget *sideWidget = new QWidget(this);
-    sideWidget->setMinimumWidth(200);
+    sideWidget->setMinimumWidth(200*scaleX);
     auto ipLabel = new QLabel("本地主机地址:");
     ipLineEdit = new QLineEdit(this);
     ipLineEdit->setPlaceholderText("请输入本地主机地址");
-    ipLineEdit->setFixedHeight(45);
+    ipLineEdit->setFixedHeight(45*scaleY);
     portLineEdit = new QLineEdit(this);
     portLineEdit->setPlaceholderText("请输入本地主机端口");
-    portLineEdit->setFixedHeight(45);
+    portLineEdit->setFixedHeight(45*scaleY);
 
     //虚拟键盘
     currentKeyboard = CustomKeyboard::instance(this);
 
     // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
-    currentKeyboard->registerEdit(ipLineEdit, QPoint(50,0));
-    currentKeyboard->registerEdit(portLineEdit, QPoint(50,0));
+    currentKeyboard->registerEdit(ipLineEdit, QPoint(50*scaleX,0));
+    currentKeyboard->registerEdit(portLineEdit, QPoint(50*scaleX,0));
 
     connectBtn = new QPushButton("开启");
-    connectBtn->setFixedHeight(45);
+    connectBtn->setFixedHeight(45*scaleY);
 
     connectBtn->setStyleSheet(R"(
     QPushButton {
@@ -128,10 +141,10 @@ udpDebugWidget::udpDebugWidget(QWidget *parent)
     auto sideLayout = new QVBoxLayout(sideWidget);
     sideLayout->addWidget(ipLabel);
     sideLayout->addWidget(ipLineEdit);
-    sideLayout->addSpacing(20);
+    sideLayout->addSpacing(20*scaleY);
     sideLayout->addWidget(new QLabel("IP 端口:"));
     sideLayout->addWidget(portLineEdit);
-    sideLayout->addSpacing(20);
+    sideLayout->addSpacing(20*scaleY);
     sideLayout->addWidget(connectBtn);
     sideLayout->addStretch();
 
@@ -159,8 +172,8 @@ udpDebugWidget::udpDebugWidget(QWidget *parent)
     exportBtn = new QPushButton("导出数据");
     importBtn = new QPushButton("导入数据");
 
-    exportBtn->setFixedSize(175,45);
-    importBtn->setFixedSize(175,45);
+    exportBtn->setFixedSize(175*scaleX,45*scaleY);
+    importBtn->setFixedSize(175*scaleX,45*scaleY);
 
     exportBtn->setStyleSheet(R"(
     QPushButton {
@@ -216,17 +229,17 @@ udpDebugWidget::udpDebugWidget(QWidget *parent)
 
     btnLayout->addStretch();
     btnLayout->addWidget(exportBtn);
-    btnLayout->addSpacing(350);
+    btnLayout->addSpacing(350*scaleX);
     btnLayout->addWidget(importBtn);
     btnLayout->addStretch();
 
 
     centerLayout->addWidget(plot1);
-    centerLayout->addSpacing(35);
+    centerLayout->addSpacing(35*scaleY);
     centerLayout->addWidget(plot2);
-    centerLayout->addSpacing(20);
+    centerLayout->addSpacing(20*scaleY);
     centerLayout->addLayout(btnLayout);
-    centerLayout->addSpacing(20);
+    centerLayout->addSpacing(20*scaleY);
 
     // QSplitter for layout
     QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
@@ -239,7 +252,7 @@ udpDebugWidget::udpDebugWidget(QWidget *parent)
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->addWidget(topBar);
     mainLayout->addWidget(splitter);
-    mainLayout->setContentsMargins(10, 10, 10, 10);
+    mainLayout->setContentsMargins(10*scaleX, 10*scaleY, 10*scaleX, 10*scaleY);
 
     connectSignals();
 }
