@@ -62,7 +62,7 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     //设置按钮（右侧）
     QPushButton *btnclose = new QPushButton(this);
     btnclose->setIcon(QIcon(":/image/icons-close.png"));
-    btnclose->setIconSize(QSize(24 * scaleX, 24 * scaleY));
+    btnclose->setIconSize(QSize(30 * scaleX, 30 * scaleY));
     btnclose->setFlat(true);  // 去除按钮边框
     // 设置点击视觉反馈
     btnclose->setStyleSheet(R"(

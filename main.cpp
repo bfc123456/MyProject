@@ -46,8 +46,9 @@ int main(int argc, char *argv[])
 
     LanguageManager::instance();
 
-    DatabaseManager db("E:/software_personal/personal_program/MyProject/MyDatabase.db");
-    if (!db.openDatabase()) {
+    //只初始化一次，传入路径
+    DatabaseManager::instance("E:/software_personal/personal_program/MyProject/MyDatabase.db");
+    if (!DatabaseManager::instance("E:/software_personal/personal_program/MyProject/MyDatabase.db").openDatabase()) {
         return -1;
     }
 

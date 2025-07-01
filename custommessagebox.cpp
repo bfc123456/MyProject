@@ -32,6 +32,7 @@ CustomMessageBox::CustomMessageBox(QWidget *parent, const QString &title, const 
 
     // 设置固定宽度，自动计算高度
     setFixedWidth(width);
+    adjustSize();
 
     // 创建自定义图标标签
     iconLabel = new QLabel(this);

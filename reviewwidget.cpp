@@ -69,13 +69,14 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
     topBar->setFixedHeight(50*scaleY);
 
     titleLabel = new QLabel(tr("新植入物"), this);
-    titleLabel->setFixedSize(160*scaleX, 35*scaleY);
+    titleLabel->setFixedSize(120*scaleX, 35*scaleY);
     titleLabel->setStyleSheet("font-size: 18px; font-weight: bold; color: white;");
     titleLabel->setAlignment(Qt::AlignCenter);
 
     idLabel = new QLabel();
     idLabel->setText(m_serial);
     idLabel->setStyleSheet("background-color: transparent; color: white;");
+    idLabel->setAlignment(Qt::AlignCenter);
 
     QPushButton *btnSettings = new QPushButton(this);
     btnSettings->setIcon(QIcon(":/image/icons8-shezhi.png"));
@@ -97,6 +98,7 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
     topLayout->setContentsMargins(10*scaleX, 0, 10*scaleX, 0);
     topLayout->addWidget(titleLabel, 0, Qt::AlignLeft);
     topLayout->addWidget(idLabel, 1, Qt::AlignCenter);
+    topLayout->addSpacing(96*scaleX);
     topLayout->addWidget(btnSettings, 0, Qt::AlignRight);
     mainlayout->addWidget(topBar);
     mainlayout->addSpacing(10*scaleY);
@@ -175,11 +177,47 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
     heartratetittlelayout->addWidget(hrValue);
     heartratetittlelayout->addSpacing(50*scaleY);
     heartratetittlelayout->setContentsMargins(25*scaleX,0,25*scaleX,0);
+    middlerightlayout->addSpacing(30*scaleX);
     middlerightlayout->addLayout(heartratetittlelayout);
+    middlerightlayout->addSpacing(30*scaleX);
 
-    QLabel *heartImageLabel = new QLabel();
-    heartImageLabel->setPixmap(QPixmap(":/image/newbody.png").scaled(500*scaleX, 180*scaleY, Qt::KeepAspectRatio));
-    middlerightlayout->addWidget(heartImageLabel);
+    // 创建父容器
+    QWidget *imgContainer = new QWidget;
+    imgContainer->setFixedSize(200*scaleX, 150*scaleY);
+
+    // 底层：图片
+    QLabel *lblImg = new QLabel(imgContainer);
+    lblImg->setPixmap(
+        QPixmap(":/image/newbody.png")
+            .scaled(
+                imgContainer->size(),
+                Qt::KeepAspectRatio,          // 改这一行
+                Qt::SmoothTransformation
+            )
+    );
+    lblImg->setAlignment(Qt::AlignCenter);
+    lblImg->setFixedSize(imgContainer->size());
+
+    //顶层：半透明文字框
+    QLabel *lblOverlay = new QLabel(hrValue->text(), imgContainer);
+    lblOverlay->setAttribute(Qt::WA_TransparentForMouseEvents);
+    lblOverlay->setAlignment(Qt::AlignCenter);
+    lblOverlay->setStyleSheet(QString(R"(
+        background-color: rgba(33,150,243,200);
+        color: white;
+        font-size: %1px;
+        font-weight: bold;
+        border-radius: 6px;
+    )").arg(20*scaleY));
+    lblOverlay->setFixedSize(40*scaleX, 40*scaleY);
+
+    // 手动定位 overlay 到容器上（这里示例放在右肺区域）
+    int x = imgContainer->width() * 0.7 - lblOverlay->width()/2;
+    int y = imgContainer->height() * 0.6 - lblOverlay->height()/2;
+    lblOverlay->move(x, y);
+
+    //  把容器添加到布局
+    middlerightlayout->addWidget(imgContainer);
     middlerightlayout->addSpacing(30*scaleX);
 
     middlelayout->addWidget(middlerightwidget);

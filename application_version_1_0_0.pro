@@ -29,7 +29,7 @@ SOURCES += \
     followupform.cpp \
 #    historycheck.cpp \
     implantationsite.cpp \
-    implantdatabase.cpp \
+#    implantdatabase.cpp \
     implantinfowidget.cpp \
     implantmonitor.cpp \
     languagemanager.cpp \
@@ -68,7 +68,7 @@ HEADERS += \
     framelesswindow.h \
     global.h \
     implantationsite.h \
-    implantdatabase.h \
+#    implantdatabase.h \
     implantinfowidget.h \
     implantmonitor.h \
     languagemanager.h \

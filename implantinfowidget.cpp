@@ -235,6 +235,7 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
 
             bool ok = insertNewSensor();  // 返回 true／false
             if (ok) {
+                qDebug() << "进入 showImplantationSiteWidget";
                showImplantationSiteWidget(m_serial);
             } else {
                 //添加遮罩层
@@ -368,12 +369,14 @@ void ImplantInfoWidget::showImplantationSiteWidget(const QString &serial)
     // 7. 如果点击下一步，跳转到植入窗口
     if (result == QDialog::Accepted) {
         ImplantationSite* implantationSite = new ImplantationSite(this,serial);
+        qDebug() << "ImplantationSite constructed.";
         implantationSite->setWindowFlags(Qt::Window);
         implantationSite->setFixedSize(1024*scaleX, 600*scaleY);
         connect(implantationSite, &ImplantationSite::returnRequested, this, [this, implantationSite]() {
             implantationSite->hide();
             this->show();
             implantationSite->deleteLater();
+            qDebug() << "ImplantationSite deleteLater triggered.";
         });
         implantationSite->show();
         this->hide();

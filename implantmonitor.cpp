@@ -95,11 +95,11 @@ ImplantMonitor::ImplantMonitor(QWidget *parent , const QString &sensorId) : Fram
 
     connect(btnSettings, &QPushButton::clicked, this, &ImplantMonitor::OpenSettingsRequested);
     QHBoxLayout *topLayout = new QHBoxLayout(topwidget);
-    topLayout->addWidget(titleLabel, 0, Qt::AlignCenter);
-    topLayout->addStretch();
-    topLayout->addWidget(idLabel, 0, Qt::AlignCenter);
-    topLayout->addStretch();
-    topLayout->addWidget(btnSettings);
+    topLayout->addWidget(titleLabel, 0, Qt::AlignLeft);
+//    topLayout->addStretch();
+    topLayout->addWidget(idLabel, 1, Qt::AlignCenter);
+    topLayout->addSpacing(96*scaleX);
+    topLayout->addWidget(btnSettings, 0, Qt::AlignRight);
 
     //设置中间布局
     QWidget *middlewidget = new QWidget(this);
@@ -190,11 +190,11 @@ ImplantMonitor::ImplantMonitor(QWidget *parent , const QString &sensorId) : Fram
 
     //根据左右来移动到正确位置，比如右侧偏上
     if (m_isLeft) {
-        sideLabel->setText("L");
+        sideLabel->setText(tr("左"));
         // 左侧居中偏左
         sideLabel->move( 40, 2*(secondLeftWidget->height() - sideLabel->height())/3);
     } else {
-        sideLabel->setText("R");
+        sideLabel->setText(tr("右"));
         // 右侧居中偏右
         sideLabel->move(
                     (secondLeftWidget->width() - sideLabel->width() - 40),
@@ -474,11 +474,11 @@ void ImplantMonitor::onReadoutButtonClicked() {
         // 这里把整个列表一次性传给对话框
         connect(this, &ImplantMonitor::dataListUpdated,readoutdialog, &ReadoutRecordDialog::populateData);
         connect(readoutdialog, &ReadoutRecordDialog::rowDeleted,this, &ImplantMonitor::onRowDeleted);
-        connect(readoutdialog,&ReadoutRecordDialog::onRefreshButtonClicked,this,[this](){
-           qDebug()<<"返回植入位置界面";
-           measurementList.clear();
-           emit returnImplantationsite();
-           this->close();
+        connect(readoutdialog, &ReadoutRecordDialog::onRefreshButtonClicked, this, [this]() {
+            qDebug() << "返回植入位置界面";
+            measurementList.clear();
+            emit returnImplantationsite();
+                this->close();
         });
     }
     // 触发对话框更新

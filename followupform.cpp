@@ -224,7 +224,7 @@ void FollowUpForm::checkProgress() {
 //    qDebug()<<"数值： "<<value;
     if (value >= 75) {
         continuousTime++;
-        if (continuousTime >= 5) {
+        if (continuousTime >= 10) {
             timer->stop(); // 停止计时器
             emit progressThresholdReached();
             qDebug()<<"信号已发出";
@@ -268,6 +268,15 @@ void FollowUpForm::openMeasurementDialog() {
     qDebug() << "对话框已打开";
 
     // 设置为模态对话框
+    // 构造完 measurementDialog 后，show() 之前
+    measurementDialog->adjustSize();  // 让它收缩到合适大小
+    // 父窗口的可用区域
+    QRect parentRect = this->geometry();
+    // 计算对话框左上角，放到 parentRect 正中
+    int x = parentRect.x() + (parentRect.width()  - measurementDialog->width())  / 2;
+    int y = parentRect.y() + (parentRect.height() - measurementDialog->height()) / 2;
+    measurementDialog->move(x, y);
+
     measurementDialog->setModal(true);  // 使对话框为模态，阻止其他操作
     measurementDialog->show();  // 显示对话框
 
@@ -308,7 +317,7 @@ void FollowUpForm::openMeasureSettingsWindow() {
     settingswidgetMrasure->raise();
     settingswidgetMrasure->activateWindow();
 
-    this->hide();  // ✅ 主界面隐藏
+    this->hide();  // 主界面隐藏
 }
 
 QString FollowUpForm::fetchSensorIds() const

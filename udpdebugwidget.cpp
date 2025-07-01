@@ -71,7 +71,7 @@ udpDebugWidget::udpDebugWidget(QWidget *parent)
     titleLabel->setStyleSheet("font-size: 18px; font-weight: bold; background: transparent; border: none;");
     auto btnClose = new QPushButton(this);
     btnClose->setIcon(QIcon(":/image/icons-close.png"));
-    btnClose->setIconSize(QSize(32*scaleX, 32*scaleY));
+    btnClose->setIconSize(QSize(30*scaleX, 30*scaleY));
     btnClose->setFlat(true);
     btnClose->setStyleSheet(R"(
         QPushButton {

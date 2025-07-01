@@ -131,7 +131,7 @@ ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
 
     // idLabel 拉伸份额为 1，并且居中
     topLayout->addWidget(idLabel, 1, Qt::AlignCenter);
-
+    topLayout->addSpacing(96*scaleX);
     // btnSettings 不拉伸，强制右对齐
     topLayout->addWidget(btnSettings, 0, Qt::AlignRight);
 
@@ -423,14 +423,21 @@ ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
     this->setGraphicsEffect(blur);
 
     if(!calibrationialog)calibrationialog = new CalibrationDialog(this);
-    connect(calibrationialog,&CalibrationDialog::openmonitorwidget,this,[this](){
-        if(!implantmonitor){
-            implantmonitor = new ImplantMonitor(nullptr,m_serial);
-            connect(implantmonitor,&ImplantMonitor::returnImplantationsite,this,[this](){
-//            qDebug()<<"槽函数已触发，植入位置界面打开";
-            this->show();
+    connect(calibrationialog, &CalibrationDialog::openmonitorwidget, this, [this]() {
+        if (!implantmonitor) {
+            implantmonitor = new ImplantMonitor(nullptr, m_serial);
+
+            connect(implantmonitor, &ImplantMonitor::returnImplantationsite, this, [this]() {
+                QTimer::singleShot(0, this, [this]() {
+                    if (implantmonitor) {
+                        implantmonitor->deleteLater();
+                        implantmonitor = nullptr;
+                    }
+                    this->show();
+                });
             });
-            }
+        }
+
         implantmonitor->show();
         this->hide();
     });
@@ -586,6 +593,12 @@ void ImplantationSite::onBtnLocationClicked() {
               padding: 10px 24px;
             }
         )");
+
+        // 清除模糊和遮罩
+        this->setGraphicsEffect(nullptr);
+        overlay->close();
+        overlay->deleteLater();
+
         return;
     }
 

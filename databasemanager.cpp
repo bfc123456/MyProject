@@ -10,10 +10,23 @@ DatabaseManager::DatabaseManager(const QString &dbPath)
     db.setDatabaseName(dbPath);  // 设置数据库文件路径
 }
 
-DatabaseManager& DatabaseManager::instance() {
-    static DatabaseManager inst("E:/software_personal/personal_program/MyProject/MyDatabase.db");
-    if (!inst.db.isOpen()) inst.openDatabase();
-    return inst;
+DatabaseManager& DatabaseManager::instance(const QString& dbPath)
+{
+    static DatabaseManager* inst = nullptr;
+
+    if (!inst) {
+        QString finalPath = dbPath;
+        if (finalPath.isEmpty()) {
+            finalPath = "E:/software_personal/personal_program/MyProject/MyDatabase.db"; // 默认路径
+        }
+
+        inst = new DatabaseManager(finalPath);
+        if (!inst->db.isOpen()) {
+            inst->openDatabase();
+        }
+    }
+
+    return *inst;
 }
 
 DatabaseManager::~DatabaseManager()
