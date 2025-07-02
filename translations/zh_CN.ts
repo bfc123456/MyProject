@@ -118,13 +118,13 @@
 <context>
     <name>FollowUpForm</name>
     <message>
-        <location filename="../followupform.cpp" line="329"/>
-        <location filename="../followupform.cpp" line="335"/>
+        <location filename="../followupform.cpp" line="315"/>
+        <location filename="../followupform.cpp" line="321"/>
         <source>传感器ID未知</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../followupform.cpp" line="346"/>
+        <location filename="../followupform.cpp" line="332"/>
         <source>传感器ID查询为空</source>
         <translation type="unfinished"></translation>
     </message>
@@ -243,7 +243,7 @@
     <name>ImplantMonitor</name>
     <message>
         <location filename="../implantmonitor.cpp" line="71"/>
-        <location filename="../implantmonitor.cpp" line="680"/>
+        <location filename="../implantmonitor.cpp" line="664"/>
         <source>新植入物</source>
         <translation type="unfinished"></translation>
     </message>
@@ -258,88 +258,103 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="211"/>
-        <location filename="../implantmonitor.cpp" line="681"/>
+        <location filename="../implantmonitor.cpp" line="665"/>
         <source>血压
 120/80</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="213"/>
-        <location filename="../implantmonitor.cpp" line="682"/>
+        <location filename="../implantmonitor.cpp" line="666"/>
         <source>平均
 94</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="215"/>
-        <location filename="../implantmonitor.cpp" line="683"/>
+        <location filename="../implantmonitor.cpp" line="667"/>
         <source>心率
 75</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../implantmonitor.cpp" line="217"/>
-        <location filename="../implantmonitor.cpp" line="684"/>
+        <location filename="../implantmonitor.cpp" line="668"/>
         <source>读数记录</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../implantmonitor.cpp" line="211"/>
+        <source>血压
+0.00/0.00</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../implantmonitor.cpp" line="213"/>
+        <source>平均
+0.00</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../implantmonitor.cpp" line="215"/>
+        <source>心率
+0.00</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location filename="../implantmonitor.cpp" line="255"/>
-        <location filename="../implantmonitor.cpp" line="685"/>
+        <location filename="../implantmonitor.cpp" line="669"/>
         <source>开始测量</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../implantmonitor.cpp" line="257"/>
-        <location filename="../implantmonitor.cpp" line="686"/>
+        <location filename="../implantmonitor.cpp" line="670"/>
         <source>输入心输出量</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../implantmonitor.cpp" line="259"/>
-        <location filename="../implantmonitor.cpp" line="687"/>
+        <location filename="../implantmonitor.cpp" line="671"/>
         <source>输入RHC</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../implantmonitor.cpp" line="261"/>
-        <location filename="../implantmonitor.cpp" line="688"/>
+        <location filename="../implantmonitor.cpp" line="672"/>
         <source>审计界面</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="582"/>
+        <location filename="../implantmonitor.cpp" line="566"/>
         <source>测量完成</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="583"/>
+        <location filename="../implantmonitor.cpp" line="567"/>
         <source>测量已完成，是否保存数据？</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="584"/>
+        <location filename="../implantmonitor.cpp" line="568"/>
         <source>取 消</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="584"/>
+        <location filename="../implantmonitor.cpp" line="568"/>
         <source>保 存</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="640"/>
+        <location filename="../implantmonitor.cpp" line="624"/>
         <source>提示</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="641"/>
+        <location filename="../implantmonitor.cpp" line="625"/>
         <source>数据保存成功</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="642"/>
+        <location filename="../implantmonitor.cpp" line="626"/>
         <source>确 认</source>
         <translation type="unfinished"></translation>
     </message>
@@ -482,38 +497,39 @@
     <name>LoginWindow</name>
     <message>
         <location filename="../loginwindow.cpp" line="67"/>
-        <location filename="../loginwindow.cpp" line="485"/>
+        <location filename="../loginwindow.cpp" line="543"/>
         <source>医疗设备管理系统</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../loginwindow.cpp" line="111"/>
-        <location filename="../loginwindow.cpp" line="486"/>
+        <location filename="../loginwindow.cpp" line="544"/>
         <source>登录</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../loginwindow.cpp" line="129"/>
         <location filename="../loginwindow.cpp" line="268"/>
-        <location filename="../loginwindow.cpp" line="489"/>
+        <location filename="../loginwindow.cpp" line="547"/>
         <source>家用模式</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../loginwindow.cpp" line="130"/>
         <location filename="../loginwindow.cpp" line="273"/>
-        <location filename="../loginwindow.cpp" line="490"/>
+        <location filename="../loginwindow.cpp" line="548"/>
         <source>植入模式</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../loginwindow.cpp" line="174"/>
+        <location filename="../loginwindow.cpp" line="550"/>
         <source>请输入六位密码</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../loginwindow.cpp" line="263"/>
-        <location filename="../loginwindow.cpp" line="496"/>
+        <location filename="../loginwindow.cpp" line="556"/>
         <source>密码必须是六位</source>
         <translation type="unfinished"></translation>
     </message>
@@ -529,7 +545,7 @@
     </message>
     <message>
         <location filename="../loginwindow.cpp" line="282"/>
-        <location filename="../loginwindow.cpp" line="499"/>
+        <location filename="../loginwindow.cpp" line="559"/>
         <source>用户或密码错误</source>
         <translation type="unfinished"></translation>
     </message>
@@ -752,198 +768,120 @@
 <context>
     <name>MeasurementTrendWidget</name>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="254"/>
-        <source>血压心率趋势监测</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../measurementtrendwidget.cpp" line="336"/>
+        <location filename="../measurementtrendwidget.cpp" line="359"/>
+        <location filename="../measurementtrendwidget.cpp" line="716"/>
         <source>(测量数据汇总)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="359"/>
+        <location filename="../measurementtrendwidget.cpp" line="382"/>
+        <location filename="../measurementtrendwidget.cpp" line="719"/>
         <source>舒张压</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="359"/>
+        <location filename="../measurementtrendwidget.cpp" line="382"/>
+        <location filename="../measurementtrendwidget.cpp" line="719"/>
         <source>收缩压</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="359"/>
+        <location filename="../measurementtrendwidget.cpp" line="382"/>
+        <location filename="../measurementtrendwidget.cpp" line="719"/>
         <source>平均值</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="359"/>
+        <location filename="../measurementtrendwidget.cpp" line="382"/>
+        <location filename="../measurementtrendwidget.cpp" line="719"/>
         <source>心率</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="367"/>
+        <location filename="../measurementtrendwidget.cpp" line="390"/>
+        <location filename="../measurementtrendwidget.cpp" line="720"/>
         <source>mmHg</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="367"/>
+        <location filename="../measurementtrendwidget.cpp" line="390"/>
+        <location filename="../measurementtrendwidget.cpp" line="720"/>
         <source>次/分</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="424"/>
+        <location filename="../measurementtrendwidget.cpp" line="468"/>
+        <location filename="../measurementtrendwidget.cpp" line="727"/>
         <source>返回主界面</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="454"/>
+        <location filename="../measurementtrendwidget.cpp" line="498"/>
+        <location filename="../measurementtrendwidget.cpp" line="728"/>
         <source>导出数据</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="474"/>
+        <location filename="../measurementtrendwidget.cpp" line="518"/>
+        <location filename="../measurementtrendwidget.cpp" line="729"/>
         <source>关  机</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="576"/>
+        <location filename="../measurementtrendwidget.cpp" line="621"/>
         <source>导出最近7天数据</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="578"/>
+        <location filename="../measurementtrendwidget.cpp" line="623"/>
         <source>CSV 文件 (*.csv)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="586"/>
+        <location filename="../measurementtrendwidget.cpp" line="631"/>
         <source>错误</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="586"/>
+        <location filename="../measurementtrendwidget.cpp" line="631"/>
         <source>无法创建文件：%1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="592"/>
+        <location filename="../measurementtrendwidget.cpp" line="637"/>
         <source>传感器号,舒张压,收缩压,平均值,心率,测量时间</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="609"/>
+        <location filename="../measurementtrendwidget.cpp" line="654"/>
         <source>查询失败</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="610"/>
+        <location filename="../measurementtrendwidget.cpp" line="655"/>
         <source>数据库查询出错：%1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="636"/>
+        <location filename="../measurementtrendwidget.cpp" line="681"/>
         <source>导出完成</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="637"/>
+        <location filename="../measurementtrendwidget.cpp" line="682"/>
         <source>最近7天的数据（含传感器号）已导出至：
 %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="646"/>
-        <location filename="../measurementtrendwidget.cpp" line="652"/>
+        <location filename="../measurementtrendwidget.cpp" line="691"/>
+        <location filename="../measurementtrendwidget.cpp" line="697"/>
         <source>传感器ID未知</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="663"/>
+        <location filename="../measurementtrendwidget.cpp" line="708"/>
         <source>传感器ID查询为空</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>PatientListWidget</name>
-    <message>
-        <location filename="../patientlistwidget.cpp" line="18"/>
-        <location filename="../patientlistwidget.cpp" line="364"/>
-        <source>患者查询界面</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../patientlistwidget.cpp" line="58"/>
-        <location filename="../patientlistwidget.cpp" line="365"/>
-        <source>医疗设备管理系统---患者列表</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../patientlistwidget.cpp" line="96"/>
-        <location filename="../patientlistwidget.cpp" line="366"/>
-        <source>🔍 搜索患者...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../patientlistwidget.cpp" line="127"/>
-        <location filename="../patientlistwidget.cpp" line="367"/>
-        <source>搜索</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../patientlistwidget.cpp" line="169"/>
-        <location filename="../patientlistwidget.cpp" line="369"/>
-        <source>序列号</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../patientlistwidget.cpp" line="169"/>
-        <location filename="../patientlistwidget.cpp" line="370"/>
-        <source>日期</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../patientlistwidget.cpp" line="169"/>
-        <location filename="../patientlistwidget.cpp" line="371"/>
-        <source>备注</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../patientlistwidget.cpp" line="199"/>
-        <location filename="../patientlistwidget.cpp" line="373"/>
-        <source>返回</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../patientlistwidget.cpp" line="203"/>
-        <location filename="../patientlistwidget.cpp" line="374"/>
-        <source>添加患者信息</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../patientlistwidget.cpp" line="290"/>
-        <source>错误</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../patientlistwidget.cpp" line="290"/>
-        <source>查询失败，请再次检查输入</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../patientlistwidget.cpp" line="290"/>
-        <location filename="../patientlistwidget.cpp" line="342"/>
-        <source>确定</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../patientlistwidget.cpp" line="342"/>
-        <source>提示</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../patientlistwidget.cpp" line="342"/>
-        <source>未找到匹配的记录</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1223,37 +1161,44 @@
 <context>
     <name>TrendChart</name>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="31"/>
+        <location filename="../measurementtrendwidget.cpp" line="30"/>
+        <location filename="../measurementtrendwidget.cpp" line="203"/>
         <source>舒张压</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="32"/>
+        <location filename="../measurementtrendwidget.cpp" line="31"/>
+        <location filename="../measurementtrendwidget.cpp" line="204"/>
         <source>收缩压</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="33"/>
+        <location filename="../measurementtrendwidget.cpp" line="32"/>
+        <location filename="../measurementtrendwidget.cpp" line="205"/>
         <source>平均值</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="34"/>
+        <location filename="../measurementtrendwidget.cpp" line="33"/>
+        <location filename="../measurementtrendwidget.cpp" line="206"/>
         <source>心率</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="40"/>
+        <location filename="../measurementtrendwidget.cpp" line="39"/>
+        <location filename="../measurementtrendwidget.cpp" line="188"/>
         <source>趋势图</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="46"/>
+        <location filename="../measurementtrendwidget.cpp" line="45"/>
+        <location filename="../measurementtrendwidget.cpp" line="194"/>
         <source>时间</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../measurementtrendwidget.cpp" line="52"/>
+        <location filename="../measurementtrendwidget.cpp" line="51"/>
+        <location filename="../measurementtrendwidget.cpp" line="198"/>
         <source>数值</source>
         <translation type="unfinished"></translation>
     </message>

@@ -208,11 +208,11 @@ ImplantMonitor::ImplantMonitor(QWidget *parent , const QString &sensorId) : Fram
     secondRightWidget->setFixedSize(260*scaleX,120*scaleY);
     QHBoxLayout *secondRightLayout = new QHBoxLayout(secondRightWidget);
     //定义控件
-    bpVal = new QLabel(tr("血压\n120/80"));
+    bpVal   = new QLabel(tr("血压\n0.00/0.00"), this);
     bpVal->setFixedSize(110*scaleX,45*scaleY);
-    avgVal = new QLabel(tr("平均\n94"));
+    avgVal  = new QLabel(tr("平均\n0.00"),    this);
     avgVal->setFixedSize(110*scaleX,45*scaleY);
-    hrVal = new QLabel(tr("心率\n75"));
+    hrVal   = new QLabel(tr("心率\n0.00"),    this);
     hrVal->setFixedSize(110*scaleX,45*scaleY);
     statisticsbtn = new QPushButton(tr("读数记录"));
     statisticsbtn->setFixedSize(110*scaleX,45*scaleY);
@@ -437,36 +437,6 @@ void ImplantMonitor::openRHCClicked()
     dialog->show();
 }
 
-
-//void ImplantMonitor::openMeasureClicked()
-//{
-//   measurewidget = new MeasureWidget(nullptr,m_serial);
-//   connect(measurewidget, &MeasureWidget::dataSaved,this,&ImplantMonitor::onDataSaved);
-//   measurewidget->setWindowFlags(Qt::Window);
-//   measurewidget->setAttribute(Qt::WA_DeleteOnClose);
-//   measurewidget->setFixedSize(1024*scaleX,600*scaleY);
-//   measurewidget->show();
-//   this->hide();
-//   if(measurewidget)
-//   connect(measurewidget,&MeasureWidget::returnprepage,[this](){
-//   this->show();
-//   });
-//}
-
-//void ImplantMonitor::openReadoutClicked(){
-//    readoutdialog = new ReadoutRecordDialog(this);
-//    readoutdialog->setWindowFlags(Qt::Window);
-//    readoutdialog->setAttribute(Qt::WA_DeleteOnClose);
-//    readoutdialog->show();
-//}
-
-//处理量测打包的数据
-//void ImplantMonitor::onDataSaved(const MeasurementData &d0) {
-//    MeasurementData d = d0;
-//    d.order = measurementList.size() + 1;    // 顺序号
-//    measurementList.append(d);
-//}
-
 void ImplantMonitor::onReadoutButtonClicked() {
     if (!readoutdialog) {
         readoutdialog = new ReadoutRecordDialog(this);
@@ -505,27 +475,99 @@ void ImplantMonitor::onRowDeleted(int row)
 
 //开始生成波形数据
 void ImplantMonitor::startMeasurement() {
-    // 初始化开始时间
+    qDebug() << "进入 startMeasurement";
+
+    // 如果正在测量，直接返回，防止重复启动
+    if (isMeasuring) {
+        qDebug() << "测量已经在进行中，重复点击被忽略。";
+        return;
+    }
+
+    isMeasuring = true;
+    qDebug() << "设置 isMeasuring 为 true";
+
+    // 初始化数据
     currentTime = 0;
-    points.clear();  // 清空之前的数据
+    points.clear();
+    maxValue = 0.0;
+    minValue = 0.0;
+    avgValue = 0.0;
+    heartRate = 0.0;
+    qDebug() << "初始化数据完成";
 
-    // 设置定时器，每秒触发一次timeout信号
-    measurementTimer = new QTimer(this);
+    // 清空图表
+    if (plot) {
+        qDebug() << "plot 非空，尝试 setData 和 replot";
+        plot->setData(points);
+        plot->replot();
+    } else {
+        qDebug() << "plot 为空！！！";
+    }
+
+    // 清空标签
+    if (bpVal) {
+        bpVal->setText(tr("血压\n0.00/0.00"));
+        qDebug() << "清空 bpVal 标签";
+    } else {
+        qDebug() << "bpVal 是空指针！！！";
+    }
+
+    if (avgVal) {
+        avgVal->setText(tr("平均\n0.00"));
+        qDebug() << "清空 avgVal 标签";
+    } else {
+        qDebug() << "avgVal 是空指针！！！";
+    }
+
+    if (hrVal) {
+        hrVal->setText(tr("心率\n0.00"));
+        qDebug() << "清空 hrVal 标签";
+    } else {
+        qDebug() << "hrVal 是空指针！！！";
+    }
+
+    // 停止并删除已有定时器（如果存在）
+    if (measurementTimer) {
+        measurementTimer->stop();
+
+        // ✅ 更安全方式：只断开某一个信号-槽连接
+        if (!measurementTimer->signalsBlocked()) {
+            disconnect(measurementTimer, &QTimer::timeout, this, &ImplantMonitor::updateWaveform);
+        }
+    } else {
+        measurementTimer = new QTimer(this);
+    }
+
+
+    // 重新连接并启动定时器
     connect(measurementTimer, &QTimer::timeout, this, &ImplantMonitor::updateWaveform);
-
-    // 启动定时器，每1000毫秒（1秒）触发一次
+    qDebug() << "[startMeasurement] measurementTimer 连接 updateWaveform，开始启动";
     measurementTimer->start(1000);
 }
 
+
 void ImplantMonitor::updateWaveform() {
-    // 每秒增加一个数据点
+    qDebug() << ">>> updateWaveform called";
+    qDebug() << "points size before append:" << points.size();
+
     points.append(QPointF(currentTime, qrand() % 81)); // 生成0到80之间的随机数，模拟波形数据
+
+    qDebug() << "points size after append:" << points.size();
+    qDebug() << "currentTime =" << currentTime;
+
+    // 每秒增加一个数据点
+    if (points.isEmpty()) {
+        qDebug() << "points is empty after append! Unexpected!";
+        return;  // 避免访问空数组，防止崩溃
+    }
 
     // 计算最大值和最小值
     maxValue = points[0].y();
     minValue = points[0].y();
     avgValue = 0;
     heartRate = 0;
+
+    qDebug() << "maxValue =" << maxValue << ", minValue =" << minValue;
 
     for (const auto& point : points) {
         if (point.y() > maxValue) {
@@ -548,11 +590,27 @@ void ImplantMonitor::updateWaveform() {
     // 计算心率
     heartRate = calculateHeartRate();
 
+    // 格式化为两位小数的字符串
+    QString bpText = QString(tr("血压\n%1/%2"))
+                         .arg(QString::number(maxValue, 'f', 2))
+                         .arg(QString::number(minValue, 'f', 2));
+    QString avgText = QString(tr("平均\n%1"))
+                         .arg(QString::number(avgValue, 'f', 2));
+    QString hrText = QString(tr("心率\n%1"))
+                         .arg(QString::number(heartRate, 'f', 2));
+
+    // 实时刷新 label
+    bpVal->setText(bpText);
+    avgVal->setText(avgText);
+    hrVal->setText(hrText);
+
     // 设置新的波形数据到plot
     plot->setData(points);
+    qDebug() << "plot setData OK";
 
     // 更新图表
     plot->replot();
+    qDebug() << "plot replot OK";
 
     // 增加时间
     currentTime++;
@@ -562,6 +620,7 @@ void ImplantMonitor::updateWaveform() {
 
         //停止定时器
         measurementTimer->stop(); // 停止定时器
+        isMeasuring = false;
 
         //添加遮罩层
         QWidget *overlay = new QWidget(this);
@@ -676,15 +735,31 @@ void ImplantMonitor::changeEvent(QEvent *event)
 {
     QWidget::changeEvent(event);
     if (event->type() == QEvent::LanguageChange) {
-        // 系统自动发送的 LanguageChange
         titleLabel->setText(tr("新植入物"));
-        bpVal->setText(tr("血压\n120/80"));
-        avgVal->setText(tr("平均\n94"));
-        hrVal->setText(tr("心率\n75"));
         statisticsbtn->setText(tr("读数记录"));
         startBtn->setText(tr("开始测量"));
         inputCO->setText(tr("输入心输出量"));
         inputRHC->setText(tr("输入RHC"));
         statBtn->setText(tr("审计界面"));
+
+        // 避免未初始化导致崩溃
+        if (bpVal && avgVal && hrVal) {
+            QString bpText = QString("%1\n%2/%3")
+                                 .arg(tr("血压"))
+                                 .arg(QString::number(maxValue, 'f', 2))
+                                 .arg(QString::number(minValue, 'f', 2));
+            QString avgText = QString("%1\n%2")
+                                 .arg(tr("平均"))
+                                 .arg(QString::number(avgValue, 'f', 2));
+            QString hrText = QString("%1\n%2")
+                                 .arg(tr("心率"))
+                                 .arg(QString::number(heartRate, 'f', 2));
+
+            bpVal->setText(bpText);
+            avgVal->setText(avgText);
+            hrVal->setText(hrText);
+        }
     }
 }
+
+

@@ -50,11 +50,12 @@ private:
     ReviewWidget *reviewwidget = nullptr;
     QString m_serial;
     bool m_isLeft  = true;  // 默认
+    bool isMeasuring = false;  // 防止重复点击
 
     float scaleX;
     float scaleY;
 
-    QTimer *measurementTimer;
+    QTimer *measurementTimer = nullptr;
     QVector<QPointF> points;
     int currentTime = 0;  // 当前时间（秒）
 
