@@ -32,7 +32,6 @@ CustomMessageBox::CustomMessageBox(QWidget *parent, const QString &title, const 
 
     // 设置固定宽度，自动计算高度
     setFixedWidth(width);
-    adjustSize();
 
     // 创建自定义图标标签
     iconLabel = new QLabel(this);
@@ -44,13 +43,14 @@ CustomMessageBox::CustomMessageBox(QWidget *parent, const QString &title, const 
 
     // 创建自定义消息标签
     messageLabel = new QLabel(message, this);
+    messageLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     messageLabel->setAlignment(Qt::AlignCenter);
     messageLabel->setWordWrap(true);
     messageLabel->setStyleSheet("font-weight: bold; font-" "size: 16px; background-color: transparent; color: white;");  // 确保字体变白
 
     //限制最大宽度，避免超出窗口
-    messageLabel->setMaximumWidth(width - 40*scaleX);
-    messageLabel->setMinimumWidth(width - 60*scaleX);
+    messageLabel->setMaximumWidth(width - 8*scaleX);
+    messageLabel->setMinimumWidth(width - 6*scaleX);
 
     // 创建按钮，并连接它们的信号
     buttonLayout = new QHBoxLayout();
@@ -94,11 +94,14 @@ CustomMessageBox::CustomMessageBox(QWidget *parent, const QString &title, const 
 
     // 创建垂直布局
     mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(20 * scaleX, 15 * scaleY, 20 * scaleX, 15 * scaleY);
+    mainLayout->setSpacing(20 * scaleY);
     mainLayout->addWidget(iconLabel);  // 添加图标
     mainLayout->addWidget(messageLabel);  // 添加消息
     mainLayout->addSpacing(20*scaleY);  // 设置间距
     mainLayout->addLayout(buttonLayout);  // 添加按钮
-    mainLayout->setSizeConstraint(QLayout::SetFixedSize);
+    mainLayout->setSizeConstraint(QLayout::SetMinAndMaxSize);
+    mainLayout->setSizeConstraint(QLayout::SetDefaultConstraint);
 }
 
 QString CustomMessageBox::getUserResponse()

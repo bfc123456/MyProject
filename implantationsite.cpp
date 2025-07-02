@@ -238,7 +238,7 @@ ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
             tr("1. 移动传感器至天线中心，然后缓慢移动\n\n"
                "2. 确认信号强度逐渐变强然后停止，并重复三次"),
             { tr("确认") },
-            400*scaleY  // 对话框宽度
+            400*scaleX  // 对话框宽度
         );
 
         dlg.exec();
@@ -575,7 +575,7 @@ void ImplantationSite::onBtnLocationClicked() {
                          tr("确认上传"),
                          tr("是否上传已选择的位置？"),
                          { tr("确定"), tr("取消") },
-                         350*scaleY);
+                         350*scaleX);
     dlg.exec();
 
 
@@ -622,7 +622,7 @@ void ImplantationSite::onBtnLocationClicked() {
                             tr("位置已上传：%1")
                                 .arg(loc=="left"?tr("左侧"):tr("右侧")),
                             { tr("确定") },
-                            300*scaleY);
+                            300*scaleX);
         ok.exec();
     }
     // 清除遮罩和模糊

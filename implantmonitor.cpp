@@ -582,7 +582,7 @@ void ImplantMonitor::updateWaveform() {
                     tr("测量完成"),
                     tr("测量已完成，是否保存数据？"),
         { tr("取 消"), tr("保 存") },
-                    400 * scaleY
+                    350 * scaleX
                     );
 
         if (confirmDlg.exec() == QDialog::Accepted) { // 用户选中“保存”
@@ -640,7 +640,7 @@ void ImplantMonitor::openSaveConfirm(){
         tr("提示"),
         tr("数据保存成功"),
         { tr("确 认") },
-        400*scaleY      // 对话框宽度
+        350*scaleX      // 对话框宽度
     );
     successDlg.exec();  // 用户点“确认”后才会继续
     // 6. 保存成功后，可以选择关闭窗口或其他逻辑

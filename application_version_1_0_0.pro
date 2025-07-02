@@ -40,7 +40,7 @@ SOURCES += \
     measurementtrendwidget.cpp \
 #    measurewidget.cpp \
     modernwaveplot.cpp \
-    patientlistwidget.cpp \
+#    patientlistwidget.cpp \
     readoutrecorddialog.cpp \
     reviewwidget.cpp \
     rhcinputdialog.cpp \
@@ -80,7 +80,7 @@ HEADERS += \
     measurementtrendwidget.h \
 #    measurewidget.h \
     modernwaveplot.h \
-    patientlistwidget.h \
+#    patientlistwidget.h \
     readoutrecorddialog.h \
     reviewwidget.h \
     rhcinputdialog.h \

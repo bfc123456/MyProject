@@ -67,8 +67,15 @@ udpDebugWidget::udpDebugWidget(QWidget *parent)
     auto topBar = new QWidget(this);
     topBar->setAttribute(Qt::WA_TranslucentBackground);
     topBar->setStyleSheet("background: transparent;");
-    auto titleLabel = new QLabel("🩺 "+ tr("医疗设备管理系统"),this);
-    titleLabel->setStyleSheet("font-size: 18px; font-weight: bold; background: transparent; border: none;");
+    auto iconLabel = new QLabel(this);
+    iconLabel->setStyleSheet(" background: transparent; border: none;");
+    QPixmap pix(":/image/icons8-tingzhen.png");
+    // 缩放到合适大小，比如 24×24
+    pix = pix.scaled(24 * scaleX, 24 * scaleY, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    iconLabel->setPixmap(pix);
+
+    auto titleLabel = new QLabel(tr("医疗设备管理系统"),this);
+    titleLabel->setStyleSheet("font-size: 25px; font-weight: bold; background: transparent; border: none;");
     auto btnClose = new QPushButton(this);
     btnClose->setIcon(QIcon(":/image/icons-close.png"));
     btnClose->setIconSize(QSize(30*scaleX, 30*scaleY));
@@ -86,6 +93,7 @@ udpDebugWidget::udpDebugWidget(QWidget *parent)
     connect(btnClose, &QPushButton::clicked, this, &udpDebugWidget::onBtnCloseClicked);
 
     auto topLayout = new QHBoxLayout(topBar);
+    topLayout->addWidget(iconLabel);
     topLayout->addWidget(titleLabel);
     topLayout->addStretch();
     topLayout->addWidget(btnClose);
@@ -94,12 +102,12 @@ udpDebugWidget::udpDebugWidget(QWidget *parent)
     // side widget
     QWidget *sideWidget = new QWidget(this);
     sideWidget->setMinimumWidth(200*scaleX);
-    auto ipLabel = new QLabel("本地主机地址:");
+    auto ipLabel = new QLabel(tr("本地主机地址:"));
     ipLineEdit = new QLineEdit(this);
-    ipLineEdit->setPlaceholderText("请输入本地主机地址");
+    ipLineEdit->setPlaceholderText(tr("请输入本地主机地址"));
     ipLineEdit->setFixedHeight(45*scaleY);
     portLineEdit = new QLineEdit(this);
-    portLineEdit->setPlaceholderText("请输入本地主机端口");
+    portLineEdit->setPlaceholderText(tr("请输入本地主机端口"));
     portLineEdit->setFixedHeight(45*scaleY);
 
     //虚拟键盘
@@ -109,7 +117,7 @@ udpDebugWidget::udpDebugWidget(QWidget *parent)
     currentKeyboard->registerEdit(ipLineEdit, QPoint(50*scaleX,0));
     currentKeyboard->registerEdit(portLineEdit, QPoint(50*scaleX,0));
 
-    connectBtn = new QPushButton("开启");
+    connectBtn = new QPushButton(tr("开启"));
     connectBtn->setFixedHeight(45*scaleY);
 
     connectBtn->setStyleSheet(R"(
@@ -142,7 +150,7 @@ udpDebugWidget::udpDebugWidget(QWidget *parent)
     sideLayout->addWidget(ipLabel);
     sideLayout->addWidget(ipLineEdit);
     sideLayout->addSpacing(20*scaleY);
-    sideLayout->addWidget(new QLabel("IP 端口:"));
+    sideLayout->addWidget(new QLabel(tr("IP 端口:")));
     sideLayout->addWidget(portLineEdit);
     sideLayout->addSpacing(20*scaleY);
     sideLayout->addWidget(connectBtn);
@@ -167,10 +175,10 @@ udpDebugWidget::udpDebugWidget(QWidget *parent)
     // 设置样式
     plot2->setLineColor(QColor(100, 180, 255));  //曲线颜色
     plot2->setFillColor(QColor(40, 120, 200, 30), -1);   //波形底部填充
-    plot2->setTitle("F谐");
+    plot2->setTitle(tr("F谐"));
 
-    exportBtn = new QPushButton("导出数据");
-    importBtn = new QPushButton("导入数据");
+    exportBtn = new QPushButton(tr("导出数据"));
+    importBtn = new QPushButton(tr("导入数据"));
 
     exportBtn->setFixedSize(175*scaleX,45*scaleY);
     importBtn->setFixedSize(175*scaleX,45*scaleY);
@@ -279,19 +287,19 @@ void udpDebugWidget::onConnectBtnClicked(){
     if (udpSocket->state() == QAbstractSocket::BoundState) {
         // 断开连接
         udpSocket->close();
-        connectBtn->setText("连接"); // 修改按钮文本为 "连接"
+        connectBtn->setText(tr("连接")); // 修改按钮文本为 "连接"
         qDebug() << "UDP connection closed.";
     }else{
 
     //验证IP与端口
     if(!isVaildIP(ip)){
-       CustomMessageBox dlg(this,tr("错误"),tr("请再次检查输入"), { tr("确定") },350);
+       CustomMessageBox dlg(this,tr("错误"),tr("请再次检查输入"), { tr("确定") },350 * scaleX);
        dlg.exec();
        return;
     }
 
     if(!isVaildPort(port)){
-        CustomMessageBox dlg(this,tr("错误"),tr("请再次检查输入"), { tr("确定") },350);
+        CustomMessageBox dlg(this,tr("错误"),tr("请再次检查输入"), { tr("确定") },350 * scaleX);
         dlg.exec();
         return;
     }
@@ -306,7 +314,7 @@ void udpDebugWidget::onConnectBtnClicked(){
         return;
     }
 
-    connectBtn->setText("断开");
+    connectBtn->setText(tr("断开"));
     qDebug()<<"Listening on"<<ip<<":"<<portNumber;
 
     //连接成功后启动计时器

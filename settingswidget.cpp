@@ -25,8 +25,8 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     int screenHeight = screenGeometry.height();
 
     // 计算缩放比例
-    float scaleX = (float)screenWidth / 1024;
-    float scaleY = (float)screenHeight / 600;
+    scaleX = (float)screenWidth / 1024;
+    scaleY = (float)screenHeight / 600;
 
     // 设置窗口初始大小
     this->resize(1024 * scaleX, 600 * scaleY);  // 设置为基于目标分辨率的大小
@@ -344,7 +344,7 @@ void SettingsWidget::onLanguageChanged(const QString &)
 void SettingsWidget::onRebootClicked()
 {
     CustomMessageBox msgBox(this, tr("确认重启"), tr("确定要重新启动应用程序吗？"),
-                            {tr("是"), tr("否")}, 300);
+                            {tr("是"), tr("否")}, 300 * scaleX);
     if (msgBox.exec() == QDialog::Accepted && msgBox.getUserResponse() == tr("是")) {
         QProcess::startDetached(QCoreApplication::applicationFilePath());
         qApp->quit();
@@ -354,7 +354,7 @@ void SettingsWidget::onRebootClicked()
 void SettingsWidget::onShutdownClicked()
 {
     CustomMessageBox msgBox(this, tr("确认关机"), tr("确定要关闭应用程序吗？"),
-                            {tr("是"), tr("否")}, 300);
+                            {tr("是"), tr("否")}, 300 * scaleX);
     if (msgBox.exec() == QDialog::Accepted && msgBox.getUserResponse() == tr("是")) {
         qApp->quit();
     }
@@ -364,7 +364,7 @@ void SettingsWidget::changeEvent(QEvent *event)
 {
     if (event->type() == QEvent::LanguageChange) {
         qDebug() << "SettingsWidget 收到 LanguageChange 事件";
-        titleLabel->setText("🩺 "+ tr("医疗设备管理系统"));
+        titleLabel->setText(tr("医疗设备管理系统"));
         systemSettingsLabel->setText(tr("系统设置"));
         signalStrengthLabel->setText(tr("最小信号强度"));
         modifyButton->setText(tr("修  改"));

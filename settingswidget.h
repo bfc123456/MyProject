@@ -48,6 +48,9 @@ private:
     QPushButton *modifyButton;
     QPushButton *rebootButton;
     QPushButton *shutdownButton;
+
+    float scaleX;
+    float scaleY;
 };
 
 #endif // SETTINGSWIDGET_H

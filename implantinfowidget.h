@@ -48,6 +48,7 @@ private:
 
     // 操作按钮
     QPushButton *backButton;
+    CustomMessageBox dlg;
     QPushButton *continueButton;
     ImplantationSite *implantationSite;
 //    CustomKeyboard *customkeyboard = nullptr;

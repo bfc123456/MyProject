@@ -63,6 +63,7 @@ private:
     // ----统一刷新所有文本的方法 ----
     void retranslateUi();
 
+    QString m_sensorId;
     State currentState =  STATE_READY;
     double initialSignalStrength;
     int progressValue;
@@ -79,7 +80,6 @@ private:
     QVector<float> pressureSamples;     //存储数据的容器
     MeasurementTrendWidget *trendWidget;   // 子界面指针
     bool updateResultToDatabase(const MeasurementData &result);
-    QString m_sensorId;
 };
 
 #endif // MEASUREMENTDIALOG_H

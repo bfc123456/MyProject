@@ -43,9 +43,9 @@ DebugModeSelector::DebugModeSelector(QWidget *parent) : CloseOnlyWindow(parent)
 
     mainlayout->addStretch();
     mainlayout->addWidget(tittle);
-    QHBoxLayout *tittlelayout = new QHBoxLayout(this);
-    QPushButton *serialBtn = new QPushButton("串口\n调试",this);
-    QPushButton *udpBtn = new QPushButton("网络\n调试",this);
+    QHBoxLayout *tittlelayout = new QHBoxLayout();
+    QPushButton *serialBtn = new QPushButton(tr("串口\n调试"),this);
+    QPushButton *udpBtn = new QPushButton(tr("网络\n调试"),this);
     serialBtn->setMinimumSize(100*scaleX, 100*scaleY);
     udpBtn->setMinimumSize(100*scaleX, 100*scaleY);
 

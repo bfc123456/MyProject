@@ -64,8 +64,15 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     topBar->setStyleSheet("background-color: transparent;");
 
     // 系统名称 Label（左侧）
-    titleLabel = new QLabel("🩺 "+ tr("医疗设备管理系统"), this);
-    titleLabel->setStyleSheet("color: white; font-size: 18px; font-weight: bold;");
+    QLabel *iconLabel = new QLabel(this);
+    QPixmap pix(":/image/icons8-tingzhen.png");
+    // 缩放到合适大小，比如 24×24
+    pix = pix.scaled(24 * scaleX, 24 * scaleY, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    iconLabel->setPixmap(pix);
+    iconLabel->setFixedSize(pix.size());
+
+    titleLabel = new QLabel(tr("医疗设备管理系统"), this);
+    titleLabel->setStyleSheet("color: white; font-size: 25px; font-weight: bold;");
     titleLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
     //设置按钮（右侧）
@@ -90,6 +97,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
 
     //顶部栏布局
     QHBoxLayout *tittleLayout = new QHBoxLayout(topBar);
+    tittleLayout->addWidget(iconLabel);
     tittleLayout->addWidget(titleLabel);
     tittleLayout->addStretch();
     tittleLayout->addWidget(btnclose);
@@ -151,7 +159,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     parityComboBox->addItem("None");
     parityComboBox->addItem("Odd");
     parityComboBox->addItem("Even");
-    parityComboBox->setFixedSize(80,30);
+    parityComboBox->setFixedSize(80*scaleX,30*scaleY);
     QHBoxLayout *parityLayout = new QHBoxLayout;
     parityLayout->addWidget(parityLabel);
     parityLayout->addWidget(parityComboBox);

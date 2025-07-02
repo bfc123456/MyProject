@@ -14,6 +14,7 @@
 #include <QPushButton>
 #include "settingswidget.h"
 #include "FramelessWindow.h"
+#include <qwt_legend.h>
 
 // 自定义时间刻度绘制器
 class TimeScaleDraw : public QwtScaleDraw {
@@ -32,6 +33,7 @@ public:
     explicit TrendChart(QWidget *parent = nullptr);
     void setData(const QVector<MeasurementData> &data);
     void updatePlot();
+    void retranslate();
 
 private:
     void setupCurves();
@@ -41,6 +43,7 @@ private:
     QwtPlotCurve *curveSys;
     QwtPlotCurve *curveAvg;
     QwtPlotCurve *curveHR;
+    QwtLegend    *m_legend;
 };
 
 // 测量趋势主界面类
@@ -56,8 +59,8 @@ signals:
     void openSettingsWindowResult();
     void closeAllWindow();
 
-//protected:
-//    void changeEvent(QEvent *event) override;
+protected:
+    void changeEvent(QEvent *event) override;
 
 private slots:
     void onStartNewMeasurement();
@@ -86,11 +89,12 @@ private:
     QLinearGradient m_btnGrads[2];
     MeasurementData m_currentResult;
     TrendChart* m_trendChart{nullptr};
-    QLabel* titleLabel{nullptr};
+//    QLabel* titleLabel{nullptr};
     QPushButton *backButton;
     QPushButton *homeButton;
     QPushButton *exportButton;
     QPushButton *shutdownButton;
+    QLabel *summaryTitleLabel;
 
     //界面指针
     SettingsWidget *settingsWidgetResult;
@@ -98,6 +102,9 @@ private:
     TrendChart       *m_chart;
     QString           m_sensorId;
     QVector<MeasurementData> m_historyData;
+    QVector<QLabel*> m_cardTitleLabels;            // 卡片标题集合
+    QVector<QLabel*> m_cardUnitLabels;             // 卡片单位集合
+
 };
 
 #endif // MEASUREMENTTRENDWIDGET_H

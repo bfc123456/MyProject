@@ -10,7 +10,7 @@
 #include <QDebug>
 #include <QCloseEvent>
 #include <QGraphicsDropShadowEffect>
-#include "CustomMessageBox.h"
+//#include "CustomMessageBox.h"
 #include "toucheventhandler.h"
 #include "debugmodeselector.h"
 #include <QGuiApplication>
@@ -381,29 +381,29 @@ void LoginWindow::showHiddenWidget() {
 
 void LoginWindow::changeLanguage(const QString &languageCode)
 {
+    // 1. 卸载任何已有翻译
     qApp->removeTranslator(&translator);
 
-     QString qmPath = QString(":/translations/translations/%1.qm").arg(languageCode);
-
-    if (translator.load(qmPath)) {
-        qApp->installTranslator(&translator);
-        qDebug() << "语言切换成功：" << qmPath;
-
-        //存储用户选择的语言
-        QSettings settings("MyCompany", "MyApp");
-        settings.setValue("language", languageCode);
-    } else {
-        qDebug() << "语言加载失败：" << qmPath;
-        return;
+    // 2. 如果切的是英文（或其它你真正有 qm 文件的语言），再去 load/安装
+    if (languageCode != "zh_CN") {
+        QString qmPath = QString(":/translations/translations/%1.qm").arg(languageCode);
+        if (translator.load(qmPath)) {
+            qApp->installTranslator(&translator);
+            qDebug() << "Loaded translation:" << qmPath;
+        } else {
+            qDebug() << "Failed to load translation:" << qmPath;
+        }
     }
 
-    // **遍历所有顶级窗口，发送 `LanguageChange` 事件**
-    QEvent event(QEvent::LanguageChange);
-    foreach (QWidget *widget, QApplication::topLevelWidgets()) {
-        QApplication::sendEvent(widget, &event);
-    }
+    // 3. 保存用户偏好
+    QSettings settings("MyCompany","MyApp");
+    settings.setValue("language", languageCode);
 
-    qDebug() << "语言切换事件已发送，所有界面应该自动更新！";
+    // 4. **无论 load 成不成功，都要广播 LanguageChange**
+    QEvent ev(QEvent::LanguageChange);
+    for (QWidget* w : QApplication::topLevelWidgets()) {
+      QApplication::sendEvent(w, &ev);
+    }
 }
 
 void LoginWindow::openSettingsWindow(){
@@ -469,42 +469,13 @@ void LoginWindow::openImplantWindow() {
 }
 
 void LoginWindow::closeImplantWindow(){
-
+    this->show();
     implantWindow->close();
+    implantWindow.reset();
 }
 
 void LoginWindow::showLoginWindow() {
     this->show(); // 显示登录界面
-}
-
-void LoginWindow::changeEvent(QEvent *event) {
-    if (isInitialized && event->type() == QEvent::LanguageChange) {
-        // 更新所有界面上的文本
-        if (titleLabel)
-        titleLabel->setText(tr("医疗设备管理系统"));
-        loginButton->setText(tr("登录"));
-
-        usernameCombox->clear();
-        usernameCombox->addItem(tr("家用模式"));
-        usernameCombox->addItem(tr("植入模式"));
-
-        //错误标签
-        //根据上次的错误状态重新设置一次文本
-        switch (m_lastError) {
-        case ErrLength:
-            errorLabel->setText(tr("密码必须是六位"));
-            break;
-        case ErrAuth:
-            errorLabel->setText(tr("用户或密码错误"));
-            break;
-        case NoError:
-        default:
-            errorLabel->setText(" ");
-            break;
-        }
-
-    }
-    QWidget::changeEvent(event);
 }
 
 void LoginWindow::openFollowupFormWindow() {
@@ -563,4 +534,36 @@ void LoginWindow::closeFollowupformwindow() {
         followupformwindow->deleteLater();  // 延迟释放内存（安全）
         followupformwindow = nullptr;       // 避免悬挂指针
     }
+}
+
+void LoginWindow::changeEvent(QEvent *event) {
+    if (isInitialized && event->type() == QEvent::LanguageChange) {
+        // 更新所有界面上的文本
+        if (titleLabel)
+        titleLabel->setText(tr("医疗设备管理系统"));
+        loginButton->setText(tr("登录"));
+
+        usernameCombox->clear();
+        usernameCombox->addItem(tr("家用模式"));
+        usernameCombox->addItem(tr("植入模式"));
+
+        passwordEdit->setPlaceholderText(tr("请输入六位密码"));
+
+        //错误标签
+        //根据上次的错误状态重新设置一次文本
+        switch (m_lastError) {
+        case ErrLength:
+            errorLabel->setText(tr("密码必须是六位"));
+            break;
+        case ErrAuth:
+            errorLabel->setText(tr("用户或密码错误"));
+            break;
+        case NoError:
+        default:
+            errorLabel->setText(" ");
+            break;
+        }
+
+    }
+    QWidget::changeEvent(event);
 }

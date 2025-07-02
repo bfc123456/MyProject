@@ -203,20 +203,6 @@ FollowUpForm::FollowUpForm(QWidget *parent)
 
 FollowUpForm::~FollowUpForm() {}
 
-//void FollowUpForm::showImplantionSite(){
-//    m_serial  = serialInput->text().trimmed();
-//    ImplantationSite* implantationsite = new ImplantationSite(this,m_serial);
-//    connect(implantationsite, &ImplantationSite::returnRequested, this, [this, implantationsite]() {
-//        implantationsite->hide();
-//        this->show();
-//        implantationsite->deleteLater();
-//    });
-//    implantationsite->setWindowFlags(Qt::Window);
-//    implantationsite->setFixedSize(1024, 600);
-//    implantationsite->show();
-//    this->hide();
-//}
-
 void FollowUpForm::checkProgress() {
     if (!progress) return;
 

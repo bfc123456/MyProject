@@ -21,7 +21,6 @@
 #include <qwt_plot_grid.h>
 #include <qwt_symbol.h>
 #include <qwt_curve_fitter.h>
-#include <qwt_legend.h>
 #include <qwt_scale_widget.h>
 #include <qwt_date_scale_draw.h>
 #include <qwt_date_scale_engine.h>
@@ -101,6 +100,7 @@ TrendChart::TrendChart(QWidget *parent)
 
     // 设置曲线样式
     setupCurves();
+    retranslate();
 }
 
 void TrendChart::setupCurves() {
@@ -183,6 +183,30 @@ void TrendChart::updatePlot() {
     replot();
 }
 
+void TrendChart::retranslate() {
+    // 标题
+    QwtText t(tr("趋势图"));
+    t.setColor(Qt::white);
+    t.setFont(QFont("Microsoft YaHei",16,QFont::Bold));
+    setTitle(t);
+
+    // 坐标轴
+    QwtText xt(tr("时间"));
+    xt.setColor(Qt::white); xt.setFont(QFont("Microsoft YaHei",14));
+    setAxisTitle(xBottom, xt);
+
+    QwtText yt(tr("数值"));
+    yt.setColor(Qt::white); yt.setFont(QFont("Microsoft YaHei",14));
+    setAxisTitle(yLeft, yt);
+
+    // Legend
+    curveDia->setTitle(tr("舒张压"));
+    curveSys->setTitle(tr("收缩压"));
+    curveAvg->setTitle(tr("平均值"));
+    curveHR ->setTitle(tr("心率"));
+
+    replot();  // 自动刷新 legend
+}
 
 /*******MeasurementTrendWidget 类实现*********/
 
@@ -251,8 +275,7 @@ MeasurementTrendWidget::MeasurementTrendWidget(const MeasurementData &currentRes
 
     // 设置窗口属性
     setStyleSheet("background-color: #0B1018;");
-    setWindowTitle(tr("血压心率趋势监测"));
-
+    retranslateUi();
 }
 
 MeasurementTrendWidget::~MeasurementTrendWidget() {
@@ -321,7 +344,7 @@ QWidget* MeasurementTrendWidget::createTitleWidget() {
           connect(settingsWidgetResult,&SettingsWidget::requestDelete,this,&MeasurementTrendWidget::closeSettingsWidget);
           settingsWidgetResult->show();
           settingsWidgetResult->raise();
-      this->hide();
+          this->hide();
     });  // 连接点击事件到槽函数
 
     // 创建标题标签
@@ -333,14 +356,14 @@ QWidget* MeasurementTrendWidget::createTitleWidget() {
     labelSensorID->setFont(sensorFont);
     labelSensorID->setStyleSheet("color: #E0F7FA; background-color: transparent; border: none;");
 
-    QLabel *titleLabel = new QLabel(tr("(测量数据汇总)"), this);
-    titleLabel->setAlignment(Qt::AlignCenter); // 文本居中显示
+    summaryTitleLabel = new QLabel(tr("(测量数据汇总)"), this);
+    summaryTitleLabel->setAlignment(Qt::AlignCenter); // 文本居中显示
     QFont titleFont("Microsoft YaHei", 12);  // 设置字号14
-    titleLabel->setFont(titleFont);
-    titleLabel->setStyleSheet("color: #E0F7FA; background-color: transparent; border: none;");
+    summaryTitleLabel->setFont(titleFont);
+    summaryTitleLabel->setStyleSheet("color: #E0F7FA; background-color: transparent; border: none;");
 
     tittleLayout->addWidget(labelSensorID);
-    tittleLayout->addWidget(titleLabel);
+    tittleLayout->addWidget(summaryTitleLabel);
 
     QHBoxLayout *topLayout = new QHBoxLayout(topBar);
     topLayout->addWidget(backButton);
@@ -387,14 +410,35 @@ QWidget* MeasurementTrendWidget::createCardWidget(int dataIndex, const Measureme
     titleLabel->setStyleSheet("color: white; font-size: 16px; font-weight: bold;");
     titleLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(titleLabel);
+    m_cardTitleLabels.append(titleLabel);
 
-    // 数值 - 设置对象名称以便后续查找和更新
-    QLabel *valueLabel = new QLabel(this);
-    valueLabel->setObjectName("ValueLabel");
-    valueLabel->setStyleSheet("color: #4CD964; font-size: 22px; font-weight: bold;");
-    valueLabel->setAlignment(Qt::AlignCenter);
-    valueLabel->setText(QString::number(values[dataIndex], 'f', 1) + " " + units[dataIndex]);
-    layout->addWidget(valueLabel);
+    QWidget *valueContainer = new QWidget(cardWidget);
+    valueContainer->setObjectName("valueContainer");
+    valueContainer->setStyleSheet(R"(
+        QWidget#valueContainer {
+            border: 1px solid #334155;
+            border-radius: 4px;
+            background-color: transparent;
+        }
+    )");
+
+    // 数字
+    QLabel *lblValue = new QLabel(QString::number(values[dataIndex], 'f', 1), this);
+    lblValue->setStyleSheet("color: #4CD964; font-size: 22px; font-weight: bold;border: none;");
+    lblValue->setAlignment(Qt::AlignCenter);
+
+    // 单位
+    QLabel *lblUnit = new QLabel(units[dataIndex], this);
+    lblUnit->setStyleSheet("color: white; font-size: 14px;border: none;");
+    lblUnit->setAlignment(Qt::AlignCenter);
+    m_cardUnitLabels.append(lblUnit);
+
+    QHBoxLayout *hLayout = new QHBoxLayout(valueContainer);
+    hLayout->addStretch();
+    hLayout->addWidget(lblValue);
+    hLayout->addWidget(lblUnit);
+    hLayout->addStretch();
+    layout->addWidget(valueContainer);
 
     return cardWidget;
 }
@@ -558,8 +602,9 @@ void MeasurementTrendWidget::onStartNewMeasurement() {
 
 void MeasurementTrendWidget::closeSettingsWidget(){
     settingsWidgetResult->deleteLater();  // 安全删除
-    settingsWidgetResult = nullptr;
-    this->setWindowFlags(Qt::Window);
+    settingsWidgetResult = nullptr;  
+    //重新给它打上 FramelessHint
+    this->setWindowFlags(Qt::FramelessWindowHint | Qt::Window);
     this->showFullScreen();
 }
 
@@ -665,3 +710,34 @@ QString MeasurementTrendWidget::fetchSensorIds() const
     return sensors.join(", ");
 }
 
+void MeasurementTrendWidget::retranslateUi()
+{
+    // 顶部文字
+    summaryTitleLabel->setText(tr("(测量数据汇总)"));
+
+    // 卡片上的标题和单位
+    QStringList titles = { tr("舒张压"), tr("收缩压"), tr("平均值"), tr("心率") };
+    QStringList units  = { tr("mmHg"),      tr("mmHg"),      tr("mmHg"),       tr("次/分") };
+    for (int i = 0; i < m_cardTitleLabels.size() && i < titles.size(); ++i){
+        m_cardTitleLabels[i]->setText(titles[i]);
+        m_cardUnitLabels[i]->setText(units[i]);
+    }
+
+    // 底部按钮
+    homeButton   ->setText(tr("返回主界面"));
+    exportButton ->setText(tr("导出数据"));
+    shutdownButton->setText(tr("关  机"));
+
+    // 趋势图内部的文字
+    m_chart->retranslate();
+}
+
+void MeasurementTrendWidget::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        // 1) 先把所有界面文字都翻译一遍
+        retranslateUi();
+    }
+
+    FramelessWindow::changeEvent(event);
+}

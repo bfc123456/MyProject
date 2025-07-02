@@ -199,7 +199,7 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
 
     // 按钮部分
     backButton = new QPushButton(tr("返回"));
-    QObject::connect(backButton, &QPushButton::clicked, this,&ImplantInfoWidget::implantReturnLogin);
+    connect(backButton, &QPushButton::clicked, this,&ImplantInfoWidget::implantReturnLogin);
 
     backButton->setIcon(QIcon(":/image/icons8-return.png"));
 
@@ -252,7 +252,7 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
                 this->setGraphicsEffect(blur);
 
                 //创建信息对话框
-                CustomMessageBox dlg(this,tr("错误"),tr("上传失败，请再次检查输入"), { tr("确定") },350);
+                CustomMessageBox dlg(this,tr("错误"),tr("上传失败，请再次检查输入"), { tr("确定") },350 *scaleX);
                    dlg.exec();
 
                 //清空输入内容
@@ -355,7 +355,7 @@ void ImplantInfoWidget::showImplantationSiteWidget(const QString &serial)
         tr("提示"),
         tr("请将传感器植入患者体内，点击下一步"),
         { tr("返 回"), tr("下一步") },
-        400*scaleY   // 宽度
+        350*scaleX   // 宽度
     );
 
     // 5. 阻塞显示

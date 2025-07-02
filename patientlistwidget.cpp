@@ -287,7 +287,7 @@ void PatientListWidget::onSearchClicked() {
         blur->setBlurRadius(20);  // 可调强度：20~40
         this->setGraphicsEffect(blur);
         //创建信息对话框
-        CustomMessageBox dlg(this,tr("错误"),tr("查询失败，请再次检查输入"), { tr("确定") },350);
+        CustomMessageBox dlg(this,tr("错误"),tr("查询失败，请再次检查输入"), { tr("确定") },350*scaleX);
         dlg.exec();
 
         // 清除遮罩和模糊
