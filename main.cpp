@@ -1,16 +1,16 @@
 #include <QApplication>
 #include <QSplashScreen>
-#include <QTimer>
 #include <QScreen>
 #include <QPainter>
 #include <QLinearGradient>
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QFont>
-#include <QProgressBar>
+#include <QMessageBox>
 #include <QSettings>
 #include <QTranslator>
 #include <QDate>
+#include <QThread>
 #include "udpmanager.h"
 #include "languagemanager.h"
 #include "databasemanager.h"
@@ -18,63 +18,38 @@
 #include "toucheventhandler.h"
 
 LoginWindow* globalLoginWindowPointer = nullptr;
+static QLabel *statusLabel = nullptr;
 
-//在最顶层标记待翻译的步骤字符串
-static const char* rawSteps[] = {
-    QT_TRANSLATE_NOOP("App", "加载配置文件…"),
-    QT_TRANSLATE_NOOP("App", "初始化网络模块…"),
-    QT_TRANSLATE_NOOP("App", "连接数据库…"),
-    QT_TRANSLATE_NOOP("App", "准备主界面…")
-};
+// 更新 Splash 上文字并立即刷新
+void updateStatus(const QString& text) {
+    if (statusLabel) {
+        statusLabel->setText(text);
+        QCoreApplication::processEvents();
+    }
+}
 
 int main(int argc, char *argv[])
 {
-
+    // 触控支持
     QCoreApplication::setAttribute(Qt::AA_SynthesizeTouchForUnhandledMouseEvents);
     QCoreApplication::setAttribute(Qt::AA_SynthesizeMouseForUnhandledTouchEvents);
 
     QApplication a(argc, argv);
+    a.installEventFilter(new TouchEventHandler());
 
-    TouchEventHandler *touchHandler = new TouchEventHandler();
-    a.installEventFilter(touchHandler);
-
-    UdpManager udpManager;
-    if (!udpManager.startListening(5005)) {
-        qDebug() << "UDP监听失败";
-        return -1;
-    }
-
-    LanguageManager::instance();
-
-    //只初始化一次，传入路径
-    DatabaseManager::instance("E:/software_personal/personal_program/MyProject/MyDatabase.db");
-    if (!DatabaseManager::instance("E:/software_personal/personal_program/MyProject/MyDatabase.db").openDatabase()) {
-        return -1;
-    }
-
-    QSettings settings("MyCompany", "MyApp");
-    QString language = settings.value("language", "zh_CN").toString();
-
-    QTranslator translator;
-    if (translator.load(":/translations/app_" + language + ".qm")) {
-        a.installTranslator(&translator);
-    }
-
-    QFont font("Microsoft YaHei", 12);
-    a.setFont(font);
-
+    // --- Splash 界面搭建 ---
     QScreen *screen = QGuiApplication::primaryScreen();
     QSize screenSize = screen->availableGeometry().size();
 
     QPixmap pixmap(screenSize);
     pixmap.fill(Qt::transparent);
-
-    QPainter painter(&pixmap);
-    QLinearGradient gradient(0, 0, 0, pixmap.height());
-    gradient.setColorAt(0.0, QColor("#102b4e"));
-    gradient.setColorAt(1.0, QColor("#1c3f5f"));
-    painter.fillRect(pixmap.rect(), gradient);
-    painter.end();
+    {
+        QPainter painter(&pixmap);
+        QLinearGradient gradient(0,0,0,pixmap.height());
+        gradient.setColorAt(0.0, QColor("#102b4e"));
+        gradient.setColorAt(1.0, QColor("#1c3f5f"));
+        painter.fillRect(pixmap.rect(), gradient);
+    }
 
     QSplashScreen splash(pixmap);
     splash.setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
@@ -82,25 +57,41 @@ int main(int argc, char *argv[])
     splash.setFixedSize(screenSize);
     splash.showFullScreen();
 
+    // Logo
     int logoW = screenSize.width() * 0.20;
     QLabel *logoLabel = new QLabel(&splash);
-    logoLabel->setPixmap(QPixmap(":/image/logoimage.jpg").scaledToWidth(logoW, Qt::SmoothTransformation));
+    logoLabel->setPixmap(
+        QPixmap(":/image/logoimage.jpg").scaledToWidth(logoW, Qt::SmoothTransformation)
+    );
     logoLabel->setAlignment(Qt::AlignCenter);
-    logoLabel->setStyleSheet("background-color: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px;");
+    logoLabel->setStyleSheet(
+        "background-color: rgba(255,255,255,0.05);"
+        "border-radius:12px; padding:10px;"
+    );
 
-    QLabel *statusLabel = new QLabel(QObject::tr("系统初始化中…"), &splash);
+    // 状态标签
+    statusLabel = new QLabel(QObject::tr("系统初始化中…"), &splash);
     statusLabel->setAlignment(Qt::AlignCenter);
-    statusLabel->setStyleSheet("font-size: 22px; color: white; font-weight: 600;");
+    statusLabel->setStyleSheet("font-size:22px; color:white; font-weight:600;");
 
+    // 版本/版权
     QLabel *versionLabel = new QLabel(QObject::tr("Version 1.0.0"), &splash);
     versionLabel->setAlignment(Qt::AlignCenter);
-    versionLabel->setStyleSheet("font-size:" + QString::number(screenSize.height()*0.03) + "px; color:rgba(255,255,255,0.6);");
-
-    int currentYear = QDate::currentDate().year();
-    QLabel *copyrightLabel = new QLabel(QObject::tr("© %1 芯联心 SI-Linking").arg(currentYear), &splash);
+    versionLabel->setStyleSheet(
+        QString("font-size:%1px; color:rgba(255,255,255,0.6);")
+            .arg(screenSize.height() * 0.03)
+    );
+    QLabel *copyrightLabel = new QLabel(
+        QObject::tr("© %1 芯联心 SI-Linking").arg(QDate::currentDate().year()),
+        &splash
+    );
     copyrightLabel->setAlignment(Qt::AlignCenter);
-    copyrightLabel->setStyleSheet("font-size:" + QString::number(screenSize.height()*0.013) + "px; color:rgba(255,255,255,0.4);");
+    copyrightLabel->setStyleSheet(
+        QString("font-size:%1px; color:rgba(255,255,255,0.4);")
+            .arg(screenSize.height() * 0.013)
+    );
 
+    // 布局
     QVBoxLayout *vlay = new QVBoxLayout(&splash);
     int margin = screenSize.width() * 0.02;
     vlay->setContentsMargins(margin, margin, margin, margin);
@@ -113,38 +104,58 @@ int main(int argc, char *argv[])
     vlay->addWidget(versionLabel);
     vlay->addWidget(copyrightLabel);
     vlay->addStretch();
-
     splash.show();
 
-    //--- 把 rawSteps 翻译成当前语言的 QStringList ---
-    QStringList steps;
-    const int stepCount = sizeof(rawSteps) / sizeof(rawSteps[0]);
-    for (int i = 0; i < stepCount; ++i) {
-        steps << QCoreApplication::translate("App", rawSteps[i]);
+    // === 真正初始化流程 ===
+
+    // 1. 加载本地设置（语言等）
+    updateStatus(QObject::tr("加载本地配置…"));
+    QSettings settings("MyCompany", "MyApp");
+    QString language = settings.value("language", "zh_CN").toString();
+
+    // 2. 初始化网络模块
+    updateStatus(QObject::tr("初始化网络模块…"));
+    UdpManager udpManager;
+    if (!udpManager.startListening(5005)) {
+        QMessageBox::critical(nullptr,
+                              QObject::tr("错误"),
+                              QObject::tr("UDP 监听失败！"));
+        return -1;
     }
 
-    // --- 用定时器依次更新 statusLabel ---
-    int stepIndex = 0;
-    QTimer *timer = new QTimer(&a);
-    QObject::connect(timer, &QTimer::timeout, [&]() {
-        if (stepIndex < steps.size()) {
-            statusLabel->setText(steps[stepIndex]);
-            ++stepIndex;
-        } else {
-            timer->stop();
-            splash.close();
-            globalLoginWindowPointer->show();
-        }
-    });
-    timer->start(600);
+    // 3. 连接数据库
+    updateStatus(QObject::tr("连接数据库…"));
+    auto &dbMgr = DatabaseManager::instance(
+        "E:/software_personal/personal_program/MyProject/MyDatabase.db"
+    );
+    if (!dbMgr.openDatabase()) {
+        QMessageBox::critical(nullptr,
+                              QObject::tr("错误"),
+                              QObject::tr("数据库连接失败！"));
+        return -1;
+    }
 
+    // 4. 安装翻译器
+    updateStatus(QObject::tr("加载翻译文件…"));
+    {
+        QTranslator translator;
+        if (translator.load(":/translations/app_" + language + ".qm")) {
+            a.installTranslator(&translator);
+        }
+    }
+
+    // 5. 准备主界面
+    updateStatus(QObject::tr("准备主界面…"));
+    QThread::msleep(300);
+
+    // 展示登录窗口
+    splash.close();
     globalLoginWindowPointer = new LoginWindow();
     globalLoginWindowPointer->setFixedSize(1024, 600);
     globalLoginWindowPointer->setAttribute(Qt::WA_AcceptTouchEvents);
+    globalLoginWindowPointer->show();
 
-    int result = a.exec();
-
+    int ret = a.exec();
     delete globalLoginWindowPointer;
-    globalLoginWindowPointer = nullptr;
-    return result;
+    return ret;
 }
