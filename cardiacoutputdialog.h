@@ -6,7 +6,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
-#include "customkeyboard.h"
+#include "Customkeyboard.h"
 #include "CloseOnlyWindow.h"
 
 class CardiacOutputDialog : public CloseOnlyWindow {

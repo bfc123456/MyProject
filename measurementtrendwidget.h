@@ -9,12 +9,13 @@
 #include <qwt_scale_draw.h>
 #include <QVector>
 #include <QDateTime>
-#include "measurementdata.h"
+#include "MeasurementData.h"
 #include <QLabel>
 #include <QPushButton>
-#include "settingswidget.h"
+#include "SettingsWidget.h"
 #include "FramelessWindow.h"
 #include <qwt_legend.h>
+#include "Global.h"
 
 // 自定义时间刻度绘制器
 class TimeScaleDraw : public QwtScaleDraw {

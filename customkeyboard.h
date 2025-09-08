@@ -11,6 +11,30 @@ class QLineEdit;
 class QStackedWidget;
 class QPushButton;
 
+/**
+ * @class CustomKeyboard
+ * @brief 自定义虚拟键盘控件
+ *
+ * 本类提供一个可在触屏环境下使用的虚拟键盘，实现了单例模式。
+ * 它可以与多个 QLineEdit 输入框绑定，在输入框获得焦点时自动弹出，
+ * 用户可通过点击虚拟按键完成输入。
+ *
+ * 功能特点：
+ * - 支持数字键盘和字母键盘两种模式，并可切换大小写
+ * - 单例模式实现，保证全局只存在一个虚拟键盘实例
+ * - 可根据不同输入框设置弹出位置偏移量（offset）
+ * - 提供键盘拖拽功能，用户可调整键盘位置
+ * - 自动隐藏与延时隐藏机制，防止界面遮挡
+ *
+ * 使用场景：
+ * - 登录界面（密码、账号输入）
+ * - 设置界面（参数输入）
+ * - 任何需要触屏输入的地方，替代物理键盘
+ *
+ * @note 本类仅负责 UI 输入模拟，不直接与底层输入法交互。
+ */
+
+
 class CustomKeyboard : public QWidget {
     Q_OBJECT
 public:
@@ -49,28 +73,28 @@ private:
     CustomKeyboard& operator=(const CustomKeyboard&) = delete;
 
     // 将键盘关联到给定输入框，并按偏移量弹出
-    void attachTo(QLineEdit *edit, const QPoint &offset);
+    void attachTo(QLineEdit *edit, const QPoint &offset);    // 将键盘关联到输入框并按偏移量显示
 
     // 构造键盘页面
-    QWidget* createNumKeyboard();
-    QWidget* createAlphaKeyboard();
-    void switchToNumKeyboard();
-    void switchToAlphaKeyboard();
-    void handleShiftClicked();
-    void hideWithDelay();
+    QWidget* createNumKeyboard();    // 构造数字键盘界面
+    QWidget* createAlphaKeyboard();  // 构造字母键盘界面
+    void switchToNumKeyboard();      // 切换到数字键盘
+    void switchToAlphaKeyboard();    // 切换到字母键盘
+    void handleShiftClicked();       // 处理 Shift 点击（大小写切换）
+    void hideWithDelay();            // 延时隐藏键盘
 
-    QStackedWidget            *stackedWidget;
-    QList<QPushButton*>        letterButtons;
-    QMap<QLineEdit*, QPoint>   editOffsetMap;
-    QLineEdit                 *currentEdit = nullptr;
-    bool                       isUpperCase = false;
+    QStackedWidget            *stackedWidget;   // 存放字母键盘和数字键盘
+    QList<QPushButton*>        letterButtons;   // 所有字母按钮（便于大小写切换）
+    QMap<QLineEdit*, QPoint>   editOffsetMap;   // 输入框与键盘偏移量映射
+    QLineEdit                 *currentEdit = nullptr;    // 当前获得焦点的输入框
+    bool                       isUpperCase = false;      // 是否为大写模式
 
     // 拖拽辅助
-    bool                       m_dragging;
-    QPoint                     m_dragPosition;
+    bool                       m_dragging;       // 是否正在拖拽
+    QPoint                     m_dragPosition;    // 拖拽起始位置
 
-    float scaleX;
-    float scaleY;
+    float scaleX;    // X 方向缩放比例
+    float scaleY;    // Y 方向缩放比例
 };
 
 #endif // CUSTOMKEYBOARD_H

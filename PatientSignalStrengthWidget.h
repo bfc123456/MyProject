@@ -1,23 +1,24 @@
 
-#ifndef FOLLOWUPFORM_H
-#define FOLLOWUPFORM_H
+#ifndef PATIENTSIGNALSTRENGTHWIDGET_H
+#define PATIENTSIGNALSTRENGTHWIDGET_H
 
 #include <QWidget>
 #include <QLabel>
 #include <QPushButton>
-#include "customkeyboard.h"
+#include <QPointer>
+#include "Customkeyboard.h"
 #include "FramelessWindow.h"
-#include "measurementdialog.h"
-#include "circularprogressbar.h"
-#include "settingswidget.h"
+#include "MeasurementDialog.h"
+#include "CircularProgressbar.h"
+#include "SettingsWidget.h"
 
-class FollowUpForm: public FramelessWindow
+class PatientSignalStrengthWidget: public FramelessWindow
 {
     Q_OBJECT
 
 public:
-    explicit FollowUpForm (QWidget *parent = nullptr);
-    ~FollowUpForm ();
+    explicit PatientSignalStrengthWidget (QWidget *parent = nullptr);
+    ~PatientSignalStrengthWidget ();
 
 signals:
     void openSettingsWindow();
@@ -36,10 +37,13 @@ private:
     CircularProgressBar *progress;
     int continuousTime = 0;
     QTimer *timer;
-    MeasurementDialog *measurementDialog;
-    SettingsWidget *settingswidgetMrasure;
-
+//    MeasurementDialog *measurementDialog = nullptr; // 对话框;
+    SettingsWidget *settingswidgetMrasure = nullptr; // 对话框;
     CustomKeyboard *currentKeyboard = nullptr;
+//    QWidget* overlay = nullptr;
+    QPointer<MeasurementDialog> dlg;
+    QPointer<QWidget> overlay;
+    // 遮罩
     bool eventFilterInstalled = false;  // 用来跟踪事件过滤器的安装状态
     void validateForm();
     void changeEvent(QEvent *event) override;
@@ -52,4 +56,4 @@ private slots:
     void openMeasureSettingsWindow();
 };
 
-#endif // FOLLOWUPFORM_H
+#endif // PatientSignalStrengthWidget_H

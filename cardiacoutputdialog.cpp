@@ -1,4 +1,4 @@
-#include "cardiacoutputdialog.h"
+#include "CardiacoutputDialog.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QPushButton>

@@ -10,12 +10,11 @@
 #include <QDebug>
 #include <QCloseEvent>
 #include <QGraphicsDropShadowEffect>
-//#include "CustomMessageBox.h"
 #include "toucheventhandler.h"
 #include "debugmodeselector.h"
 #include <QGuiApplication>
 #include <QScreen>
-
+#include "followupform.h"
 
 LoginWindow::LoginWindow(QWidget *parent)
     : FramelessWindow (parent)
@@ -484,10 +483,7 @@ void LoginWindow::openFollowupFormWindow() {
     // 只有在窗口未创建时创建 FollowUpForm 窗口
     followupformwindow = std::make_unique<FollowUpForm>();
     }
-//    connect(followupformwindow.get(), &FollowUpForm::openSettingsWindow, this, [this]() {
-//        openSettingsWindow();
-//        qDebug() << "设置按钮已点击，打开设置界面";
-//    });
+
     connect(followupformwindow.get(), &FollowUpForm::followReturnToLogin, this, &LoginWindow::closeFollowupformwindow);
 
     followupformwindow->setWindowFlags(Qt::Window);

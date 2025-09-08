@@ -1,4 +1,4 @@
-#include "customkeyboard.h"
+#include "Customkeyboard.h"
 #include <QLineEdit>
 #include <QStackedWidget>
 #include <QPushButton>

@@ -1,221 +1,181 @@
-#include "implantmonitor.h"
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QPixmap>
-#include <qwt_plot_curve.h>
-#include <QStackedLayout>
-#include <QTimer>
-#include <QGraphicsBlurEffect>
-#include "circularprogressbar.h"
-#include "rhcinputdialog.h"
-#include <QtSql/QSqlDatabase>
-#include <QtSql/QSqlQuery>
-#include <QtSql/QSqlError>
-#include "databasemanager.h"
-#include <QGuiApplication>
+﻿#include "ImplantMonitor.h"
+#include "DeviceAcquisitionWorker.h"
+#include "MeasurementDataProcessor.h"
+#include "CardiacoutputDialog.h"
+#include "SettingsWidget.h"
 #include <QScreen>
 #include <QDateTime>
-#include "CustomMessageBox.h"
+#include <QSettings>
+#include <QMetaObject>
+#include <QGuiApplication>
+#include <QGraphicsBlurEffect>
+#include <qwt_scale_widget.h>
+#include <QFileDialog>
+#include <QMessageBox>
+//测试
 
-ImplantMonitor::ImplantMonitor(QWidget *parent , const QString &sensorId) : FramelessWindow(parent) , m_serial(sensorId) {
+// 提取重复样式表，统一维护
+const QString DARK_CARD_STYLE = R"(
+QWidget {
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(25, 50, 75, 0.9), stop:1 rgba(10, 20, 30, 0.85));
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+)";
 
+ImplantMonitor::ImplantMonitor(QWidget *parent, const QString &sensorId)
+    : FramelessWindow(parent), m_serial(sensorId)
+{
+    // 1. 屏幕缩放计算
     QScreen *screen = QGuiApplication::primaryScreen();
-    QRect screenGeometry = screen->geometry();
-    int screenWidth = screenGeometry.width();
-    int screenHeight = screenGeometry.height();
-
-    // 计算缩放比例
+    int screenWidth = screen->geometry().width();
+    int screenHeight = screen->geometry().height();
     scaleX = (float)screenWidth / 1024;
     scaleY = (float)screenHeight / 600;
-
-    this->setFixedSize(1024*scaleX,600*scaleY);
-    this->setObjectName("Implantonitor");
-    this->setStyleSheet(R"(
+    setFixedSize(1024*scaleX, 600*scaleY);
+    setObjectName("Implantonitor");
+    setStyleSheet(R"(
     QWidget#Implantonitor {
-    background-color: qlineargradient(
-        x1: 0, y1: 1,
-        x2: 1, y2: 0,
-        stop: 0 rgba(6, 15, 30, 255),      /* 更暗靛蓝：左下 */
-        stop: 0.5 rgba(18, 35, 65, 255),   /* 中段冷蓝 */
-        stop: 1 rgba(30, 60, 100, 255)     /* 右上：深蓝灰 */
-    );
+        background-color: qlineargradient(x1:0, y1:1, x2:1, y2:0,
+            stop:0 rgba(6, 15, 30, 255), stop:0.5 rgba(18, 35, 65, 255), stop:1 rgba(30, 60, 100, 255));
     }
-
     )");
 
-    //设置全局布局
+    // 2. 主布局初始化
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(30*scaleX, 15*scaleY , 30*scaleX, 15*scaleY);
+    mainLayout->setContentsMargins(30*scaleX, 15*scaleY, 30*scaleX, 15*scaleY);
 
-    //设置顶部布局（放置标题与设置按钮）
-    QWidget *topwidget = new QWidget(this);
-    topwidget->setObjectName("TopBar");
-    topwidget->setStyleSheet(R"(
+    // 3. 顶部栏（标题 + 设置按钮）
+    QWidget *topWidget = new QWidget(this);
+    topWidget->setObjectName("TopBar");
+    topWidget->setStyleSheet(R"(
         QWidget#TopBar {
-            background-color: qlineargradient(
-                x1: 0, y1: 0, x2: 0, y2: 1,
-                stop: 0 rgba(25, 50, 75, 0.9),
-                stop: 1 rgba(10, 20, 30, 0.85)
-            );
+            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 rgba(25, 50, 75, 0.9), stop:1 rgba(10, 20, 30, 0.85));
             border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.08); /* 边缘高光 */
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
-         QLabel {
-             color: white;
-             font-weight: bold;
-             font-size: 16px;
-         }
+        QLabel { color: white; font-weight: bold; font-size: 16px; }
     )");
-    topwidget->setFixedHeight(50*scaleY);
+    topWidget->setFixedHeight(50*scaleY);
 
     titleLabel = new QLabel(tr("新植入物"));
-    titleLabel->setStyleSheet("background-color: transparent; color: white;");
-    idLabel = new QLabel();
-    idLabel ->setText(m_serial);
-    idLabel->setStyleSheet("background-color: transparent; color: white;");
+    idLabel = new QLabel(sensorId);
+    titleLabel->setStyleSheet("background: transparent;");
+    idLabel->setStyleSheet("background: transparent;");
     titleLabel->setFixedWidth(120*scaleX);
-    titleLabel->setAlignment(Qt::AlignCenter);
     idLabel->setFixedWidth(120*scaleX);
+    titleLabel->setAlignment(Qt::AlignCenter);
     idLabel->setAlignment(Qt::AlignCenter);
 
-    QPushButton *btnSettings = new QPushButton(this);
-    btnSettings->setIcon(QIcon(":/image/icons8-shezhi.png"));
-    btnSettings->setIconSize(QSize(24*scaleX, 24*scaleY));
-    btnSettings->setFlat(true);
-    btnSettings->setStyleSheet(R"(
-                               QPushButton {
-                               border: none;
-                               background-color: transparent;
-                               border-radius: 20px;
-                               }
-                               QPushButton:pressed {
-                               background-color: rgba(255, 255, 255, 0.2);
-                               }
-                               )");
+    QPushButton *settingsBtn = new QPushButton(this);
+    settingsBtn->setIcon(QIcon(":/image/icons8-shezhi.png"));
+    settingsBtn->setIconSize(QSize(24*scaleX, 24*scaleY));
+    settingsBtn->setStyleSheet("border: none; background: transparent; border-radius: 20px;");
+    connect(settingsBtn, &QPushButton::clicked, this, &ImplantMonitor::OpenSettingsRequested);
 
-    connect(btnSettings, &QPushButton::clicked, this, &ImplantMonitor::OpenSettingsRequested);
-    QHBoxLayout *topLayout = new QHBoxLayout(topwidget);
+    QHBoxLayout *topLayout = new QHBoxLayout(topWidget);
     topLayout->addWidget(titleLabel, 0, Qt::AlignLeft);
-//    topLayout->addStretch();
     topLayout->addWidget(idLabel, 1, Qt::AlignCenter);
     topLayout->addSpacing(96*scaleX);
-    topLayout->addWidget(btnSettings, 0, Qt::AlignRight);
+    topLayout->addWidget(settingsBtn, 0, Qt::AlignRight);
 
-    //设置中间布局
-    QWidget *middlewidget = new QWidget(this);
-    middlewidget->setObjectName("middlewidget");
-    middlewidget->setFixedHeight(350*scaleY);
-    middlewidget->setStyleSheet(R"(
-    QWidget#middlewidget {
-        background-color: qlineargradient(
-            x1: 0, y1: 0, x2: 0, y2: 1,
-            stop: 0 rgba(35, 45, 65, 240),   /* 顶部略亮蓝灰 */
-            stop: 1 rgba(20, 30, 50, 240)    /* 底部更暗 */
-        );
-        border: 1px solid rgba(255, 255, 255, 0.08);      /* 柔和外边框 */
-        border-radius: 12px;
-        padding: 8px;
-    }
-    )");
-
+    // 4. 中间波形区
+    QWidget *middleWidget = new QWidget(this);
+    middleWidget->setFixedHeight(350*scaleY);
+    middleWidget->setStyleSheet(DARK_CARD_STYLE);
     plot = new ModernWavePlot(this);
-
-    plot->setAutoFillBackground(false);
     plot->setStyleSheet("background: transparent; border: none; color:white;");
+    plot->setLineColor(QColor(100, 180, 255));
+    plot->setFillColor(QColor(40, 120, 200, 30), -1);
+    plot->setAxisScale(QwtPlot::yLeft, 0, 500);
+    plot->setAxisScale(QwtPlot::xBottom, 0, 30);
+    plot->setMinimumHeight(200*scaleY);
 
-//    // 设置曲线数据
-    QVector<QPointF> points;
-//    for (int i = 0; i < 200; ++i)
-//        points.append(QPointF(i, qrand() % 81));  // 生成0到80之间的随机数
-//    plot->setData(points);
+    QwtText xTitle("Time (s)"), yTitle("Pressure (mmHg)");
+    plot->axisWidget(QwtPlot::xBottom)->setTitle(xTitle);
+    plot->axisWidget(QwtPlot::yLeft)->setTitle(yTitle);
 
-    // 设置样式
-    plot->setLineColor(QColor(100, 180, 255));  //曲线颜色
-    plot->setFillColor(QColor(40, 120, 200, 30), -1);   //波形底部填充
-    plot->setYRange(0, 80); // Y 轴范围
-    plot->setXRange(0, 180); //X轴范围
-    plot->setMinimumHeight(200*scaleY);                    // 控件高度（生效）
-
-    //布局plot
-    QVBoxLayout *middleLayout = new QVBoxLayout(middlewidget);
+    QVBoxLayout *middleLayout = new QVBoxLayout(middleWidget);
     middleLayout->addWidget(plot);
     middleLayout->setContentsMargins(50*scaleX, 30*scaleY, 50*scaleX, 30*scaleY);
 
-    //设置底部布局
+    // 5. 底部控件区（信号、位置、数据、按钮）
     QHBoxLayout *bottomLayout = new QHBoxLayout();
-    //从左到右依次排布四个widget
-    //左一：圆形进度显示
-    QWidget *firstLeftWidget = new QWidget;
-    firstLeftWidget->setFixedHeight(120*scaleY);
-    QVBoxLayout *firstLeftLayout = new QVBoxLayout(firstLeftWidget);
-    //定义圆形进度条
-//    QLabel *tittleLabel = new QLabel("信号强度",this);
-//    tittleLabel->setAlignment(Qt::AlignCenter);
 
-    //设置图形比例布局
-    CircularProgressBar *progressBar = new CircularProgressBar(this);
-    progressBar->setFixedSize(65*scaleX, 65*scaleY); // 缩小为 70x70
-    progressBar->setProgress(90); // 设置进度 90%
-//    firstLeftLayout->addWidget(tittleLabel);
-    firstLeftLayout->addWidget(progressBar, 0, Qt::AlignCenter);
+    // 左一：信号进度
+    QWidget *signalWidget = new QWidget;
+    signalWidget->setFixedHeight(120*scaleY);
+    signalWidget->setStyleSheet(DARK_CARD_STYLE);
+    QVBoxLayout *signalLayout = new QVBoxLayout(signalWidget);
+
+    QSettings settings("MyCompany", "MyApp");
+    int signalThresh = settings.value("system/signalStrength", 70).toInt();
+    progressBar = new CircularProgressBar(this);
+    progressBar->setFixedSize(65*scaleX, 65*scaleY);
+    progressBar->setThreshold(signalThresh);
+    progressBar->setProgress(90);
+    signalLayout->addWidget(progressBar, 0, Qt::AlignCenter);
+
 
     //左二：植入位置显示
-    QWidget *secondLeftWidget = new QWidget(parent);
-    secondLeftWidget->setObjectName("secondLeftWidget");
-    secondLeftWidget->setFixedSize(180*scaleX, 120*scaleY);
-    secondLeftWidget->setStyleSheet(R"(
-        QWidget#secondLeftWidget {
-            border: none;
-            /* 用 border-image 拉伸背景 */
-            border-image: url(:/image/newbody.png);
-        }
-    )");
+    QWidget *posWidget = new QWidget(parent);
+    posWidget->setObjectName("posWidget");
+    posWidget->setFixedSize(180*scaleX, 120*scaleY);
+    posWidget->setStyleSheet(R"(
+                                    QWidget#posWidget {
+                                    border: none;
+                                    /* 用 border-image 拉伸背景 */
+                                    border-image: url(:/image/newbody.png);
+                                    }
+                                    )");
     //在它上面放一个 QLabel 来显示“L”或“R”
-    QLabel *sideLabel = new QLabel(secondLeftWidget);
+    QLabel *sideLabel = new QLabel(posWidget);
     sideLabel->setFixedSize(40*scaleX, 40*scaleY);
     sideLabel->setAlignment(Qt::AlignCenter);
     sideLabel->setStyleSheet(R"(
-      QLabel {
-        background-color: rgba(33, 150, 243, 0.85);  /* #2196F3 + 85% 不透明度 */
-        color: white;
-        font-size: 18px;
-        border-radius: 6px;
-      }
-    )");
+                             QLabel {
+                             background-color: rgba(33, 150, 243, 0.85);  /* #2196F3 + 85% 不透明度 */
+                             color: white;
+                             font-size: 18px;
+                             border-radius: 6px;
+                             }
+                             )");
 
     QString loc = DatabaseManager::instance().getLocationBySensorId(m_serial);
 
     m_isLeft = (loc == "left");
-//    qDebug()<<" "<<m_isLeft;
+    //    qDebug()<<" "<<m_isLeft;
 
     //根据左右来移动到正确位置，比如右侧偏上
     if (m_isLeft) {
         sideLabel->setText(tr("左"));
         // 左侧居中偏左
-        sideLabel->move( 40, 2*(secondLeftWidget->height() - sideLabel->height())/3);
+        sideLabel->move( 40, 2*(posWidget->height() - sideLabel->height())/3);
     } else {
         sideLabel->setText(tr("右"));
         // 右侧居中偏右
         sideLabel->move(
-                    (secondLeftWidget->width() - sideLabel->width() - 40),
-                    2*(secondLeftWidget->height() - sideLabel->height())/3
+                    (posWidget->width() - sideLabel->width() - 40),
+                    2*(posWidget->height() - sideLabel->height())/3
                     );
     }
     sideLabel->show();
 
-    //右二：数据显示区域
-    QWidget *secondRightWidget = new QWidget;
-    secondRightWidget->setFixedSize(260*scaleX,120*scaleY);
-    QHBoxLayout *secondRightLayout = new QHBoxLayout(secondRightWidget);
-    //定义控件
-    bpVal   = new QLabel(tr("血压\n0.00/0.00"), this);
+    // 右二：数据显示
+    QWidget *dataWidget = new QWidget;
+    dataWidget->setFixedSize(260*scaleX, 120*scaleY);
+    dataWidget->setStyleSheet(DARK_CARD_STYLE);
+    QHBoxLayout *dataLayout = new QHBoxLayout(dataWidget);
+
+    bpVal = new QLabel(tr("血压\n0.00/0.00"), this);
     bpVal->setFixedSize(110*scaleX,45*scaleY);
-    avgVal  = new QLabel(tr("平均\n0.00"),    this);
+    avgVal = new QLabel(tr("平均\n0.00"), this);
     avgVal->setFixedSize(110*scaleX,45*scaleY);
-    hrVal   = new QLabel(tr("心率\n0.00"),    this);
+    hrVal = new QLabel(tr("心率\n0.00"), this);
     hrVal->setFixedSize(110*scaleX,45*scaleY);
     statisticsbtn = new QPushButton(tr("读数记录"));
-    statisticsbtn->setFixedSize(110*scaleX,45*scaleY);
 
     QString cardLabelStyle = R"(
         QLabel {
@@ -232,534 +192,554 @@ ImplantMonitor::ImplantMonitor(QWidget *parent , const QString &sensorId) : Fram
             padding: 2px;
         }
     )";
-
     bpVal->setStyleSheet(cardLabelStyle);
     avgVal->setStyleSheet(cardLabelStyle);
     hrVal->setStyleSheet(cardLabelStyle);
 
-    QVBoxLayout *firstDataLayout = new QVBoxLayout;
-    firstDataLayout->addWidget(bpVal, 0, Qt::AlignCenter);
-    firstDataLayout->addWidget(avgVal, 0, Qt::AlignCenter);
-//    firstDataLayout->addSpacing(15);
-    QVBoxLayout *secondDataLayout = new QVBoxLayout;
-    secondDataLayout->addWidget(hrVal, 0, Qt::AlignCenter);
-    secondDataLayout->addWidget(statisticsbtn, 0, Qt::AlignCenter);
-    secondRightLayout->addLayout(firstDataLayout, Qt::AlignVCenter);
-    secondRightLayout->addLayout(secondDataLayout);
+    statisticsbtn->setStyleSheet(R"(
+        QPushButton {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 rgba(180,180,255,40), stop:1 rgba(120,130,200,30));
+            color: white; font-size: 14px; border: 1px solid rgba(255,255,255,40);
+            border-radius: 8px; padding: 2px 5px;
+        }
+        QPushButton:pressed { background: rgba(100,120,200,50); }
+    )");
+    statisticsbtn->setFixedSize(110*scaleX, 45*scaleY);
 
-    //右一：按钮显示区域
-    QWidget *firstRightWidget = new QWidget;
-    firstRightWidget->setFixedHeight(120*scaleY);
-    QHBoxLayout *btntotalLayout = new QHBoxLayout(firstRightWidget);
-    //定义按钮
+    QVBoxLayout *bpAvgLayout = new QVBoxLayout;
+    bpAvgLayout->addWidget(bpVal, 0, Qt::AlignCenter);
+    bpAvgLayout->addWidget(avgVal, 0, Qt::AlignCenter);
+
+    QVBoxLayout *hrStatLayout = new QVBoxLayout;
+    hrStatLayout->addWidget(hrVal, 0, Qt::AlignCenter);
+    hrStatLayout->addWidget(statisticsbtn, 0, Qt::AlignCenter);
+
+    dataLayout->addLayout(bpAvgLayout, Qt::AlignVCenter);
+    dataLayout->addLayout(hrStatLayout);
+
+    // 右一：操作按钮
+    QWidget *btnWidget = new QWidget;
+    btnWidget->setFixedHeight(120*scaleY);
+    btnWidget->setStyleSheet(DARK_CARD_STYLE);
+    QHBoxLayout *btnLayout = new QHBoxLayout(btnWidget);
+
     startBtn = new QPushButton(tr("开始测量"));
-    startBtn->setFixedSize(150*scaleX,45*scaleY);
-    inputCO = new QPushButton(tr("输入心输出量"));
-    inputCO->setFixedSize(150*scaleX,45*scaleY);
+//    inputCO = new QPushButton(tr("输入心输出量"));
+    inputCO = new QPushButton(tr("导出本次数据"));
     inputRHC = new QPushButton(tr("输入RHC"));
-    inputRHC->setFixedSize(150*scaleX,45*scaleY);
     statBtn = new QPushButton(tr("审计界面"));
 
-    //将控件放入布局
-    QVBoxLayout *btnLiftLayout = new QVBoxLayout;
-    btnLiftLayout->addWidget(inputCO);
-    btnLiftLayout->addSpacing(10*scaleY);//添加空白区域
-    btnLiftLayout->addWidget(inputRHC);
-    QVBoxLayout *btnRRightLayout = new QVBoxLayout;
-    btnRRightLayout->addWidget(startBtn);
-    btnRRightLayout->addSpacing(10*scaleY);
-    btnRRightLayout->addWidget(statBtn);
-    btntotalLayout->addLayout(btnLiftLayout);
-    btntotalLayout->addLayout(btnRRightLayout);
+    startBtn->setStyleSheet(R"(
+        QPushButton {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #66FF66, stop:1 #33CC33);
+            color: white; font-size: 16px; font-weight: bold;
+            border: 2px solid #228822; border-radius: 10px; padding: 2px 5px;
+        }
+        QPushButton:pressed { background: #2EA836; padding-top: 12px; padding-bottom: 8px; }
+    )");
+    QString secBtnStyle = R"(
+        QPushButton {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 rgba(180,180,255,40), stop:1 rgba(120,130,200,30));
+            color: white; font-size: 14px; border: 1px solid rgba(255,255,255,40);
+            border-radius: 8px; padding: 2px 5px;
+        }
+        QPushButton:pressed { background: rgba(100,120,200,50); }
+    )";
+    inputCO->setStyleSheet(secBtnStyle);
+    inputRHC->setStyleSheet(secBtnStyle);
+    statBtn->setStyleSheet(secBtnStyle);
 
-    //连接信号与槽
+    startBtn->setFixedSize(150*scaleX, 45*scaleY);
+    inputCO->setFixedSize(150*scaleX, 45*scaleY);
+    inputRHC->setFixedSize(150*scaleX, 45*scaleY);
+    statBtn->setFixedSize(150*scaleX, 45*scaleY);
+
+    QVBoxLayout *leftBtns = new QVBoxLayout;
+    leftBtns->addWidget(inputCO);
+    leftBtns->addSpacing(10*scaleY);
+    leftBtns->addWidget(inputRHC);
+
+    QVBoxLayout *rightBtns = new QVBoxLayout;
+    rightBtns->addWidget(startBtn);
+    rightBtns->addSpacing(10*scaleY);
+    rightBtns->addWidget(statBtn);
+
+    btnLayout->addLayout(leftBtns);
+    btnLayout->addLayout(rightBtns);
+
+    // 组装底部布局
+    bottomLayout->addSpacing(15*scaleX);
+    bottomLayout->addWidget(signalWidget);
+    bottomLayout->addSpacing(15*scaleX);
+    bottomLayout->addWidget(posWidget);
+    bottomLayout->addSpacing(15*scaleX);
+    bottomLayout->addWidget(dataWidget);
+    bottomLayout->addSpacing(15*scaleX);
+    bottomLayout->addWidget(btnWidget);
+    bottomLayout->addSpacing(15*scaleX);
+
+    mainLayout->addWidget(topWidget);
+    mainLayout->addWidget(middleWidget);
+    mainLayout->addLayout(bottomLayout);
+
+    // 6. 信号连接
     connect(inputCO, &QPushButton::clicked, this, &ImplantMonitor::openCOClicked);
     connect(inputRHC, &QPushButton::clicked, this, &ImplantMonitor::openRHCClicked);
     connect(startBtn, &QPushButton::clicked, this, &ImplantMonitor::startMeasurement);
     connect(statBtn, &QPushButton::clicked, this, &ImplantMonitor::openReviewClicked);
+    connect(statisticsbtn, &QPushButton::clicked, this, &ImplantMonitor::onReadoutButtonClicked);
 
-    //放置布局
-    bottomLayout->addSpacing(15*scaleX);
-    bottomLayout->addWidget(firstLeftWidget);
-    bottomLayout->addSpacing(15*scaleX);
-    bottomLayout->addWidget(secondLeftWidget);
-    bottomLayout->addSpacing(15*scaleX);
-    bottomLayout->addWidget(secondRightWidget);
-    bottomLayout->addSpacing(15*scaleX);
-    bottomLayout->addWidget(firstRightWidget);
-    bottomLayout->addSpacing(15*scaleX);
-
-    mainLayout->addWidget(topwidget);
-    mainLayout->addWidget(middlewidget);
-    mainLayout->addLayout(bottomLayout);
-
-    QString darkCardStyle = R"(
-    QWidget {
-    background-color: qlineargradient(
-        x1: 0, y1: 0, x2: 0, y2: 1,
-        stop: 0 rgba(25, 50, 75, 0.9),
-        stop: 1 rgba(10, 20, 30, 0.85)
-    );
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.08); /* 边缘高光 */
-}
-    )";
-
-    firstLeftWidget->setStyleSheet(darkCardStyle);
-//    secondLeftWidget->setStyleSheet(darkCardStyle);
-    secondRightWidget->setStyleSheet(darkCardStyle);
-    firstRightWidget->setStyleSheet(darkCardStyle);
-
-    middlewidget->setStyleSheet(darkCardStyle);
-
-    statBtn->setStyleSheet(R"(
-        QPushButton {
-            background-color: rgba(255, 255, 255, 0.08);
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 8px;
-            padding: 8px 20px;
-        }
-        QPushButton:pressed {
-            background-color: rgba(255, 255, 255, 0.2);
-        }
-    )");
-
-    statBtn->setFixedSize(150*scaleX,45*scaleY);
-    startBtn->setStyleSheet(R"(
-        QPushButton {
-            background-color: qlineargradient(
-                x1: 0, y1: 0, x2: 0, y2: 1,
-                stop: 0 #66FF66,
-                stop: 1 #33CC33
-            );
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            border: 2px solid #228822;
-            border-radius: 10px;
-            padding: 2px 5px;
-        }
-        QPushButton:pressed {
-            background-color: #2EA836;
-            padding-top: 12px;
-            padding-bottom: 8px;
-        }
-    )");
-
-    QString secondaryBtnStyle = R"(
-        QPushButton {
-            background-color: qlineargradient(
-                x1: 0, y1: 0, x2: 0, y2: 1,
-                stop: 0 rgba(180, 180, 255, 40),
-                stop: 1 rgba(120, 130, 200, 30)
-            );
-            color: white;
-            font-size: 14px;
-            border: 1px solid rgba(255, 255, 255, 40);
-            border-radius: 8px;
-            padding: 2px 5px;
-        }
-        QPushButton:pressed {
-            background-color: rgba(100, 120, 200, 50);
-        }
-    )";
-    inputCO->setStyleSheet(secondaryBtnStyle);
-    inputRHC->setStyleSheet(secondaryBtnStyle);
-    statBtn->setStyleSheet(secondaryBtnStyle);
-    statisticsbtn->setStyleSheet(secondaryBtnStyle);
-    
-    connect(statisticsbtn, &QPushButton::clicked,this,&ImplantMonitor::onReadoutButtonClicked);
+//    //测试代码-----------------
+//    connect(g_DeviceAcquisitionWorker,
+//            &DeviceAcquisitionWorker::acquisitionStoppedData,
+//            this,
+//            &ImplantMonitor::onAcquisitionStoppedData,
+//            Qt::QueuedConnection);
 }
 
-ImplantMonitor::~ImplantMonitor(){
+ImplantMonitor::~ImplantMonitor() {}
 
-}
-
-void ImplantMonitor::openCOClicked()
-{
-
-    //添加遮罩层
-    QWidget *overlay = new QWidget(this);
-//    overlay->setGeometry(this->rect());
-    overlay->setStyleSheet("background-color: rgba(0, 0, 0, 100);"); // 可调透明度
-    overlay->setAttribute(Qt::WA_TransparentForMouseEvents, false); // 拦截事件
-    overlay->show();
-    overlay->raise();
-
-    //添加模糊效果
-    QGraphicsBlurEffect *blur = new QGraphicsBlurEffect;
-    blur->setBlurRadius(20);  // 可调强度：20~40
-    this->setGraphicsEffect(blur);
-
-    CardiacOutputDialog *cardiacoutputdialog = new CardiacOutputDialog("15","0",this);
-    cardiacoutputdialog->setAttribute(Qt::WA_DeleteOnClose);       // 自动销毁
-
-    // 监听关闭信号
-    connect(cardiacoutputdialog, &QDialog::finished, this, [=]() {
-        this->setGraphicsEffect(nullptr);
-        overlay->close();
-        overlay->deleteLater();
-    });
-
-    cardiacoutputdialog->show();
-}
-
-void ImplantMonitor::openRHCClicked()
-{
-    //添加遮罩层
-    QWidget *overlay = new QWidget(this);
-//    overlay->setGeometry(this->rect());
-    overlay->setStyleSheet("background-color: rgba(0, 0, 0, 100);"); // 可调透明度
-    overlay->setAttribute(Qt::WA_TransparentForMouseEvents, false); // 拦截事件
-    overlay->show();
-    overlay->raise();
-
-    //添加模糊效果
-    QGraphicsBlurEffect *blur = new QGraphicsBlurEffect;
-    blur->setBlurRadius(20);  // 可调强度：20~40
-    this->setGraphicsEffect(blur);
-
-    RHCInputDialog *dialog = new RHCInputDialog(this);
-//    dialog->setAttribute(Qt::WA_DeleteOnClose);       // 自动销毁
-
-    // dialog->setWindowModality(Qt::WindowModal);    //  不要设置
-
-    // 监听关闭信号
-    connect(dialog, &QDialog::finished, this, [=]() {
-        this->setGraphicsEffect(nullptr);
-        overlay->close();
-        overlay->deleteLater();
-    });
-
-    dialog->show();
-}
-
-void ImplantMonitor::onReadoutButtonClicked() {
-    if (!readoutdialog) {
-        readoutdialog = new ReadoutRecordDialog(this);
-         readoutdialog->setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
-        // 这里把整个列表一次性传给对话框
-        connect(this, &ImplantMonitor::dataListUpdated,readoutdialog, &ReadoutRecordDialog::populateData);
-        connect(readoutdialog, &ReadoutRecordDialog::rowDeleted,this, &ImplantMonitor::onRowDeleted);
-        connect(readoutdialog, &ReadoutRecordDialog::onRefreshButtonClicked, this, [this]() {
-            qDebug() << "返回植入位置界面";
-            measurementList.clear();
-            emit returnImplantationsite();
-                this->close();
-        });
-    }
-    // 触发对话框更新
-    emit dataListUpdated(measurementList);
-    readoutdialog->show();
-}
-
-//删除结构体中对应的数据
-void ImplantMonitor::onRowDeleted(int row)
-{
-    if (row < 0 || row >= measurementList.size())
-        return;
-
-    // 从容器里删掉这一条
-    measurementList.removeAt(row);
-
-    // 重新给每条数据排 order
-    for (int i = 0; i < measurementList.size(); ++i)
-        measurementList[i].order = i + 1;
-
-    // 推送最新列表，让对话框刷新
-    emit dataListUpdated(measurementList);
-}
-
-//开始生成波形数据
+// 核心逻辑：主动控制测量流程
 void ImplantMonitor::startMeasurement() {
-    qDebug() << "进入 startMeasurement";
-
-    // 如果正在测量，直接返回，防止重复启动
     if (isMeasuring) {
-        qDebug() << "测量已经在进行中，重复点击被忽略。";
+        MedicalLogger::instance()->writeLog(
+               "Measurement",
+               MedicalLogger::LOG_WARN,
+               "Measurement already in progress, duplicate click ignored",
+               " ",
+               m_serial
+           );
         return;
     }
-
     isMeasuring = true;
-    qDebug() << "设置 isMeasuring 为 true";
 
-    // 初始化数据
-    currentTime = 0;
-    points.clear();
-    maxValue = 0.0;
-    minValue = 0.0;
-    avgValue = 0.0;
-    heartRate = 0.0;
-    qDebug() << "初始化数据完成";
+    m_plotPoints.clear();
 
-    // 清空图表
-    if (plot) {
-        qDebug() << "plot 非空，尝试 setData 和 replot";
-        plot->setData(points);
-        plot->replot();
-    } else {
-        qDebug() << "plot 为空！！！";
-    }
+//    plot->clearSimpleData(); // 清空plot显示
+    plot->replot();
 
-    // 清空标签
-    if (bpVal) {
-        bpVal->setText(tr("血压\n0.00/0.00"));
-        qDebug() << "清空 bpVal 标签";
-    } else {
-        qDebug() << "bpVal 是空指针！！！";
-    }
+    bpVal->setText(tr("血压\n0.00/0.00"));
+    avgVal->setText(tr("平均\n0.00"));
+    hrVal->setText(tr("心率\n0.00"));
+    startBtn->setText(tr("测量中..."));
+    startBtn->setEnabled(false);
 
-    if (avgVal) {
-        avgVal->setText(tr("平均\n0.00"));
-        qDebug() << "清空 avgVal 标签";
-    } else {
-        qDebug() << "avgVal 是空指针！！！";
-    }
-
-    if (hrVal) {
-        hrVal->setText(tr("心率\n0.00"));
-        qDebug() << "清空 hrVal 标签";
-    } else {
-        qDebug() << "hrVal 是空指针！！！";
-    }
-
-    // 停止并删除已有定时器（如果存在）
-    if (measurementTimer) {
-        measurementTimer->stop();
-
-        // ✅ 更安全方式：只断开某一个信号-槽连接
-        if (!measurementTimer->signalsBlocked()) {
-            disconnect(measurementTimer, &QTimer::timeout, this, &ImplantMonitor::updateWaveform);
-        }
-    } else {
-        measurementTimer = new QTimer(this);
-    }
-
-
-    // 重新连接并启动定时器
-    connect(measurementTimer, &QTimer::timeout, this, &ImplantMonitor::updateWaveform);
-    qDebug() << "[startMeasurement] measurementTimer 连接 updateWaveform，开始启动";
-    measurementTimer->start(1000);
+    // 启动线程（队列调用，确保线程安全）
+    initWorkersAndConnections();
 }
 
-
-void ImplantMonitor::updateWaveform() {
-    qDebug() << ">>> updateWaveform called";
-    qDebug() << "points size before append:" << points.size();
-
-    points.append(QPointF(currentTime, qrand() % 81)); // 生成0到80之间的随机数，模拟波形数据
-
-    qDebug() << "points size after append:" << points.size();
-    qDebug() << "currentTime =" << currentTime;
-
-    // 每秒增加一个数据点
-    if (points.isEmpty()) {
-        qDebug() << "points is empty after append! Unexpected!";
-        return;  // 避免访问空数组，防止崩溃
-    }
-
-    // 计算最大值和最小值
-    maxValue = points[0].y();
-    minValue = points[0].y();
-    avgValue = 0;
-    heartRate = 0;
-
-    qDebug() << "maxValue =" << maxValue << ", minValue =" << minValue;
-
-    for (const auto& point : points) {
-        if (point.y() > maxValue) {
-            maxValue = point.y();  // 更新最大值
-        }
-        if (point.y() < minValue) {
-            minValue = point.y();  // 更新最小值
-        }
-    }
-
-    // 计算平均值
-    double sum = 0;
-    for (const auto &point : points) {
-        sum += point.y();
-    }
-
-
-    avgValue = sum / points.size();
-
-    // 计算心率
-    heartRate = calculateHeartRate();
-
-    // 格式化为两位小数的字符串
-    QString bpText = QString(tr("血压\n%1/%2"))
-                         .arg(QString::number(maxValue, 'f', 2))
-                         .arg(QString::number(minValue, 'f', 2));
-    QString avgText = QString(tr("平均\n%1"))
-                         .arg(QString::number(avgValue, 'f', 2));
-    QString hrText = QString(tr("心率\n%1"))
-                         .arg(QString::number(heartRate, 'f', 2));
-
-    // 实时刷新 label
-    bpVal->setText(bpText);
-    avgVal->setText(avgText);
-    hrVal->setText(hrText);
-
-    // 设置新的波形数据到plot
-    plot->setData(points);
-    qDebug() << "plot setData OK";
-
-    // 更新图表
-    plot->replot();
-    qDebug() << "plot replot OK";
-
-    // 增加时间
-    currentTime++;
-
-    // 假设当时间超过180秒时停止
-    if (currentTime > 60) {
-
-        //停止定时器
-        measurementTimer->stop(); // 停止定时器
+void ImplantMonitor::initWorkersAndConnections() {
+    // 前置检查：全局工作对象必须有效
+    if (!g_MeasurementDataProcessor || !g_DeviceAcquisitionWorker) {
+        MedicalLogger::instance()->writeLog(
+            "Threading",
+            MedicalLogger::LOG_ERROR,
+            "Global worker object not initialized, thread startup aborted",
+            " ",
+            "System"
+        );
+        // 回滚前端状态
         isMeasuring = false;
-
-        //添加遮罩层
-        QWidget *overlay = new QWidget(this);
-        overlay->setGeometry(this->rect());
-        overlay->setStyleSheet("background-color: rgba(0, 0, 0, 100);");
-        overlay->setAttribute(Qt::WA_TransparentForMouseEvents, false);
-        overlay->show();
-        overlay->raise();
-
-        // 3. 添加模糊效果
-        QGraphicsBlurEffect *blur = new QGraphicsBlurEffect;
-        blur->setBlurRadius(20);
-        this->setGraphicsEffect(blur);
-
-        // 4. 弹出测量完成确认对话框（带“取消”和“保存”两个按钮）
-        CustomMessageBox confirmDlg(
-                    this,
-                    tr("测量完成"),
-                    tr("测量已完成，是否保存数据？"),
-        { tr("取 消"), tr("保 存") },
-                    350 * scaleX
-                    );
-
-        if (confirmDlg.exec() == QDialog::Accepted) { // 用户选中“保存”
-          // 执行保存逻辑
-            openSaveConfirm();
-        }
-        // 如果用户选“取消”，就直接回到界面，不做额外处理
-
-        // 5. 清除遮罩和模糊
-        this->setGraphicsEffect(nullptr);
-        overlay->close();
-        overlay->deleteLater();
-
-        // 至此，不再继续往下执行本次 updateWaveform
+        startBtn->setText(tr("开始测量"));
+        startBtn->setEnabled(true);
         return;
     }
-}
 
-    //简单的心率计算
-double ImplantMonitor::calculateHeartRate() {
-    int peaks = 0;
-    for (int i = 1; i < points.size() - 1; ++i) {
-        if (points[i].y() > points[i - 1].y() && points[i].y() > points[i + 1].y()) {
-            peaks++;
+    // 阶段1：优先完成所有信号连接（确保数据链路就绪）
+    // 1.1 数据处理器→前端波形更新（唯一连接，避免重复）
+    static bool isDataParsedConnected = false;
+    if (!isDataParsedConnected) {
+        bool ok1 = connect(g_MeasurementDataProcessor, &MeasurementDataProcessor::dataParsed,
+                                   this, &ImplantMonitor::updateWaveform, Qt::UniqueConnection);
+//        qDebug() << "[初始化] dataParsed→updateWaveform 连接结果：" << ok1;
+        isDataParsedConnected = ok1;  // 仅当连接成功才标记
+        if (!ok1) {
+//            qCritical() << "[初始化] 前端波形更新连接失败！";
+            return;
         }
     }
-    return peaks * 60.0 / points.size();  // 假设每个峰值代表一个心跳，计算心率
+
+    // 1.2 接收线程→数据处理器（核心数据链路，唯一连接）
+    static bool isMag5DataConnected = false;
+    if (!isMag5DataConnected) {
+        bool ok2 = connect(
+                    g_DeviceAcquisitionWorker,
+                    &DeviceAcquisitionWorker::mag5DataReceived,
+                    g_MeasurementDataProcessor,
+                    &MeasurementDataProcessor::parseData,
+                    Qt::QueuedConnection // 跨线程
+                );
+//        qDebug() << "[初始化] mag5DataReceived→parseData 连接结果：" << ok2;
+        isMag5DataConnected = ok2;  // 仅当连接成功才标记
+        if (!ok2) {
+//            qCritical() << "[初始化] 核心数据处理链路连接失败！";
+            return;
+        }
+    }
+
+    // 阶段2：启动数据处理器（使用startMeasurement中初始化的时间基准）
+    bool invokeOk = QMetaObject::invokeMethod(
+        g_MeasurementDataProcessor, "setMeasuring",
+        Qt::QueuedConnection,
+        Q_ARG(bool, true)  // 复用前端已初始化的时间
+    );
+//    qDebug() << "[初始化] 启动数据处理器（setMeasuring）：" << invokeOk;
+    if (!invokeOk) {
+//        qCritical() << "[初始化] 数据处理器启动失败！";
+        // 回滚状态
+        isMeasuring = false;
+        startBtn->setText(tr("开始测量"));
+        startBtn->setEnabled(true);
+        return;
+    }
+
+    // 阶段3：启动UDP接收（先停止旧任务，避免资源冲突）
+    // 3.1 停止可能存在的旧接收任务
+    QMetaObject::invokeMethod(
+        g_DeviceAcquisitionWorker, "stopAcquisition",  // 假设存在停止方法
+        Qt::QueuedConnection
+    );
+
+    // 3.2 启动新的接收任务
+    bool startOk = QMetaObject::invokeMethod(
+        g_DeviceAcquisitionWorker, "startAcquisition",
+        Qt::QueuedConnection
+    );
+//    qDebug() << "[初始化] 启动UDP接收：" << startOk;
+    if (!startOk) {
+//        qCritical() << "[初始化] UDP接收启动失败！";
+        // 回滚状态
+        QMetaObject::invokeMethod(g_MeasurementDataProcessor, "setMeasuring", Qt::QueuedConnection, Q_ARG(bool, false));
+        isMeasuring = false;
+        startBtn->setText(tr("开始测量"));
+        startBtn->setEnabled(true);
+        return;
+    }
+//    connect(g_MeasurementDataProcessor, &MeasurementDataProcessor::measureFinished,
+//            g_DeviceAcquisitionWorker,   &DeviceAcquisitionWorker::stopAcquisition,
+//            Qt::QueuedConnection);
+    connect(g_MeasurementDataProcessor, &MeasurementDataProcessor::measureFinished,
+            this, &ImplantMonitor::stopMeasurement,
+            Qt::QueuedConnection);
 }
 
-void ImplantMonitor::openSaveConfirm(){
+void ImplantMonitor::updateWaveform(const MeasurementData &data) {
+    if (!isMeasuring || data.points.isEmpty()) return;
 
-    // 执行保存后的逻辑
+    for (const QPointF &pt : data.points) {
+        m_plotPoints.append(pt); // 只存一份数据
+    }
+    plot->setLiveMode(true, /*windowSec=*/8.0); // 例如 8 秒窗口
+
+    plot->setSimpleData(m_plotPoints);
+
+    // 更新数值显示
+    if (bpVal) {
+        bpVal->setText(tr("血压\n%1/%2").arg(data.sensorSystolic).arg(data.sensorDiastolic));
+    }
+    if (avgVal) {
+        avgVal->setText(tr("平均\n%1").arg(data.sensorAvg));
+    }
+    if (hrVal) {
+        hrVal->setText(tr("心率\n%1").arg(data.heartRate));
+    }
+}
+
+void ImplantMonitor::stopMeasurement() {
+    MedicalLogger::instance()->writeLog(
+        "Measurement",                        // 模块：与测量相关
+        MedicalLogger::LOG_INFO,              // 日志等级：信息
+        "Measurement stopped",                 // 日志内容：停止测量
+        " ",                    // 操作员 ID（未登录时用占位符）
+        "UI"                                   // 传感器/子系统 ID（此处为 UI 操作）
+    );
+    if (!isMeasuring) return;
+    isMeasuring = false;
+
+    // 恢复按钮状态
+    startBtn->setText(tr("开始测量"));
+    startBtn->setEnabled(true);
+
+    // 停 UDP 采集（跨线程排队）
+    QMetaObject::invokeMethod(g_DeviceAcquisitionWorker, "stopAcquisition",
+                              Qt::QueuedConnection);
+
+//    // 停数据处理（跨线程排队）
+//    QMetaObject::invokeMethod(g_MeasurementDataProcessor, "stopMeasuring",
+//                              Qt::QueuedConnection);
+
+    plot->setLiveMode(false);      // 关闭实时滚动
+
+    plot->showFullSimpleWaveform();
+
+//     保存提示弹窗
+    CustomMessageBox dlg(this, tr("提示"), tr("数据保存成功"),
+                         {tr("确 认"), tr("取 消")}, 350 * scaleX);
+    int result = dlg.exec();
+    if (result == 1) { // 点击“确认”
+        openSaveConfirm();
+        MedicalLogger::instance()->writeLog(
+            "DataSave",                    // 模块名：与数据保存相关
+            MedicalLogger::LOG_INFO,        // 日志等级：信息
+            "User confirmed the data save", // 日志内容：用户确认保存数据
+            "UnknownOperator",              // 操作员 ID（未登录时使用占位符）
+            "UI"                            // 来源：UI 操作
+        );
+    }
+}
+
+void ImplantMonitor::openSaveConfirm() {
     MeasurementData data;
-
-    //取值
-    // 获取当前时间点的 QDateTime
     QDateTime now = QDateTime::currentDateTime();
-    // 字符串形式
-    QString nowStr = now.toString("yyyy-MM-dd HH:mm:ss");
-
-    data.timestamp = nowStr;
+    data.timestamp = now.toString("yyyy-MM-dd HH:mm:ss");
     data.sensorId = idLabel->text();
-    data.sensorSystolic   = QString::number(maxValue,  'f', 2);
-    data.sensorDiastolic  = QString::number(minValue,  'f', 2);
-    data.sensorAvg        = QString::number(avgValue,  'f', 2);
-    data.heartRate        = QString::number(heartRate,'f', 2);
-    data.points           = this->points;
 
-    data.order = measurementList.size() + 1;   // 给新条目标号
+    // 解析血压（格式："血压\n120.00/80.00"）
+    if (bpVal) {
+        QStringList bpParts = bpVal->text().split("\n")[1].split("/");
+        if (bpParts.size() == 2) {
+            data.sensorSystolic = bpParts[0].trimmed();
+            data.sensorDiastolic = bpParts[1].trimmed();
+        }
+    }
+
+    // 解析平均压（格式："平均\n93.33"）
+    if (avgVal) {
+        data.sensorAvg = avgVal->text().split("\n")[1].trimmed();
+    }
+
+    // 解析心率（格式："心率\n75.00"）
+    if (hrVal) {
+        data.heartRate = hrVal->text().split("\n")[1].trimmed();
+    }
+
+    // 波形数据与序号
+    data.points = m_plotPoints;
+    data.order = measurementList.size() + 1;
     measurementList.append(data);
 
-    //创建提示弹窗
+    // 提示 + 通知表格更新
     CustomMessageBox successDlg(
         this,
         tr("提示"),
         tr("数据保存成功"),
-        { tr("确 认") },
-        350*scaleX      // 对话框宽度
+        {tr("确 认")},
+        350 * scaleX
     );
-    successDlg.exec();  // 用户点“确认”后才会继续
-    // 6. 保存成功后，可以选择关闭窗口或其他逻辑
-//    this->close();
+    successDlg.exec();
+    emit dataListUpdated(measurementList);
 }
 
-void ImplantMonitor::openReviewClicked()
-{
-   if (!reviewwidget) {
-   reviewwidget = new ReviewWidget(nullptr,m_serial);
-   connect(reviewwidget,&ReviewWidget::returnToImplantmonitor,this,[this](){
-       reviewwidget->setDataList(measurementList);
-       reviewwidget->hide();
-       this->show();
-       reviewwidget->close();
-   });}
+void ImplantMonitor::openCOClicked() {
+//    QWidget *overlay = new QWidget(this);
+//    overlay->setStyleSheet("background: rgba(0,0,0,100);");
+//    overlay->setAttribute(Qt::WA_TransparentForMouseEvents, false);
+//    overlay->show();
+//    overlay->raise();
 
-   reviewwidget->setDataList(measurementList);
-   reviewwidget->setFixedSize(1024*scaleX,600*scaleY);
-   reviewwidget->show();
-   this->hide();
+//    QGraphicsBlurEffect *blur = new QGraphicsBlurEffect;
+//    blur->setBlurRadius(20);
+//    setGraphicsEffect(blur);
+
+//    CardiacOutputDialog *dlg = new CardiacOutputDialog("15", "0", this);
+//    dlg->setAttribute(Qt::WA_DeleteOnClose);
+//    connect(dlg, &QDialog::finished, this, [=]() {
+//        setGraphicsEffect(nullptr);
+//        overlay->close();
+//        overlay->deleteLater();
+//    });
+//    dlg->show();
+    exportCurrentData();
 }
 
+void ImplantMonitor::openRHCClicked() {
+    MedicalLogger::instance()->writeLog(
+        "RHCInputDialog",                      // 模块：与测量相关
+        MedicalLogger::LOG_INFO,            // 日志等级：信息
+        "RHC Input dialog opened",          // 日志内容：打开 RHC 输入对话框
+        " ",                  // 操作员 ID（未登录时使用占位符）
+        "UI"                                // 来源：UI 操作
+    );
+    QWidget *overlay = new QWidget(this);
+    overlay->setStyleSheet("background: rgba(0,0,0,100);");
+    overlay->setAttribute(Qt::WA_TransparentForMouseEvents, false);
+    overlay->show();
+    overlay->raise();
+
+    QGraphicsBlurEffect *blur = new QGraphicsBlurEffect;
+    blur->setBlurRadius(20);
+    setGraphicsEffect(blur);
+
+    RHCInputDialog *dlg = new RHCInputDialog(this);
+    connect(dlg, &QDialog::finished, this, [=]() {
+        setGraphicsEffect(nullptr);
+        overlay->close();
+        overlay->deleteLater();
+    });
+    dlg->show();
+}
+
+void ImplantMonitor::onReadoutButtonClicked() {
+    MedicalLogger::instance()->writeLog(
+        "ReadoutRecordDialog",                      // 模块名：与测量相关
+        MedicalLogger::LOG_INFO,            // 日志等级：信息
+        "Readout button clicked",           // 日志内容：用户点击了读数按钮
+        " ",                  // 操作员 ID（未登录时使用占位符）
+        "UI"                                // 来源：UI 操作
+    );
+    if (!readoutdialog) {
+        readoutdialog = new ReadoutRecordDialog(this);
+        readoutdialog->setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
+        connect(this, &ImplantMonitor::dataListUpdated, readoutdialog, &ReadoutRecordDialog::populateData);
+        connect(readoutdialog, &ReadoutRecordDialog::rowDeleted, this, &ImplantMonitor::onRowDeleted);
+        connect(readoutdialog, &ReadoutRecordDialog::onRefreshButtonClicked, this, [this]() {
+            measurementList.clear();
+            emit returnImplantationsite();
+            close();
+        });
+    }
+    emit dataListUpdated(measurementList);
+    readoutdialog->show();
+}
+
+void ImplantMonitor::onRowDeleted(int row) {
+    if (row < 0 || row >= measurementList.size()) return;
+
+    measurementList.removeAt(row);
+    for (int i = 0; i < measurementList.size(); ++i) {
+        measurementList[i].order = i + 1;
+    }
+    emit dataListUpdated(measurementList);
+    MedicalLogger::instance()->writeLog(
+        "ImplantMonitor",                      // 模块名：与测量相关
+        MedicalLogger::LOG_INFO,            // 日志等级：信息
+        QString("Row %1 deleted").arg(row), // 日志内容：删除了第几行
+        " ",                  // 操作员 ID（未登录时使用占位符）
+        "UI"                                // 来源：UI 操作
+    );
+}
+
+void ImplantMonitor::openReviewClicked() {
+
+    if (!reviewwidget) {
+        reviewwidget = new ReviewWidget(nullptr, m_serial);
+        connect(reviewwidget, &ReviewWidget::returnToImplantmonitor, this, [this]() {
+                reviewwidget->setDataList(measurementList);
+                this->show();
+            QTimer::singleShot(300, this, [this]() {
+                reviewwidget->hide();
+                reviewwidget->close();
+            });
+        });
+    }
+    reviewwidget->setDataList(measurementList);
+    reviewwidget->setFixedSize(1024*scaleX, 600*scaleY);
+    reviewwidget->show();
+    MedicalLogger::instance()->writeLog(
+        "ImplantMonitor",                      // 模块：与测量相关
+        MedicalLogger::LOG_INFO,            // 日志等级：信息
+        "Review window opened",             // 日志内容：打开回顾界面
+        " ",                  // 操作员 ID（未登录时使用占位符）
+        "UI"                                // 来源：UI 操作
+    );
+    QTimer::singleShot(200, this, [this]() {
+        this->hide();
+    });
+}
 
 void ImplantMonitor::OpenSettingsRequested() {
-    settingswidget = new SettingsWidget();
-    settingswidget->setWindowFlags(Qt::Dialog);
-    settingswidget->setAttribute(Qt::WA_DeleteOnClose);
-    settingswidget->show();
+    SettingsWidget *dlg = new SettingsWidget();
+    dlg->setWindowFlags(Qt::Dialog);
+    dlg->setAttribute(Qt::WA_DeleteOnClose);
+    connect(dlg, &SettingsWidget::signalStrengthChanged, this, [this](int v) {
+        if (progressBar) progressBar->setThreshold(v);
+        QSettings s("MyCompany", "MyApp");
+        s.setValue("system/signalStrength", v);
+        s.sync();
+    });
+    dlg->show();
+    MedicalLogger::instance()->writeLog(
+        "Settings",                         // 模块：与设置相关
+        MedicalLogger::LOG_INFO,            // 日志等级：信息
+        "Settings window opened",           // 日志内容：打开设置界面
+        "UnknownOperator",                  // 操作员 ID（未登录时使用占位符）
+        "UI"                                // 来源：UI 操作
+    );
 }
 
-void ImplantMonitor::changeEvent(QEvent *event)
-{
+void ImplantMonitor::changeEvent(QEvent *event) {
     QWidget::changeEvent(event);
     if (event->type() == QEvent::LanguageChange) {
         titleLabel->setText(tr("新植入物"));
         statisticsbtn->setText(tr("读数记录"));
         startBtn->setText(tr("开始测量"));
-        inputCO->setText(tr("输入心输出量"));
+//        inputCO->setText(tr("输入心输出量"));
+        inputCO->setText(tr("导出本次数据"));
         inputRHC->setText(tr("输入RHC"));
         statBtn->setText(tr("审计界面"));
-
-        // 避免未初始化导致崩溃
-        if (bpVal && avgVal && hrVal) {
-            QString bpText = QString("%1\n%2/%3")
-                                 .arg(tr("血压"))
-                                 .arg(QString::number(maxValue, 'f', 2))
-                                 .arg(QString::number(minValue, 'f', 2));
-            QString avgText = QString("%1\n%2")
-                                 .arg(tr("平均"))
-                                 .arg(QString::number(avgValue, 'f', 2));
-            QString hrText = QString("%1\n%2")
-                                 .arg(tr("心率"))
-                                 .arg(QString::number(heartRate, 'f', 2));
-
-            bpVal->setText(bpText);
-            avgVal->setText(avgText);
-            hrVal->setText(hrText);
-        }
     }
 }
 
+void ImplantMonitor::exportCurrentData() {
+    if (m_plotPoints.isEmpty()) {
+        QMessageBox::information(this, tr("提示"), tr("当前无测量数据可导出"));
+        return;
+    }
 
+    // 1. 生成默认文件名（带时间戳，避免重复）
+    QDateTime now = QDateTime::currentDateTime();
+    QString defaultName = QString("waveform_%1.csv")
+                          .arg(now.toString("yyyyMMdd_hhmmss"));
+
+    // 2. 弹出保存对话框，让用户选择路径
+    QString filePath = QFileDialog::getSaveFileName(
+        this,
+        tr("导出波形数据"),
+        defaultName,
+        tr("CSV文件 (*.csv)")  // 过滤仅显示CSV文件
+    );
+
+    if (filePath.isEmpty()) { // 用户取消操作
+        qDebug() << "[导出数据] 用户取消保存";
+        return;
+    }
+
+    // 3. 打开文件（处理打开失败的情况）
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(
+            this,
+            tr("保存失败"),
+            tr("无法打开文件：%1").arg(file.errorString())
+        );
+        qCritical() << "[导出数据] 文件打开失败：" << file.errorString();
+        return;
+    }
+
+    // 4. 写入CSV内容（表头 + 数据行）
+    QTextStream out(&file);
+    out.setRealNumberPrecision(2); // 统一浮点数精度（2位小数）
+
+    // 表头（时间单位：秒，压力单位：mmHg）
+    out << tr("时间(s),压力(mmHg)\n");
+
+    // 遍历数据点，逐行写入
+    for (const QPointF& pt : m_plotPoints) {
+        out << QString("%1,%2\n")
+               .arg(pt.x(), 0, 'f', 2)  // 时间：保留2位小数
+               .arg(pt.y(), 0, 'f', 1); // 压力：保留1位小数
+    }
+
+    // 5. 关闭文件（显式关闭，确保数据落盘）
+    file.close();
+
+    // 6. 提示用户保存成功
+    QMessageBox::information(
+        this,
+        tr("导出成功"),
+        tr("波形数据已保存至：\n%1").arg(filePath)
+    );
+    qDebug() << "[导出数据] 成功保存至：" << filePath;
+}

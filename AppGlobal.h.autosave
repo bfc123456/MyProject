@@ -1,0 +1,28 @@
+
+#ifndef APP_GLOBAL_H
+#define APP_GLOBAL_H
+
+// 测量配置宏定义
+#define MD_PROGRESS_TOTAL_DURATION 30000    // 总预计时长（毫秒，如5秒）
+#define MD_PROGRESS_UPDATE_INTERVAL 300    // 进度更新间隔（毫秒，如100ms）
+#define MD_PROGRESS_MAX_VALUE 100          // 进度条最大值（固定100）
+
+class MultiUserLoginWindow;     // 前置声明
+class DeviceAcquisitionWorker;     // 前置声明
+class MeasurementDataProcessor;   // 前置声明
+//class UdpManager;   // 前置声明
+
+#include <QThread>
+
+extern MultiUserLoginWindow* globalLoginWindowPointer;  // 声明一个全局指针
+//extern UdpManager* globaludpcontrol;  // 声明一个全局指针
+
+// UDP 接收线程及对象
+extern DeviceAcquisitionWorker* g_DeviceAcquisitionWorker;
+extern QThread* g_receiverThread;
+
+// 数据处理线程及对象
+extern MeasurementDataProcessor* g_MeasurementDataProcessor;
+extern QThread* g_processorThread;
+
+#endif // APP_GLOBAL_H

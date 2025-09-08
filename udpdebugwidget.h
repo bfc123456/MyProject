@@ -7,7 +7,7 @@
 #include <QLineEdit>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include "modernwaveplot.h"
+#include "ModernWaveplot.h"
 #include <qwt_plot_curve.h>
 #include <qwt_series_data.h>
 #include <QUdpSocket>
@@ -16,7 +16,33 @@
 #include <QTextStream>
 #include <QElapsedTimer>
 #include "FramelessWindow.h"
-#include "customkeyboard.h"
+#include "Customkeyboard.h"
+
+/**
+ * @class udpDebugWidget
+ * @brief UDP 调试界面
+ *
+ * 本类提供一个图形化的 UDP 调试工具，允许用户在开发或维护阶段，
+ * 直接进行 UDP 报文的收发测试，便于验证设备的网络通信是否正常。
+ *
+ * 功能职责：
+ * - 设置本地 IP 与端口，用于监听下位机发送的数据
+ * - 设置目标 IP 与端口，用于向设备发送测试报文
+ * - 提供文本框，支持手动输入并发送报文（支持 ASCII/十六进制）
+ * - 实时显示接收到的 UDP 报文（支持十六进制和文本格式）
+ * - 显示当前 UDP 通信状态（是否已绑定、是否正在监听）
+ * - 可与 MedicalLogger 联动，记录调试数据与操作行为
+ *
+ * 使用场景：
+ * - 工程开发阶段：调试设备的 UDP 协议是否正确
+ * - 维护场景：现场排查设备网络通信问题
+ * - 联调测试：模拟上位机/下位机收发数据包
+ *
+ * @note
+ * - 与 SerialDebugWidget 一致，属于调试工具类，不参与正常业务逻辑
+ * - 内部可复用 UdpManager 提供的通信接口
+ * - 推荐和日志系统结合，记录所有调试收发的数据帧
+ */
 
 class udpDebugWidget : public FramelessWindow{
     Q_OBJECT

@@ -6,7 +6,7 @@
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
-#include "measurementdata.h"
+#include "MeasurementData.h"
 
 class ReadoutRecordDialog : public QDialog {
     Q_OBJECT

@@ -1,4 +1,6 @@
-#include "measurementdialog.h"
+#include "MeasurementDialog.h"
+#include "MeasurementDataProcessor.h"
+#include "DeviceAcquisitionWorker.h"
 #include <QRandomGenerator>
 #include <QGuiApplication>
 #include <QScreen>
@@ -7,579 +9,461 @@
 #include <QSqlQuery>
 #include <QSqlError>
 
-MeasurementDialog::MeasurementDialog(const QString &sensorId,double signalStrength, QWidget *parent)
-    : QDialog(parent), m_sensorId(sensorId), initialSignalStrength(signalStrength), progressValue(0)
+// 构造函数：初始化界面、定时器、信号连接
+MeasurementDialog::MeasurementDialog(const QString &sensorId, double signalStrength, QWidget *parent)
+    : QDialog(parent), m_sensorId(sensorId), initialSignalStrength(signalStrength)
 {
+    // 1. 窗口基础配置（无边框、固定大小）
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
+    setAttribute(Qt::WA_DeleteOnClose); // 关闭时自动释放内存，避免内存泄漏
 
-    // 获取屏幕尺寸，计算缩放比例
+    // 2. 屏幕适配（按1024*600基准缩放，适配不同分辨率）
     QScreen *screen = QGuiApplication::primaryScreen();
-    QRect screenGeometry = screen->geometry();
-    int screenWidth = screenGeometry.width();
-    int screenHeight = screenGeometry.height();
-    float scaleX = static_cast<float>(screenWidth) / 1024;
-    float scaleY = static_cast<float>(screenHeight) / 600;
-
-    // 设置窗口属性
-//    setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+    QRect screenGeo = screen->geometry();
+    float scaleX = static_cast<float>(screenGeo.width()) / 1024;
+    float scaleY = static_cast<float>(screenGeo.height()) / 600;
     setFixedSize(500 * scaleX, 400 * scaleY);
+
+    // 3. 全局样式表（控制窗口、组件基础风格）
     setStyleSheet(R"(
-                  /* 主窗口样式 */
-                  QDialog {
-                  background-color: #333333 ;
-                  border-radius: 12px;
-                  border: 1px solid #2C3E50;
-                  border-radius: 0px;
-                  }
-                  QWidget#mainWidget {
-                  background-color: #78909C  ;
-                  border: 1px solid #2C3E50;
-                  }
-
-                  /* 消息标签样式 */
-                  QLabel#messageLabel {
-                  font-size: 14px;
-                  color: #B0BEC5;
-                  text-align: center;
-                  word-wrap: true;
-                  margin: 20px 0;
-                  }
-
-                  QProgressBar {
-                      /* 背景样式 */
-                      background-color: #2C3E50;
-                      border: 2px solid #1A232E;
-                      border-radius: 8px;
-                      height: 12px;
-                      margin: 0 20px;
-
-                      /* 文字样式（可选） */
-                      color: #B0BEC5;
-                      text-align: center;
-                  }
-
-                  QProgressBar::chunk {
-                      /* 进度条颜色（高对比色） */
-                      background-color: #00C853;
-                      border-radius: 6px;
-                  }
-
-                  /* 按钮通用样式 */
-                  QPushButton {
-                  background-color: #34495E;
-                  color: #ECEFF1;
-                  border-radius: 6px;
-                  padding: 8px 16px;
-                  font-size: 14px;
-                  border: none;
-                  margin: 0 10px;
-                  }
-                  QPushButton:hover {
-                  background-color: #455A64;
-                  }
-                  QPushButton:pressed {
-                  background-color: #2C3E50;
-                  }
-
-                  /* 右按钮特殊样式（类似开始测量按钮功能时的颜色） */
-                  QPushButton#rightButton {
-                  background-color: #00C853;
-                  }
-                  QPushButton#rightButton:hover {
-                  background-color: #00E676;
-                  }
-                  QPushButton#rightButton:pressed {
-                  background-color: #00B24C;
-                  }
-                  )");
-
-    // 创建整体的Widget容器
-    QWidget *mainWidget = new QWidget(this);
-    mainWidget->setObjectName("mainWidget");
-    mainWidget->setStyleSheet(R"(
-        QWidget {
-            background-color: rgba(26, 58, 88, 0.8);
-            border-radius: 0px;
-            border: 1px solid #2C3E50;
-        }
+        QDialog { background-color: #333333; border: 1px solid #2C3E50; }
+        QWidget#mainWidget { background-color: rgba(26, 58, 88, 0.8); border: 1px solid #2C3E50; }
     )");
 
-    QWidget* titleBar = new QWidget(this);
+    // 4. 创建标题栏（含标题文本和关闭按钮）
+    QWidget *titleBar = new QWidget(this);
     titleBar->setFixedHeight(45 * scaleY);
-    titleBar->setStyleSheet(R"(
-        background-color: #2196F3;
-        border: none;
-    )");
+    titleBar->setStyleSheet("background-color: #2196F3;"); // 标题栏蓝色背景
 
-    QHBoxLayout* titleLayout = new QHBoxLayout(titleBar);
-    titleLayout->setContentsMargins(0, 0, 0, 0);
-    titleLayout->setSpacing(0);
+    QHBoxLayout *titleLayout = new QHBoxLayout(titleBar);
+    titleLayout->setContentsMargins(0, 0, 0, 0); // 消除默认边距
 
-    // 创建标题栏标签
+    // 标题文本
     titleLabel = new QLabel(this);
-    titleLabel->setObjectName("titleLabel");
-    titleLabel->setAlignment(Qt::AlignCenter);
-    titleLabel->setFixedHeight(38*scaleY);
-    titleLabel->setStyleSheet(R"(
-            background-color: #2196F3;
-            color: #FFFFFF;
-            color: white;
-            font-size: 18px;
-            font-weight: 600;
-            padding: 8px 16px;
-            border-radius: 0px;
-            /* 添加微妙的内阴影增强深度感 */
-            qproperty-alignment: AlignCenter;
-    )");
+    titleLabel->setStyleSheet("color: white; font-size: 18px; font-weight: 600;");
+    titleLabel->setAlignment(Qt::AlignCenter); // 文本居中
 
-    QPushButton* closeButton = new QPushButton("✕", titleBar);
+    // 关闭按钮（"✕"）
+    closeButton = new QPushButton("✕", titleBar);
     closeButton->setFixedSize(80 * scaleX, 40 * scaleY);
-    closeButton->setStyleSheet(R"(
-        QPushButton {
-            background-color: transparent;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            border: none;
-        }
-    )");
+    closeButton->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
+    connect(closeButton, &QPushButton::clicked, this, &MeasurementDialog::onCancelButtonClicked);
 
-    connect(closeButton, &QPushButton::clicked, this, [=]() {
-        emit exitOverlay();  // 发出让主界面取消模糊和遮罩的信号
-        this->close();       // 关闭自己
-    });
-
-    // 添加组件到布局
+    // 标题栏布局（标题居中，关闭按钮居右）
     titleLayout->addStretch();
     titleLayout->addSpacing(60 * scaleX);
     titleLayout->addWidget(titleLabel);
-    titleLayout->addStretch();  //让标题居中
+    titleLayout->addStretch();
     titleLayout->addWidget(closeButton);
 
-    // 创建消息标签
+    // 5. 创建提示信息标签（显示当前状态提示）
     messageLabel = new QLabel(this);
     messageLabel->setStyleSheet(R"(
-        color: #9E9E9E;             /* 深灰色字体（可根据需要调整色值） */
-        font-size: 18px;           /* 设置字体大小 */
-        font-weight: 500;          /* 设置字体粗细 */
+        background-color: transparent; /* 背景完全透明，继承父容器背景 */
+        color: #ECEFF1;                /* 浅灰白色，深色背景下更清晰 */
+        font-size: 18px;
+        font-weight: 500;
+        text-align: center;           /* 文字居中（可选，确保排版规整） */
     )");
-    messageLabel->setAttribute(Qt::WA_TranslucentBackground, true);
-    messageLabel->setAlignment(Qt::AlignCenter);
-    messageLabel->setFixedHeight(80*scaleY);
+    messageLabel->setAlignment(Qt::AlignCenter); // 文本居中
+    messageLabel->setFixedHeight(80 * scaleY);   // 固定高度，避免界面跳动
 
-    // 创建进度条
+    // 6. 创建进度条（测量进度可视化）
     progressBar = new QProgressBar(this);
-    progressBar->setRange(0, 100);
-    progressBar->setValue(0);
-    progressBar->setFixedSize(360*scaleX,30*scaleY);
+    progressBar->setRange(0, MD_PROGRESS_MAX_VALUE); // 范围0~100
+    progressBar->setFixedSize(360 * scaleX, 30 * scaleY); // 固定大小
     progressBar->setStyleSheet(R"(
         QProgressBar {
-            border: 2px solid #444;
-            border-radius: 10px;
-            background-color: #2C3E50;
-            text-align: center;
-            height: 25px;
-            color: blue;
+            border: 2px solid #444; border-radius: 10px;
+            background-color: #2C3E50; text-align: center; height: 25px;
         }
         QProgressBar::chunk {
-            background-color: #1ABC9C;
-            border-radius: 10px;
-            width: 100%;  // 让进度块自适应宽度，保证连续性
+            background-color: #1ABC9C; border-radius: 10px;
         }
     )");
+    progressBar->setVisible(false); // 初始隐藏（准备状态不显示）
 
-    // 创建按钮
+    // 7. 创建操作按钮（左侧"返回/重新测量"，右侧"开始测量/查看结果"）
     leftButton = new QPushButton(tr("返回"), this);
     rightButton = new QPushButton(tr("开始测量"), this);
-    leftButton->setFixedSize(180*scaleX,35*scaleY);
-    rightButton->setFixedSize(180*scaleX,35*scaleY);
-    rightButton->setStyleSheet(R"(
-        QPushButton{
-            /* 偏绿色背景，使用渐变色增强立体感 */
-            background: #66BB6A;
-            color: white;
-            font-size: 20px;
-            font-weight: 500;
-            border-radius: 6px;
-            padding: 8px 16px;
-            min-height: 32px;
-            border: 1px solid rgba(0,0,0,0.1);
-        }
+    leftButton->setFixedSize(180 * scaleX, 35 * scaleY);
+    rightButton->setFixedSize(180 * scaleX, 35 * scaleY);
 
-        QPushButton:pressed {
-            /* 按下时颜色变暗，添加下沉效果 */
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #3CC954, stop:1 #0CC14D);
-        }
-
-        QPushButton:disabled {
-            /* 禁用状态样式 */
-            background: #A0A0A0;
-            color: #E0E0E0;
-        }
-    )");
+    // 左侧按钮样式（蓝色：返回/重新测量）
     leftButton->setStyleSheet(R"(
         QPushButton {
-            /* 偏淡蓝色背景，使用渐变色增强立体感 */
-            background: #42A5F5;
-            color: white;
-            font-size: 20px;
-            font-weight: 500;
-            border-radius: 6px;
-            padding: 8px 16px;
-            min-height: 32px;
-            border: 1px solid rgba(0,0,0,0.1);
+            background: #42A5F5; color: white; font-size: 20px;
+            border-radius: 6px; border: 1px solid rgba(0,0,0,0.1);
         }
-
-        QPushButton:pressed {
-            /* 按下时颜色变暗，添加下沉效果 */
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #3A80D2, stop:1 #2B73C9);return
-        }
-
-        QPushButton:disabled {
-            /* 禁用状态样式 */
-            background: #A0A0A0;
-            color: #E0E0E0;
-        }
+        QPushButton:pressed { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #3A80D2,stop:1 #2B73C9); }
+        QPushButton:disabled { background: #A0A0A0; color: #E0E0E0; }
     )");
 
-    // 按钮布局
+    // 右侧按钮样式（绿色：开始测量/查看结果）
+    rightButton->setStyleSheet(R"(
+        QPushButton {
+            background: #66BB6A; color: white; font-size: 20px;
+            border-radius: 6px; border: 1px solid rgba(0,0,0,0.1);
+        }
+        QPushButton:pressed { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #3CC954,stop:1 #0CC14D); }
+        QPushButton:disabled { background: #A0A0A0; color: #E0E0E0; }
+    )");
+
+    // 按钮布局（水平居中，两侧留白）
     QHBoxLayout *buttonLayout = new QHBoxLayout;
     buttonLayout->addStretch();
     buttonLayout->addWidget(leftButton);
-    buttonLayout->addSpacing(50);
+    buttonLayout->addSpacing(50); // 按钮间距
     buttonLayout->addWidget(rightButton);
     buttonLayout->addStretch();
 
-    // 主布局
+    // 8. 主布局组装（将所有组件整合到主容器）
+    QWidget *mainWidget = new QWidget(this);
+    mainWidget->setObjectName("mainWidget"); // 关联样式表
+
     QVBoxLayout *mainLayout = new QVBoxLayout(mainWidget);
     mainLayout->setContentsMargins(0, 0, 0, 0);
-    mainLayout->addWidget(titleBar);
-    mainLayout->addSpacing(45);
-    mainLayout->addWidget(messageLabel, 0, Qt::AlignCenter);
-    mainLayout->addWidget(progressBar, 0, Qt::AlignCenter);
-    mainLayout->addLayout(buttonLayout);
-    mainLayout->addSpacing(45);
+    mainLayout->addWidget(titleBar);        // 标题栏
+    mainLayout->addSpacing(45);             // 上方留白
+    mainLayout->addWidget(messageLabel, 0, Qt::AlignCenter); // 提示信息
+    mainLayout->addWidget(progressBar, 0, Qt::AlignCenter);  // 进度条
+    mainLayout->addLayout(buttonLayout);    // 操作按钮
+    mainLayout->addSpacing(45);             // 下方留白
 
-    // 将mainWidget设置为对话框的主部件
+    // 对话框主布局（给主容器加边距）
     QVBoxLayout *dialogLayout = new QVBoxLayout(this);
     dialogLayout->addWidget(mainWidget);
     dialogLayout->setContentsMargins(20, 20, 20, 20);
-    progressTimer = new QTimer(this);
 
-    currentState = STATE_READY;
-    // 首次填充文本
+    // 10. 按钮信号连接（左侧/右侧按钮点击事件）
+    connect(leftButton, &QPushButton::clicked, this, &MeasurementDialog::onLeftButtonClicked);
+    connect(rightButton, &QPushButton::clicked, this, &MeasurementDialog::onRightButtonClicked);
+
+    // 11. 初始界面文本（根据准备状态设置文案）
     retranslateUi();
-
-    // 连接信号与槽
-    connect(progressTimer, &QTimer::timeout, this, &MeasurementDialog::updateProgress);
-    connect(leftButton, &QPushButton::clicked, this, &MeasurementDialog::onCancelButtonClicked);
-    connect(rightButton, &QPushButton::clicked, this, &MeasurementDialog::startMeasurement);
 }
 
+// 析构函数：断开信号连接，避免野指针
 MeasurementDialog::~MeasurementDialog()
 {
-
+    qDebug() << "[MeasurementDialog] 析构：释放资源";
+    // 断开与全局线程的所有信号连接（防止线程触发已销毁界面的槽函数）
+    if (g_MeasurementDataProcessor) {
+        QObject::disconnect(g_MeasurementDataProcessor, nullptr, this, nullptr);
+    }
+    if (g_DeviceAcquisitionWorker) {
+        QObject::disconnect(this, nullptr, g_DeviceAcquisitionWorker, nullptr);
+    }
 }
 
+// 开始测量：切换状态、启动定时器、初始化线程
+void MeasurementDialog::onStartButtonClicked()
+{
+    qDebug() << "[MeasurementDialog] 开始测量：进入测量状态";
+    currentState = STATE_MEASURING;
+
+    // 禁用无关按钮（防止误操作）
+    leftButton->setEnabled(false);
+    closeButton->setEnabled(false);
+
+    initWorkersAndConnections();
+    // 更新界面文案（显示"测量进行中"相关文本）
+    // 创建定时器，每100毫秒触发一次
+    progress = 0;
+    QTimer* timer = new QTimer(this);
+    connect(timer, &QTimer::timeout, this, &MeasurementDialog::updateProgress);
+    timer->start(MEASUREMENT_TOTAL_DURATION_MS / 100);  // 设置定时器更新频率
+    retranslateUi();
+}
+
+// 线程与信号初始化：仅首次启动时执行，建立线程间数据流转
+void MeasurementDialog::initWorkersAndConnections()
+{
+    // 前置检查：全局工作对象必须有效
+    if (!g_MeasurementDataProcessor || !g_DeviceAcquisitionWorker) {
+        MedicalLogger::instance()->writeLog(
+            "Threading",
+            MedicalLogger::LOG_ERROR,
+            "Global worker object not initialized, thread startup aborted",
+            " ",
+            "System"
+        );
+        return;
+    }
+
+    // 1.2 接收线程→数据处理器（核心数据链路，唯一连接）
+    static bool isMag5DataConnected = false;
+    if (!isMag5DataConnected) {
+        bool ok2 = connect(
+                    g_DeviceAcquisitionWorker,
+                    &DeviceAcquisitionWorker::mag5DataReceived,
+                    g_MeasurementDataProcessor,
+                    &MeasurementDataProcessor::parseData,
+                    Qt::QueuedConnection // 跨线程
+                );
+        isMag5DataConnected = ok2;  // 仅当连接成功才标记
+        if (!ok2) {
+            return;
+        }
+    }
+
+    // 阶段2：启动数据处理器（使用startMeasurement中初始化的时间基准）
+    bool invokeOk = QMetaObject::invokeMethod(
+        g_MeasurementDataProcessor, "setMeasuring",
+        Qt::QueuedConnection,
+        Q_ARG(bool, true)  // 复用前端已初始化的时间
+    );
+    if (!invokeOk) {
+        return;
+    }
+
+    // 阶段3：启动UDP接收（先停止旧任务，避免资源冲突）
+    // 3.1 停止可能存在的旧接收任务
+    QMetaObject::invokeMethod(
+        g_DeviceAcquisitionWorker, "stopAcquisition",  // 假设存在停止方法
+        Qt::QueuedConnection
+    );
+
+    // 3.2 启动新的接收任务
+    bool startOk = QMetaObject::invokeMethod(
+        g_DeviceAcquisitionWorker, "startAcquisition",
+        Qt::QueuedConnection
+    );
+    if (!startOk) {
+        // 回滚状态
+        QMetaObject::invokeMethod(g_MeasurementDataProcessor, "setMeasuring", Qt::QueuedConnection, Q_ARG(bool, false));
+        return;
+    }
+    connect(g_MeasurementDataProcessor, &MeasurementDataProcessor::measureFinished,
+            this, &MeasurementDialog::onMeasureCompleted,
+            Qt::QueuedConnection);
+}
+
+// 进度条刷新：根据测量时长计算进度（0~100%）
+void MeasurementDialog::updateProgress()
+{
+    // 非测量状态：停止刷新
+    if (currentState != STATE_MEASURING) {
+        return;
+    }
+
+    // 每次定时器触发时，增加进度
+       progress += 80;  // 每次增加 1%，也就是100毫秒更新一次
+
+       // 确保进度不超过100%
+       progress = qMin(progress, 100);
+
+       // 更新进度条显示
+       progressBar->setValue(progress);
+}
+
+// 测量正常结束：总时长到达，通知线程停止
+void MeasurementDialog::onMeasureCompleted(const MeasurementData& finalResult)
+{
+    qDebug() << "[MeasurementDialog] 测量结束：已达30秒总时长";
+    // 线程安全：通知数据处理线程停止测量
+    QMetaObject::invokeMethod(g_MeasurementDataProcessor, "setMeasuring",
+                              Qt::QueuedConnection, Q_ARG(bool, false));
+    // 线程安全：通知设备采集线程停止采集
+    QMetaObject::invokeMethod(g_DeviceAcquisitionWorker, "stopAcquisition",
+                              Qt::QueuedConnection);
+    m_currentResult = finalResult;
+    onProcessingFinished();
+}
+
+// 线程停止后清理：更新界面状态为"测量完成"
+void MeasurementDialog::onProcessingFinished()
+{
+    qDebug() << "[MeasurementDialog] 线程停止：清理界面状态";
+
+    // 更新界面状态
+    m_isProcessing = false;
+    currentState = STATE_COMPLETED;               // 切换为"测量完成"状态
+
+    // 启用按钮（允许重新测量/查看结果）
+    leftButton->setEnabled(true);
+    closeButton->setEnabled(true);
+
+    // 更新界面文案（显示"测量完毕"相关文本）
+    retranslateUi();
+}
+
+// 线程启动后更新：标记测量中状态
+void MeasurementDialog::onProcessingStarted()
+{
+    qDebug() << "[MeasurementDialog] 线程启动：标记测量中";
+    m_isProcessing = true;
+    leftButton->setEnabled(false);  // 禁用左侧按钮
+    closeButton->setEnabled(false); // 禁用关闭按钮
+}
+
+// 接收实时测量数据：更新最终结果（数据处理线程触发）
+//void MeasurementDialog::appendData(const MeasurementData &data)
+//{
+//    // 存储最新测量结果（覆盖旧值，最终保留最后一次有效结果）
+//    m_currentResult = data;
+//}
+
+// 重新测量：重置状态，准备再次测量
+void MeasurementDialog::onRestartButtonClicked()
+{
+    qDebug() << "[MeasurementDialog] 重新测量：重置状态";
+    // 停止当前定时器
+//    progressTimer->stop();
+//    measureTimer->stop();
+
+    // 重置界面状态
+    progressBar->setValue(0);       // 进度条归零
+    currentState = STATE_READY;     // 切换为"准备"状态
+    retranslateUi();                // 更新界面文案
+
+    // 线程安全：通知线程停止当前测量（若仍在运行）
+    if (m_isProcessing) {
+        QMetaObject::invokeMethod(g_MeasurementDataProcessor, "setMeasuring",
+                                  Qt::QueuedConnection, Q_ARG(bool, false));
+        QMetaObject::invokeMethod(g_DeviceAcquisitionWorker, "stopAcquisition",
+                                  Qt::QueuedConnection);
+        m_isProcessing = false;
+    }
+}
+
+// 查看测量结果：保存结果到数据库，打开结果界面
+void MeasurementDialog::onViewResultButtonClicked()
+{
+    qDebug() << "[MeasurementDialog] 查看结果：保存数据并打开界面";
+    // 先保存结果到数据库，失败则不打开界面
+    if (!updateResultToDatabase(m_currentResult)) {
+        qWarning() << "[MeasurementDialog] 错误：保存结果到数据库失败";
+        return;
+    }
+
+    // 创建结果界面，传递测量结果
+    MeasurementTrendWidget *resultDialog = new MeasurementTrendWidget(m_currentResult, nullptr);
+    // 结果界面→当前界面：返回当前界面时，显示当前界面并释放结果界面
+    connect(resultDialog, &MeasurementTrendWidget::trendReturnMeasure,
+            this, [this, resultDialog]() mutable {
+        this->show();
+        resultDialog->deleteLater(); // 释放内存
+        resultDialog = nullptr;      // 置空指针，避免野指针
+    });
+    // 结果界面→全局：关闭所有界面时，触发关闭信号强度界面
+    connect(resultDialog, &MeasurementTrendWidget::closeAllWindow,
+            this, &MeasurementDialog::closePatientSignalStrengthWidget);
+
+    // 结果界面置顶显示
+    resultDialog->setWindowFlags(resultDialog->windowFlags() | Qt::WindowStaysOnTopHint);
+    resultDialog->show(); // 显示结果界面
+    this->hide();         // 隐藏当前测量界面
+}
+
+// 右侧按钮点击：根据当前状态触发不同逻辑（开始测量/查看结果）
+void MeasurementDialog::onRightButtonClicked()
+{
+    switch (currentState) {
+        case STATE_READY:
+            onStartButtonClicked();   // 准备状态：开始测量
+            break;
+        case STATE_MEASURING:
+            // 测量中：不处理（暂不支持暂停）
+            break;
+        case STATE_COMPLETED:
+            onViewResultButtonClicked(); // 完成状态：查看结果
+            break;
+    }
+}
+
+// 左侧按钮点击：根据当前状态触发不同逻辑（返回/重新测量）
+void MeasurementDialog::onLeftButtonClicked()
+{
+    switch (currentState) {
+        case STATE_READY:
+            onCancelButtonClicked(); // 准备状态：返回上一级
+            break;
+        case STATE_MEASURING:
+        case STATE_COMPLETED:
+            onRestartButtonClicked(); // 测量中/完成：重新测量
+            break;
+    }
+}
+
+// 关闭按钮点击：返回上一级界面
+void MeasurementDialog::onCancelButtonClicked()
+{
+    qDebug() << "[MeasurementDialog] 关闭：返回上一级";
+    emit exitOverlay(); // 触发返回信号
+}
+
+// 界面文本更新：根据当前状态切换标题、提示信息、按钮文本
 void MeasurementDialog::retranslateUi()
 {
     switch (currentState) {
         case STATE_READY:
             titleLabel->setText(tr("信号已到达测量标准"));
-            messageLabel->setText(
-                tr("信号强度已符合要求（%1%）\n是否开始测量？")
-                  .arg(initialSignalStrength)
-            );
-            leftButton ->setText(tr("返回"));
+            messageLabel->setText(tr("信号强度已符合要求（%1%）\n是否开始测量？").arg(initialSignalStrength));
+            leftButton->setText(tr("返回"));
             rightButton->setText(tr("开始测量"));
-            progressBar->setVisible(false);
+            progressBar->setVisible(false); // 准备状态隐藏进度条
             break;
 
         case STATE_MEASURING:
             titleLabel->setText(tr("测量进行中"));
-            messageLabel->setText(tr("量测正在进行中，请保持位置..."));
-            leftButton ->setText(tr("重新测量"));
-            rightButton->setText(tr("暂停测量"));
-            progressBar->setVisible(true);
-            break;
-
-        case STATE_PAUSED:
-            titleLabel->setText(tr("测量已暂停"));
-            messageLabel->setText(tr("测量已暂停，点击继续..."));
-            leftButton ->setText(tr("重新测量"));
-            rightButton->setText(tr("继续测量"));
-            progressBar->setVisible(false);
+            messageLabel->setText(tr("测量正在进行中，请保持位置..."));
+            leftButton->setText(tr("重新测量"));
+            rightButton->setText(tr("测量中..."));
+            progressBar->setVisible(true); // 测量中显示进度条
             break;
 
         case STATE_COMPLETED:
             titleLabel->setText(tr("测量完毕"));
             messageLabel->setText(tr("测量完毕，请您点击按钮查看详细结果"));
-            leftButton ->setText(tr("重新测量"));
+            leftButton->setText(tr("重新测量"));
             rightButton->setText(tr("查看详细结果"));
-            progressBar->setVisible(false);
+            progressBar->setVisible(false); // 完成状态隐藏进度条
             break;
     }
 }
 
+// 语言切换事件：更新界面文本（支持多语言）
 void MeasurementDialog::changeEvent(QEvent *event)
 {
     if (event->type() == QEvent::LanguageChange) {
-        retranslateUi();
+        retranslateUi(); // 切换语言时更新文案
     }
     QDialog::changeEvent(event);
 }
 
-void MeasurementDialog::startMeasurement()
+// 测量结果存入数据库：仅测量完成后调用
+bool MeasurementDialog::updateResultToDatabase(const MeasurementData &m_currentResult)
 {
-    currentState = STATE_MEASURING;
-//    titleLabel->setText(tr("测量进行中"));
-//    messageLabel->setText(tr("量测正在进行中，请保持位置..."));
-    progressBar->setVisible(true);
-    progressBar->setValue(0);
-
-    // 更改按钮文本和功能
-    retranslateUi();
-
-    // 断开旧连接，连接新槽函数
-    leftButton->disconnect();
-    rightButton->disconnect();
-//    connect(leftButton, &QPushButton::clicked, this, &MeasurementDialog::onCancelButtonClicked);
-    connect(rightButton, &QPushButton::clicked, this, &MeasurementDialog::onPauseButtonClicked);
-
-    // 启动进度更新
-    progressValue = 0;
-    progressTimer->start(100);  // 每100ms增加百分之一
-
-    emit measurementStarted();
-}
-
-void MeasurementDialog::updateProgress()
-{
-    // 检查当前信号强度，如果信号不符合要求，停止测量
-    if (initialSignalStrength < 75.0) {  // 假设正常的信号设定阈值为 75
-        progressTimer->stop();
-        currentState = STATE_COMPLETED;
-        titleLabel->setText(tr("信号强度不足"));
-        messageLabel->setText(tr("当前信号强度不足，无法完成测量，请重新调整位置或检查信号源"));
-
-        // 更改按钮文本和功能
-        leftButton->setText(tr("重新测量"));
-        rightButton->setText(tr("关闭"));
-
-        // 断开旧连接，连接新槽函数
-        leftButton->disconnect();
-        rightButton->disconnect();
-        connect(leftButton, &QPushButton::clicked, this, &MeasurementDialog::onRestartButtonClicked);
-        connect(rightButton, &QPushButton::clicked, this, &MeasurementDialog::onCancelButtonClicked);
-
-        emit measurementInterrupted();  // 发出信号，通知外部测量被中断
-        return;  // 退出函数，停止测量
-    }
-
-    // 模拟每100ms生成一次肺动脉压力数据
-    float currentPressure = generatePulmonaryPressureSample();
-    pressureSamples.append(currentPressure);  // 存储样本数据
-
-    // 如果信号强度满足要求，继续更新进度
-    progressValue += 1;
-    progressBar->setValue(progressValue);
-
-    if (progressValue >= 100) {
-        progressTimer->stop();
-        currentState = STATE_COMPLETED;
-        calculateMeasurementResults(); // 数据收集完成，开始计算指标
-
-        retranslateUi();
-
-        // 断开旧连接，连接新槽函数
-        leftButton->disconnect();
-        rightButton->disconnect();
-        connect(leftButton, &QPushButton::clicked, this, &MeasurementDialog::onRestartButtonClicked);
-        connect(rightButton, &QPushButton::clicked, this, &MeasurementDialog::onViewResultButtonClicked);
-
-        m_currentResult = calculateMeasurementResults();  //计算并发送计算的结果
-        emit measurementCompleted(m_currentResult);
-    }
-}
-
-
-// 生成单个肺动脉压力样本的函数
-float MeasurementDialog::generatePulmonaryPressureSample()
-{
-    // 病患肺动脉高压特征：收缩压>30mmHg，舒张压>15mmHg
-    static float baseline = 25.0f;  // 基础压力（高于正常基线）
-    static float trend = 0.0f;      // 病理趋势变化（缓慢升高）
-
-    // 生成随机波动（-3.0 到 3.0 之间）
-    float randomFluctuation = QRandomGenerator::global()->bounded(6.0f) - 3.0f;
-
-    // 生成呼吸影响（-3.0 到 3.0 之间的正弦波动）
-    float respiratoryInfluence = sin(QDateTime::currentMSecsSinceEpoch() / 1000.0f * M_PI) * 3.0f;
-
-    // 病理趋势：模拟病情进展（压力缓慢升高）
-    trend += QRandomGenerator::global()->bounded(0.08f) + 0.02f;  // 正向趋势为主
-    if (trend < 0.0f) trend = 0.0f;  // 避免趋势下降
-    if (trend > 5.0f) trend = 5.0f;  // 限制趋势上限
-
-    // 生成病患肺动脉压力样本（包含病理特征）
-    float sample = baseline + trend + randomFluctuation + respiratoryInfluence;
-
-    // 病患压力范围调整（收缩压常见30-50mmHg，舒张压15-30mmHg）
-    if (sample < 15.0f) sample = 15.0f;  // 下限提高
-    if (sample > 60.0f) sample = 60.0f;  // 上限设置为60mmHg（重度高压）
-
-    return sample;
-}
-
-// 计算测量结果的函数
-MeasurementData MeasurementDialog::calculateMeasurementResults()
-{
-    MeasurementData result;
-
-    result.sensorId = m_sensorId;
-
-    // timestamp 是 QString，所以要 toString()
-    result.timestamp       = QDateTime::currentDateTime()
-                                .toString("yyyy-MM-dd HH:mm:ss");
-
-    if (pressureSamples.isEmpty()) {
-        // 处理没有数据的情况
-        result.sensorSystolic  = QString::number(0.0, 'f', 2);
-        result.sensorDiastolic = QString::number(0.0, 'f', 2);
-        result.sensorAvg       = QString::number(0.0, 'f', 2);
-        result.heartRate       = QString::number(0.0, 'f', 2);
-
-        return result;
-    }
-
-    // 最小值 = 舒张压
-    double dia = *std::min_element(
-                pressureSamples.begin(), pressureSamples.end());
-    // 最大值 = 收缩压
-    double sys = *std::max_element(
-                pressureSamples.begin(), pressureSamples.end());
-    // 平均值 (权重公式)
-    double avg = (sys + 2.0 * dia) / 3.0;
-    // 心率模拟
-    double hr = 60.0 + QRandomGenerator::global()->bounded(400) / 10.0;
-
-    // **转换为QString并保留两位小数**
-    result.sensorDiastolic  = QString::number(dia, 'f', 2);
-    result.sensorSystolic   = QString::number(sys, 'f', 2);
-    result.sensorAvg        = QString::number(avg, 'f', 2);
-    result.heartRate        = QString::number(hr, 'f', 2);
-
-    return result;
-}
-
-void MeasurementDialog::onStartButtonClicked()
-{
-    startMeasurement();
-}
-
-void MeasurementDialog::onCancelButtonClicked()
-{
-    this->close();  // 关闭对话框
-    emit exitOverlay();
-}
-
-// 替换 onPauseButtonClicked 中的 static 变量
-void MeasurementDialog::onPauseButtonClicked()
-{
-    if (currentState == STATE_MEASURING) {
-        // 从[测量中]→[已暂停]
-        progressTimer->stop();
-        currentState = STATE_PAUSED;
-    }
-    else if (currentState == STATE_PAUSED) {
-        // 从[已暂停]→[测量中]
-        progressTimer->start(100);
-        currentState = STATE_MEASURING;
-    }
-    // 不管是哪种，点完都刷新一次 UI
-    retranslateUi();
-    emit measurementPaused(currentState == STATE_PAUSED);
-}
-
-void MeasurementDialog::onRestartButtonClicked()
-{
-    // 重置进度
-    progressValue = 0;
-    progressBar->setValue(0);
-
-    // 如果已经完成，切换回测量状态
-    if (currentState == STATE_COMPLETED) {
-        currentState = STATE_MEASURING;
-        retranslateUi();
-        rightButton->disconnect();
-        connect(rightButton, &QPushButton::clicked, this, &MeasurementDialog::onPauseButtonClicked);
-    }
-
-    // 启动进度更新
-    progressTimer->start(100);
-
-    emit measurementRestarted();
-}
-
-void MeasurementDialog::onViewResultButtonClicked()
-{
-    if (!updateResultToDatabase(m_currentResult)) {
-        qWarning() << "更新测量结果到数据库失败，界面不打开。";
-        return;
-    }
-
-    // 创建结果对话框并传递数据
-    MeasurementTrendWidget *resultDialog = new MeasurementTrendWidget(m_currentResult,nullptr);
-    connect(resultDialog,&MeasurementTrendWidget::trendReturnMeasure,this,[&, resultDialog = resultDialog]() mutable{
-        this->show();
-        delete resultDialog;
-        // 置空指针，避免野指针
-        resultDialog = nullptr;
-    });
-    connect(resultDialog,&MeasurementTrendWidget::closeAllWindow,this,[=](){
-
-        // 断开信号和槽连接，确保不再触发已销毁的窗口
-        QObject::disconnect(resultDialog);
-//        qDebug() << "Received closeAllWindow signal, closing related windows...";
-        emit closeFollowUpForm();
-    });
-
-    // 设置窗口标志，使其置顶显示
-    resultDialog->setWindowFlags(resultDialog->windowFlags() | Qt::WindowStaysOnTopHint);
-
-    qDebug()<<"测量结果界面已经构建完毕";
-    resultDialog->show();
-    qDebug()<<"测量结果界面已显示";
-
-    // 关闭当前对话框或保持打开状态，根据需求决定
-    this->hide();
-}
-
-bool MeasurementDialog::updateResultToDatabase(const MeasurementData &result)
-{
+    // 检查数据库连接状态
     QSqlDatabase db = QSqlDatabase::database();
-    if (!db.isOpen()) return false;
+    if (!db.isOpen()) {
+        qWarning() << "[MeasurementDialog] 错误：数据库未打开";
+        return false;
+    }
 
-    QSqlQuery q(db);
-    q.prepare(R"(
+    // 准备SQL插入语句（插入传感器ID、收缩压、舒张压等字段）
+    QSqlQuery query(db);
+    query.prepare(R"(
         INSERT INTO measurements_data_update
           (sensor_id, systolic, diastolic, avg_value, heart_rate, timestamp)
         VALUES
           (:sid,      :sys,      :dia,       :avg,      :hr,         :ts)
     )");
-    q.bindValue(":sid", result.sensorId);
-    q.bindValue(":sys", result.sensorSystolic);
-    q.bindValue(":dia", result.sensorDiastolic);
-    q.bindValue(":avg", result.sensorAvg);
-    q.bindValue(":hr",  result.heartRate);
-    q.bindValue(":ts",  result.timestamp);
 
-    if (!q.exec()) {
-        qWarning() << "插入失败：" << q.lastError().text();
+    // 绑定参数（避免SQL注入，确保数据安全）
+    query.bindValue(":sid", m_sensorId);          // 传感器ID
+    query.bindValue(":sys", m_currentResult.sensorSystolic); // 收缩压
+    query.bindValue(":dia", m_currentResult.sensorDiastolic); // 舒张压
+    query.bindValue(":avg", m_currentResult.sensorAvg);     // 平均压
+    query.bindValue(":hr", m_currentResult.heartRate);      // 心率
+    qint64 currentTimestamp = QDateTime::currentSecsSinceEpoch();  // 获取当前时间戳（单位：秒）
+    query.bindValue(":ts", currentTimestamp);      // 测量时间戳
+
+    // 执行SQL，返回执行结果
+    if (!query.exec()) {
+        qWarning() << "[MeasurementDialog] 数据库插入失败：" << query.lastError().text();
         return false;
     }
-
     return true;
 }

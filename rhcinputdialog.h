@@ -4,7 +4,7 @@
 
 #include <QDialog>
 #include <QLineEdit>
-#include "customkeyboard.h"
+#include "Customkeyboard.h"
 #include "CloseOnlyWindow.h"
 #include <QEvent>
 

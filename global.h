@@ -2,8 +2,53 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
-#include "loginwindow.h"
+/**
+ * @file Global.h
+ * @brief 应用程序全局变量声明
+ *
+ * 本文件集中声明了应用中的全局常量、全局对象和跨线程指针，
+ * 方便在不同模块之间共享，而不必重复定义。
+ *
+ * 功能与内容：
+ * - 定义测量流程相关的常量（进度条时长、更新间隔、最大值）
+ * - 声明全局 UI 指针（如登录窗口）
+ * - 声明采集线程与数据处理线程对象，以及对应的工作对象指针
+ *
+ * 使用场景：
+ * - 在 main.cpp 中初始化这些全局变量
+ * - 在业务模块中直接引用这些全局对象（例如通过 g_DeviceAcquisitionWorker 控制采集）
+ *
+ * @note
+ * - 这里仅做 **extern 声明**，具体定义在对应的 .cpp 文件中（通常是 Global.cpp 或 main.cpp）
+ * - 使用全局变量需谨慎，避免线程安全问题；
+ *   推荐在退出时正确清理（quit + wait + delete）
+ */
 
-extern LoginWindow* globalLoginWindowPointer;  // 声明一个全局指针
 
-#endif // GLOBAL_H
+class MultiUserLoginWindow;     // 前置声明
+class DeviceAcquisitionWorker;     // 前置声明
+class MeasurementDataProcessor;   // 前置声明
+
+// 总时长（毫秒）
+extern const int MD_PROGRESS_TOTAL_DURATION;
+
+// UI 更新间隔（毫秒）
+extern const int MD_PROGRESS_UPDATE_INTERVAL;
+
+// 进度条最大值
+extern const int MD_PROGRESS_MAX_VALUE;
+
+#include <QThread>
+
+extern MultiUserLoginWindow* globalLoginWindowPointer;  // 声明一个全局指针
+//extern UdpManager* globaludpcontrol;  // 声明一个全局指针
+
+// UDP 接收线程及对象
+extern DeviceAcquisitionWorker* g_DeviceAcquisitionWorker;
+extern QThread* g_receiverThread;
+
+// 数据处理线程及对象
+extern MeasurementDataProcessor* g_MeasurementDataProcessor;
+extern QThread* g_processorThread;
+
+#endif // APP_GLOBAL_H

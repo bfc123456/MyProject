@@ -1,4 +1,4 @@
-#include "readoutrecorddialog.h"
+#include "ReadoutrecordDialog.h"
 #include <QGuiApplication>
 #include <QScreen>
 

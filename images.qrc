@@ -27,7 +27,7 @@
         <file>image/icons8-add.png</file>
         <file>image/icons8-connect.png</file>
         <file>image/icons8-disconnect.png</file>
-        <file>image/icons8-updata.png</file>
+        <file>image/icons8-update.png</file>
         <file>image/newbody.png</file>
         <file>image/logoimage.jpg</file>
         <file>image/icons-close.png</file>
@@ -44,6 +44,7 @@
         <file>image/IconParkOutlineMin.png</file>
         <file>image/icons8-home.png</file>
         <file>image/icons8-excel-100.png</file>
+        <file>image/icons8-update-64.png</file>
     </qresource>
     <qresource prefix="/translations">
         <file>translations/en_US.qm</file>

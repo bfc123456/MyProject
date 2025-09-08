@@ -1,4 +1,4 @@
-#include "rhcinputdialog.h"
+#include "RhcinputDialog.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QPushButton>

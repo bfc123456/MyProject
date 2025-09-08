@@ -1,4 +1,4 @@
-#include "signalstrength.h"
+#include "SignalStrength.h"
 
 signalstrength::signalstrength()
 {

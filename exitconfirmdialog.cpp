@@ -1,4 +1,4 @@
-#include "exitconfirmdialog.h"
+#include "ExitconfirmDialog.h"
 #include <QIcon>
 #include <QStyle>
 #include <QGraphicsDropShadowEffect>

@@ -1,5 +1,4 @@
-#include "followupform.h"
-#include "implantmonitor.h"
+#include "PatientSignalStrengthWidget.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
@@ -7,11 +6,15 @@
 #include <QDialog>
 #include <QAbstractItemView>
 #include <QMovie>
-#include "global.h"
+#include "Global.h"
 #include "SerialStore.h"
 #include <QGuiApplication>
 #include <QScreen>
 #include <QGraphicsBlurEffect>
+#include <QSettings>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
 
 static const char* rawOperationTips = QT_TRANSLATE_NOOP("App", R"(
 <div style='font-weight: bold; font-size: 17px; margin-bottom: 10px;'>信号校准指南</div>
@@ -23,7 +26,7 @@ static const char* rawOperationTips = QT_TRANSLATE_NOOP("App", R"(
 </div>
 )");
 
-FollowUpForm::FollowUpForm(QWidget *parent)
+PatientSignalStrengthWidget::PatientSignalStrengthWidget(QWidget *parent)
     : FramelessWindow(parent)
 {
     QScreen *screen = QGuiApplication::primaryScreen();
@@ -66,7 +69,7 @@ FollowUpForm::FollowUpForm(QWidget *parent)
     labelSensor->setText(fetchSensorIds());
 
     backButton = new QPushButton(this);
-    connect(backButton, &QPushButton::clicked, this, &FollowUpForm::followReturnToLogin);
+    connect(backButton, &QPushButton::clicked, this, &PatientSignalStrengthWidget::followReturnToLogin);
     backButton->setIcon(QIcon(":/image/icons8-return100.png"));
     backButton->setIconSize(QSize(30 * scaleX, 30 * scaleY));
     backButton->setFixedSize(65 * scaleX, 30 * scaleY);
@@ -96,7 +99,7 @@ FollowUpForm::FollowUpForm(QWidget *parent)
             background-color: rgba(255, 255, 255, 0.2);
         }
     )");
-    connect(btnSettings, &QPushButton::clicked, this, &FollowUpForm::openMeasureSettingsWindow);
+    connect(btnSettings, &QPushButton::clicked, this, &PatientSignalStrengthWidget::openMeasureSettingsWindow);
 
     QHBoxLayout *topLayout = new QHBoxLayout(topBar);
     topLayout->addWidget(backButton);
@@ -145,8 +148,12 @@ FollowUpForm::FollowUpForm(QWidget *parent)
         }
     )");
 
-    progress = new CircularProgressBar();
-    progress->setProgress(80);
+    QSettings settings("MyCompany", "MyApp");
+    int savedStrength = settings.value("system/signalStrength", 70).toInt();
+
+    progress = new CircularProgressBar(this);
+    progress->setThreshold(savedStrength);
+    progress->setProgress(72);                     // 实时值初始
     progress->setFixedSize(210 * scaleX, 210 * scaleY);
 
     QHBoxLayout *cardLayout = new QHBoxLayout(card);
@@ -197,18 +204,22 @@ FollowUpForm::FollowUpForm(QWidget *parent)
 
     timer = new QTimer(this);
     timer->start(100);
-    connect(timer, &QTimer::timeout, this, &FollowUpForm::checkProgress);
-    connect(this, &FollowUpForm::progressThresholdReached, this, &FollowUpForm::openMeasurementDialog);
+    connect(timer, &QTimer::timeout, this, &PatientSignalStrengthWidget::checkProgress);
+    connect(this, &PatientSignalStrengthWidget::progressThresholdReached, this, &PatientSignalStrengthWidget::openMeasurementDialog);
 }
 
-FollowUpForm::~FollowUpForm() {}
+PatientSignalStrengthWidget::~PatientSignalStrengthWidget() {}
 
-void FollowUpForm::checkProgress() {
+void PatientSignalStrengthWidget::checkProgress() {
     if (!progress) return;
 
-    int value = progress->progress();
+    // 从 CircularProgressBar 获取阈值
+     int threshold = progress->threshold();
+
+     // 模拟实时信号强度（目前先用常数，后续替换为真实读取值）
+     int value = 72;
 //    qDebug()<<"数值： "<<value;
-    if (value >= 75) {
+    if (value >= threshold) {
         continuousTime++;
         if (continuousTime >= 10) {
             timer->stop(); // 停止计时器
@@ -221,7 +232,7 @@ void FollowUpForm::checkProgress() {
     }
 }
 
-void FollowUpForm::changeEvent(QEvent *event)
+void PatientSignalStrengthWidget::changeEvent(QEvent *event)
 {
     QWidget::changeEvent(event);
     if (event->type() == QEvent::LanguageChange) {
@@ -229,73 +240,63 @@ void FollowUpForm::changeEvent(QEvent *event)
 
         operationTips->setText(
                     QCoreApplication::translate("App", rawOperationTips)
-                );
+                    );
     }
     QWidget::changeEvent(event);
 }
 
-void FollowUpForm::openMeasurementDialog() {
-//    if (!measurementDialog) {
-    QWidget *overlay = new QWidget(this);
-    overlay->setGeometry(this->rect());
-    overlay->setStyleSheet("background-color: rgba(0, 0, 0, 100);"); // 可调透明度
-    overlay->setAttribute(Qt::WA_TransparentForMouseEvents, false); // 拦截事件
-    overlay->show();
-    overlay->raise();
+void PatientSignalStrengthWidget::openMeasurementDialog() {
 
-    //添加模糊效果
-    QGraphicsBlurEffect *blur = new QGraphicsBlurEffect;
-    blur->setBlurRadius(20);  // 可调强度：20~40
-    this->setGraphicsEffect(blur);
+    if (dlg) { dlg->close(); }           // 旧的会被 delete
+    if (overlay) { overlay->deleteLater(); overlay = nullptr; }
 
-    QString sensorId = labelSensor->text();
+    overlay = new QWidget(this);
+    overlay->setGeometry(rect());
+    overlay->setStyleSheet("background:rgba(0,0,0,100)");
+    overlay->show(); overlay->raise();
 
-    measurementDialog = new MeasurementDialog(sensorId, 80, this);
-    qDebug() << "对话框已打开";
+    auto *blur = new QGraphicsBlurEffect;   // 不保存指针
+    blur->setBlurRadius(20);
+    setGraphicsEffect(blur);                // 交给 Qt 管
 
-    // 设置为模态对话框
-    // 构造完 measurementDialog 后，show() 之前
-    measurementDialog->adjustSize();  // 让它收缩到合适大小
-    // 父窗口的可用区域
-    QRect parentRect = this->geometry();
-    // 计算对话框左上角，放到 parentRect 正中
-    int x = parentRect.x() + (parentRect.width()  - measurementDialog->width())  / 2;
-    int y = parentRect.y() + (parentRect.height() - measurementDialog->height()) / 2;
-    measurementDialog->move(x, y);
+    dlg = new MeasurementDialog(labelSensor->text(), 80, this);
+    connect(dlg,&MeasurementDialog::closePatientSignalStrengthWidget,this, &PatientSignalStrengthWidget::followReturnToLogin);
+    dlg->setAttribute(Qt::WA_DeleteOnClose, true);
+    dlg->setModal(true);
+    dlg->adjustSize();
+    dlg->move((width()-dlg->width())/2, (height()-dlg->height())/2);
+    dlg->show(); dlg->raise();
 
-    measurementDialog->setModal(true);  // 使对话框为模态，阻止其他操作
-    measurementDialog->show();  // 显示对话框
+    connect(dlg, &MeasurementDialog::exitOverlay, this, [this]{
+        setGraphicsEffect(nullptr);         // 会自动 delete 旧 blur
+        if (dlg) dlg->close();              // 触发 delete
+        if (overlay) { overlay->deleteLater(); overlay=nullptr; }
+    });
 
-    connect(measurementDialog, &MeasurementDialog::exitOverlay, this,
-        [this, overlayPtr = overlay]() {
-            this->setGraphicsEffect(nullptr);
-
-            if (overlayPtr) {
-                overlayPtr->close();
-                overlayPtr->deleteLater();
-            }
-
-            if (this->measurementDialog) {
-                this->measurementDialog->deleteLater();
-                this->measurementDialog = nullptr;
-            }
-        });
-    connect(measurementDialog,&MeasurementDialog::closeFollowUpForm,this, &FollowUpForm::followReturnToLogin);
+    // 保底：对象销毁时把指针自动清空（QPointer会自动变空，这行可选）
+    connect(dlg, &QObject::destroyed, this, [this]{ dlg=nullptr; });
 }
 
-void FollowUpForm::openMeasureSettingsWindow() {
+void PatientSignalStrengthWidget::openMeasureSettingsWindow() {
     if (!settingswidgetMrasure) {
         settingswidgetMrasure = new SettingsWidget(nullptr);              // 必须无父
         settingswidgetMrasure->setWindowFlags(Qt::Window);               // 设置顶层窗口
+
+        connect(settingswidgetMrasure, &SettingsWidget::signalStrengthChanged,
+                this, [this](int v) {
+                    if (progress) progress->setThreshold(v);   // 立即更新显示
+                    QSettings s("MyCompany","MyApp");           // 落盘
+                    s.setValue("system/signalStrength", v);
+                    s.sync();
+                });
 
         // 安全关闭处理
         connect(settingswidgetMrasure, &SettingsWidget::requestDelete, this, [=]() {
             settingswidgetMrasure->deleteLater();
             settingswidgetMrasure = nullptr;
-            this->show();
-            this->showFullScreen();      //不修改 flags，只重新 show
-            this->resize(QGuiApplication::primaryScreen()->availableGeometry().size()); // 确保尺寸恢复
-            QTimer::singleShot(0, this, SLOT(update())); // 强制刷新绘制（或者用 this->update()）
+//            this->show();      //不修改 flags，只重新 show
+//            this->resize(QGuiApplication::primaryScreen()->availableGeometry().size()); // 确保尺寸恢复
+//            QTimer::singleShot(0, this, SLOT(update())); // 强制刷新绘制（或者用 this->update()）
         });
     }
 
@@ -303,10 +304,10 @@ void FollowUpForm::openMeasureSettingsWindow() {
     settingswidgetMrasure->raise();
     settingswidgetMrasure->activateWindow();
 
-    this->hide();  // 主界面隐藏
+//    this->hide();  // 主界面隐藏
 }
 
-QString FollowUpForm::fetchSensorIds() const
+QString PatientSignalStrengthWidget::fetchSensorIds() const
 {
     // 取默认连接
     QSqlDatabase db = QSqlDatabase::database();

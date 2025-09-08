@@ -1,4 +1,5 @@
-#include "measurementtrendwidget.h"
+#include "MeasurementTrendWidget.h"
+#include "multiuserloginwindow.h"
 #include <QScreen>
 #include <QGuiApplication>
 #include <QVBoxLayout>
@@ -14,8 +15,9 @@
 #include <QSqlError>
 #include <QMessageBox>
 #include <QtGlobal>
-#include <global.h>
-
+#include <Global.h>
+#include <QDir>
+#include <QFileDialog>
 /*************** TrendChart 类实现****************/
 
 #include <qwt_plot_grid.h>
@@ -488,7 +490,7 @@ QWidget* MeasurementTrendWidget::createButtonsWidget() {
         if (globalLoginWindowPointer) {
             globalLoginWindowPointer->show();  // 显示主界面
         }
-        QObject::disconnect(this); // 断开所有与当前窗口相关的信号与槽连接
+//        QObject::disconnect(this); // 断开所有与当前窗口相关的信号与槽连接
         this->close();  // 关闭当前测量数据界面
         emit closeAllWindow();
         deleteLater();  // 延迟删除当前窗口对象

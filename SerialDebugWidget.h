@@ -1,6 +1,6 @@
 
-#ifndef MAINTENANCEWIDGET_H
-#define MAINTENANCEWIDGET_H
+#ifndef SERIALDEBUGWIDGET_H
+#define SERIALDEBUGWIDGET_H
 
 #include <QWidget>
 #include <QPushButton>
@@ -8,18 +8,43 @@
 #include <QTextEdit>
 #include <QLineEdit>
 #include <QLabel>
-#include "serialmanager.h"
-#include "udpmanager.h"
+#include "SerialManager.h"
+#include "UdpManager.h"
 #include "FramelessWindow.h"
-#include "customkeyboard.h"
+#include "Customkeyboard.h"
 
-class MaintenanceWidget : public FramelessWindow
+/**
+ * @class SerialDebugWidget
+ * @brief 串口调试界面
+ *
+ * 本类提供一个图形化的串口调试工具，供工程师或维护人员在设备维护、
+ * 开发和测试过程中使用。用户可以通过界面选择串口端口、设置波特率、
+ * 发送/接收数据包，实时观察设备的响应。
+ *
+ * 功能特点：
+ * - 提供串口端口选择、波特率、校验位、停止位等参数设置
+ * - 支持打开/关闭串口，实时显示接收到的数据
+ * - 提供文本输入框，支持手动发送数据
+ * - 接收区支持文本和十六进制显示，方便查看原始数据
+ * - 可与日志系统 (MedicalLogger) 联动，记录调试过程
+ *
+ * 使用场景：
+ * - 工程调试阶段：验证设备串口通信是否正常
+ * - 维护场景：快速定位设备与上位机之间的通信问题
+ * - 开发测试：模拟下位机/上位机发送命令，验证协议正确性
+ *
+ * @note
+ * - 与 UdpDebugWidget 风格保持一致，便于统一维护
+ * - 不参与正常业务逻辑，仅作为调试工具使用
+ */
+
+class SerialDebugWidget : public FramelessWindow
 {
     Q_OBJECT
 
 public:
-    explicit MaintenanceWidget(QWidget *parent = nullptr);
-    ~MaintenanceWidget();
+    explicit SerialDebugWidget(QWidget *parent = nullptr);
+    ~SerialDebugWidget();
 
 private slots:
     void onConnectSerialPort();  // 连接串口
@@ -86,4 +111,4 @@ private:
 
 };
 
-#endif // MAINTENANCEWIDGET_H
+#endif // SERIALDEBUGWIDGET_H

@@ -6,16 +6,13 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QLabel>
-//#include <QComboBox>
 #include <QElapsedTimer>
 #include <QTimer>
 #include <QDebug>
 #include <QTranslator>
 #include <QElapsedTimer>
 #include "maintenancewidget.h"
-#include "followupform.h"
-//#include "patientlistwidget.h"
-#include "implantinfowidget.h"
+#include "ImplantRegistrationWidget.h"
 #include "CloseOnlyWindow.h"
 #include "FramelessWindow.h"
 #include "udpdebugwidget.h"
@@ -25,6 +22,7 @@
 #include "customkeyboard.h"
 #include "settingswidget.h"
 
+class FollowUpForm;   // 前向声明
 
 class LoginWindow : public FramelessWindow   {
     Q_OBJECT
@@ -37,7 +35,6 @@ public:
 
 protected:
     void paintEvent(QPaintEvent *event) override;
-//    void closeEvent(QCloseEvent *event) override;  // 重载 closeEvent 方法
 
 private:
     QVBoxLayout *mainLayout;
@@ -46,27 +43,24 @@ private:
     QLineEdit *passwordEdit;
     QPushButton *loginButton;
     QLabel *errorLabel;
-
-
     QElapsedTimer clickTimer; //连续点击记录器
     QTranslator translator;//翻译器
+    CustomKeyboard* currentKeyboard;//虚拟键盘
+
     QStackedWidget *stackedWidget;
     SettingsWidget *settingswidget;
-
-    void showHiddenWidget();
-    void changeEvent(QEvent *event) override;
-    CustomKeyboard* currentKeyboard;
-
-    bool isInitialized = false; //初始化标志位
-
     std::unique_ptr<ImplantInfoWidget> implantWindow;
     std::unique_ptr<FollowUpForm> followupformwindow;
     std::unique_ptr<MaintenanceWidget> maintenancewidget;
     std::unique_ptr<udpDebugWidget> udpdebugwidget;
 
+    bool isInitialized = false; //初始化标志位
     //错误标签
     enum ErrorType { NoError = 0, ErrLength, ErrAuth };
     ErrorType   m_lastError = NoError;
+
+    void showHiddenWidget();
+    void changeEvent(QEvent *event) override;
 
 private slots:
     void onSettingClicked();

@@ -1,0 +1,13 @@
+#include "AppGlobal.h"
+#include "multiuserloginwindow.h"
+#include "DeviceAcquisitionWorker.h"
+#include "MeasurementDataProcessor.h"
+#include "UdpManager.h"
+
+MultiUserLoginWindow*  appGlobalLoginWindowPointer = nullptr;
+
+DeviceAcquisitionWorker*  g_DeviceAcquisitionWorker     = nullptr;
+QThread*      g_receiverThread  = nullptr;
+
+MeasurementDataProcessor* g_MeasurementDataProcessor   = nullptr;
+QThread*       g_processorThread = nullptr;

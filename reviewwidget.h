@@ -11,10 +11,10 @@
 #include <QPixmap>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include "settingswidget.h"
-#include "measurementdata.h"
-#include "modernwaveplot.h"
-#include "databasemanager.h"
+#include "SettingsWidget.h"
+#include "MeasurementData.h"
+#include "ModernWaveplot.h"
+#include "DatabaseManager.h"
 #include "FramelessWindow.h"
 
 class ReviewWidget : public FramelessWindow{

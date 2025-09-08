@@ -1,9 +1,9 @@
-#include "calibrationdialog.h"
+#include "CalibrationDialog.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFont>
 #include <QMessageBox>
-#include "customkeyboard.h"
+#include "Customkeyboard.h"
 #include <QGuiApplication>
 #include <QScreen>
 

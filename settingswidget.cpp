@@ -1,7 +1,8 @@
-#include "settingswidget.h"
-#include "loginwindow.h"
-#include "CustomMessageBox.h"
-#include "languagemanager.h"
+#include "SettingsWidget.h"
+#include "multiuserloginwindow.h"
+#include "CustomMessagebox.h"
+#include "CustomCombobox.h"
+#include "LanguageManager.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QSpacerItem>
@@ -14,6 +15,8 @@
 #include <QImage>
 #include <QPixmap>
 #include <QScreen>
+#include "updatemanager.h"
+
 SettingsWidget::SettingsWidget( QWidget *parent)
     : FramelessWindow(parent)
 {
@@ -55,7 +58,14 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     topBar->setStyleSheet("background-color: transparent;");
 
     // 系统名称 Label（左侧）
-    titleLabel = new QLabel("🩺 "+ tr("医疗设备管理系统"), this);
+    QLabel *iconLabel = new QLabel(this);
+    QPixmap pix(":/image/icons8-tingzhen.png");
+    // 缩放到合适大小，比如 24×24
+    pix = pix.scaled(24 * scaleX, 24 * scaleY, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    iconLabel->setPixmap(pix);
+    iconLabel->setFixedSize(pix.size());
+
+    titleLabel = new QLabel(tr("医疗设备管理系统"), this);
     titleLabel->setStyleSheet("color: white; font-size: 25px; font-weight: bold;");
     titleLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
@@ -81,6 +91,7 @@ SettingsWidget::SettingsWidget( QWidget *parent)
 
     //顶部栏布局
     QHBoxLayout *tittleLayout = new QHBoxLayout(topBar);
+    tittleLayout->addWidget(iconLabel);
     tittleLayout->addWidget(titleLabel);
     tittleLayout->addStretch();
     tittleLayout->addWidget(btnclose);
@@ -122,15 +133,53 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     signalStrengthLabel->setFixedSize(250 * scaleX, 40 * scaleY);
     signalStrengthLabel->setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px; font-weight: bold; color: white;");
 
+    // 优先从应用属性拿（main 已经放进去），否则回退到 QSettings
+    QVariant prop = qApp->property("signalStrength");
+    int v = prop.isValid() ? prop.toInt()
+                           : QSettings().value("system/signalStrength", 70).toInt();
+
     signalStrengthSlider = new QSlider(Qt::Horizontal);
     signalStrengthSlider->setRange(0, 100);
-    signalStrengthSlider->setValue(70);
+    signalStrengthSlider->setValue(v);
     signalStrengthSlider->setFixedWidth(160 * scaleX);
+    signalStrengthSlider->setFixedHeight(35);
 
-    QLabel *signalStrengthValue = new QLabel("70%");
+    signalStrengthSlider->setStyleSheet(R"(
+        QSlider {
+            background: #212121;  /* 滑动条背景色：深灰色 */
+            height: 20px;  /* 增加滑动条的高度 */
+            border-radius: 10px;
+        }
+
+        QSlider::handle:horizontal {
+            background: #2196f3;  /* 滑块颜色：蓝色   */
+            border: 2px solid #f57c00;  /* 滑块边框：浅橙色  */
+            width: 50px;  /* 增加滑块宽度 */
+            height: 50px;  /* 增加滑块高度 */
+            border-radius: 10px;  /* 滑块圆角 */
+        }
+
+        QSlider::groove:horizontal {
+            background: #2a2a2a;  /* 滑动条槽的颜色：暗灰色 */
+            height: 35px;  /* 增加槽的高度 */
+            border-radius: 10px;  /* 圆角 */
+        }
+
+        QSlider::add-page:horizontal {
+            background: #424242;  /* 未选择区域颜色：深灰色 */
+            border-radius: 10px;
+        }
+
+        QSlider::sub-page:horizontal {
+            background: #64b5f6;  /* 已选择区域颜色：浅绿色 */
+            border-radius: 10px;
+        }
+    )");
+
+    QLabel *signalStrengthValue = new QLabel(QString::number(v) + "%");
     signalStrengthValue->setFixedSize(50 * scaleX, 40 * scaleY);
     signalStrengthValue->setAlignment(Qt::AlignCenter);
-    signalStrengthValue->setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px; font-weight: bold; color: white;");
+    signalStrengthValue->setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 22px; font-weight: bold; color: white;");
 
     connect(signalStrengthSlider, &QSlider::valueChanged, [signalStrengthValue](int value) {
         signalStrengthValue->setText(QString::number(value) + "%");
@@ -138,7 +187,6 @@ SettingsWidget::SettingsWidget( QWidget *parent)
 
     modifyButton = new QPushButton(tr("修  改"));
     QPixmap pixmapModify(":/image/icons8-edit.png");
-
     modifyButton->setStyleSheet(R"(
         QPushButton {
             background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
@@ -149,6 +197,7 @@ SettingsWidget::SettingsWidget( QWidget *parent)
             color: white;
             font-weight: bold;
             padding: 3px 8px;
+            font-size: 18px;
         }
 
         QPushButton:pressed {
@@ -159,12 +208,49 @@ SettingsWidget::SettingsWidget( QWidget *parent)
         }
     )");
 
+    // “修改”按钮：二次确认 → 写回 → 更新应用属性（全局可读）
+    connect(modifyButton, &QPushButton::clicked, this, [=](){
+        //从 label 里安全解析百分比
+        int nv = signalStrengthValue->text().remove('%').toInt();
+
+        // 二次确认
+        CustomMessageBox ask(
+            this,
+            tr(" "),
+            tr("将最小信号强度设置为 %1% ？\n此设置会立即生效，并在下次开机保留。").arg(nv),
+            { tr("是"), tr("否") },
+            300 * scaleX
+        );
+
+        if (ask.exec() != QDialog::Accepted || ask.getUserResponse() != tr("是"))
+                return;
+
+        //持久化到 QSettings（开机记住）
+        QSettings s("MyCompany", "MyApp");
+        s.setValue("system/signalStrength", nv);
+        s.sync();
+
+        //运行期全局可读 + 广播给其他模块
+        qApp->setProperty("signalStrength", nv);
+        emit signalStrengthChanged(nv);   // 其他模块 connect 这个信号即可立即生效
+
+        //自定义“已保存”提示（也可用系统 QMessageBox::information）
+        CustomMessageBox ok(
+                    this,
+                    tr("已保存"),
+                    tr("最小信号强度已更新为 %1%。").arg(nv),
+        { tr("确定") },
+                    260 * scaleX
+                    );
+        ok.exec();
+
+    });
 
     QImage image3 = pixmapModify.toImage();
     image3.invertPixels();
     pixmapModify = QPixmap::fromImage(image3);
     modifyButton->setIcon(QIcon(pixmapModify));
-    modifyButton->setIconSize(QSize(20 * scaleX, 20 * scaleY));
+    modifyButton->setIconSize(QSize(15 * scaleY, 15 * scaleY));
     modifyButton->setFixedSize(115 * scaleX, 40 * scaleY);
 
     signalLayout->addWidget(signalStrengthLabel);
@@ -182,7 +268,7 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     languageComboBox->setStyleSheet(R"(
     QComboBox {
         font-family: 'Microsoft YaHei';
-        font-size: 12px;
+        font-size: 18px;
         font-weight: bold;
         color: white;                               /* 当前显示项字体颜色 */
         background-color: rgba(30, 40, 60, 230);     /* 背景色 */
@@ -235,6 +321,7 @@ SettingsWidget::SettingsWidget( QWidget *parent)
             color: white;
             font-weight: bold;
             padding: 3px 8px;
+            font-size: 18px;
         }
 
         QPushButton:pressed {
@@ -270,6 +357,7 @@ SettingsWidget::SettingsWidget( QWidget *parent)
             color: white;
             font-weight: bold;
             padding: 3px 8px;
+            font-size: 18px;
         }
 
         QPushButton:pressed {
@@ -287,6 +375,44 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     connect(shutdownButton, &QPushButton::clicked, this, &SettingsWidget::onShutdownClicked);
     shutdownLayout->addWidget(shutdownLabel);
     shutdownLayout->addWidget(shutdownButton);
+
+    //软件更新
+    QHBoxLayout *updateLayout = new QHBoxLayout();
+    updateLabel = new QLabel(tr("软件更新"));
+    QPushButton *updateButton = new QPushButton(tr("更  新"));
+    QPixmap updateIcon(":/image/icons8-update-64.png"); // 准备一个更新图标
+
+    updateButton->setStyleSheet(R"(
+        QPushButton {
+            background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+                stop:0 rgba(33,150,243,180),
+                stop:1 rgba(25,118,210,180));
+            border: 1px solid rgba(200,220,255,0.6);
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            padding: 3px 8px;
+            font-size: 18px;
+        }
+        QPushButton:pressed {
+            background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+                stop:0 rgba(21,101,192,200),
+                stop:1 rgba(13,71,161,200));
+            border: 1px solid rgba(160,190,255,0.75);
+        }
+    )");
+
+    QImage updateImage = updateIcon.toImage(); updateImage.invertPixels();
+    updateButton->setIcon(QIcon(QPixmap::fromImage(updateImage)));
+    updateButton->setFixedSize(115 * scaleX, 40 * scaleY);
+
+    connect(updateButton, &QPushButton::clicked, this, &SettingsWidget::onUpdateClicked);
+
+    updateLayout->addWidget(updateLabel);
+    updateLayout->addWidget(updateButton);
+    topLayout->addLayout(updateLayout);
+
+
     topLayout->addLayout(shutdownLayout);
 
     // 添加顶部
@@ -358,6 +484,62 @@ void SettingsWidget::onShutdownClicked()
     if (msgBox.exec() == QDialog::Accepted && msgBox.getUserResponse() == tr("是")) {
         qApp->quit();
     }
+}
+
+void SettingsWidget::onUpdateClicked() {
+    UpdateManager um(this);
+
+    // 1) 查找 U 盘 UPDATE 目录
+    QString usbDir;
+    if (!um.hasUsbUpdate(&usbDir)) {
+        CustomMessageBox(this, tr("软件更新"),
+            tr("未检测到软件更新U盘，请插入后重试。"),
+            { tr("确定") }, 380*scaleX).exec();
+        return;
+    }
+
+    // 2) 读取 manifest
+    QJsonObject manifest;
+    if (!um.loadManifest(usbDir + "/manifest.json", manifest)) {
+        CustomMessageBox(this, tr("软件更新"),
+            tr("更新清单读取失败。"),
+            { tr("确定") }, 380*scaleX).exec();
+        return;
+    }
+    const QString version = manifest.value("version").toString();
+    const QString expectSha = manifest.value("sha256").toString();
+
+    // 3) 校验包
+    if (!um.verifyPackage(usbDir + "/app_update.pkg", expectSha)) {
+        CustomMessageBox(this, tr("软件更新"),
+            tr("更新包校验失败。"),
+            { tr("确定") }, 380*scaleX).exec();
+        return;
+    }
+
+    // 4) 用户确认
+    if (CustomMessageBox(this, tr("软件更新"),
+        tr("检测到新版本 %1，是否继续更新？").arg(version),
+        { tr("取消"), tr("继续") }, 420*scaleX).exec() != 1) {
+        return;
+    }
+
+    // 5) 复制到本地 staging
+    QString staging;
+    if (!um.stageUpdate(usbDir, staging)) {
+        CustomMessageBox(this, tr("软件更新"),
+            tr("复制更新包失败。"),
+            { tr("确定") }, 380*scaleX).exec();
+        return;
+    }
+
+    // 6) 重启应用以应用更新（pending 标记）
+    if (CustomMessageBox(this, tr("软件更新"),
+        tr("将重启应用以应用更新，是否现在重启？"),
+        { tr("取消"), tr("继续") }, 420*scaleX).exec() != 1) {
+        return;
+    }
+    um.markPendingAndRestart(staging);
 }
 
 void SettingsWidget::changeEvent(QEvent *event)

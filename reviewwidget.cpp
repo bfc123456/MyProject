@@ -1,4 +1,5 @@
-#include "reviewwidget.h"
+#include "ReviewWidget.h"
+#include "multiuserloginwindow.h"
 #include <QHeaderView>
 #include <QPixmap>
 #include <QPen>
@@ -8,11 +9,12 @@
 #include <QGraphicsBlurEffect>
 #include <QDialog>
 #include <QApplication>
-#include "global.h"
+#include "Global.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QGuiApplication>
 #include <QScreen>
+#include "MedicalLogger.h"
 
 ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
   : FramelessWindow(parent), m_serial(sensorId) {
@@ -128,8 +130,8 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
     bpPlot->setAutoFillBackground(false);
     bpPlot->setStyleSheet("background: transparent; border: none; color:white;");
 //    bpPlot->setYRange(0, 80); // Y 轴范围
-    bpPlot->setXRange(0, 180); //X轴范围
-    bpPlot->setAxisScale(QwtPlot::yLeft, 0.0, 80.0, 20.0);
+//    bpPlot->setXRange(0, 180); //X轴范围
+//    bpPlot->setAxisScale(QwtPlot::yLeft, 0.0, 80.0, 20.0);
 
     bpPlot->setLineColor(QColor(100, 180, 255));  //曲线颜色
     bpPlot->setFillColor(QColor(40, 120, 200, 30), -1);   //波形底部填充
@@ -393,8 +395,8 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
     // 点击表格某行，就取出对应的波形数据画到 plot
     connect(historyTable, &QTableWidget::cellClicked, this, [=](int row,int){
         if (row >= 0 && row < m_list.size()) {
-            bpPlot->setData(m_list[row].points);
-            bpPlot->replot();
+            bpPlot->setSimpleData(m_list[row].points);
+            bpPlot->showFullSimpleWaveform();
         }
     });
 
@@ -520,11 +522,21 @@ void ReviewWidget::showExitConfirmWidget()
 
     QObject::connect(exitButton, &QPushButton::clicked, QApplication::instance(), &QApplication::quit);
     QObject::connect(returnButton, &QPushButton::clicked, this, [this, &prompt]() {
-         this->hide();  // 隐藏回顾界面
          if (globalLoginWindowPointer) {
              globalLoginWindowPointer->show();  // 显示主界面
+             MedicalLogger::instance()->writeLog(
+                 "ReviewWidget",                         // 模块：登录相关
+                 MedicalLogger::LOG_INFO,         // 日志等级：信息
+                 "Main login screen displayed",   // 日志内容：显示主登录界面
+                 "UnknownOperator",               // 操作员 ID（未登录时使用占位符）
+                 "UI"                             // 来源：UI 操作
+             );
          }
-         this->close();  // 关闭当前回顾界面
+         QTimer::singleShot(800, this, [this]() {
+            this->hide();  // 隐藏回顾界面
+            this->close();  // 关闭当前回顾界面
+            this->deleteLater();
+         });
          prompt.close();
 //         delete this;    // 删除当前窗口对象，释放内存
      });
@@ -543,6 +555,13 @@ void ReviewWidget::OpenSettingsRequested() {
     settingswidget->setWindowFlags(Qt::Dialog);
     settingswidget->setAttribute(Qt::WA_DeleteOnClose);
     settingswidget->show();
+    MedicalLogger::instance()->writeLog(
+        "Settings",                       // 模块：设置相关
+        MedicalLogger::LOG_INFO,           // 日志等级：信息
+        "Settings screen displayed",       // 日志内容：显示设置界面
+        " ",                 // 操作员 ID（未登录时使用占位符）
+        "UI"                               // 来源：UI 操作
+    );
 }
 
 void ReviewWidget::setDataList(const QList<MeasurementData> &list) {
@@ -570,8 +589,8 @@ void ReviewWidget::setDataList(const QList<MeasurementData> &list) {
 
     // 一打开就默认画第一行（如果有的话）
     if (!m_list.isEmpty()) {
-        bpPlot->setData(m_list.first().points);
-        bpPlot->replot();
+        bpPlot->setSimpleData(m_list.first().points);
+        bpPlot->showFullSimpleWaveform();
     }
 }
 
@@ -618,7 +637,14 @@ bool ReviewWidget::uploadToDatabase()
 
         // 4) 执行并检查
         if (!q.exec()) {
-            qWarning() << "插入第" << r << "行失败：" << q.lastError().text();
+            MedicalLogger::instance()->writeLog(
+                "Database",                      // 模块：数据库操作
+                MedicalLogger::LOG_ERROR,         // 日志等级：错误
+                QString("插入第%1行失败：%2").arg(r).arg(q.lastError().text()), // 错误内容：插入失败的行号和错误信息
+                " ",                // 操作员 ID（未登录时使用占位符）
+                "Database"                        // 来源：数据库操作
+            );
+
             db.rollback();
             return false;
         }
@@ -626,7 +652,13 @@ bool ReviewWidget::uploadToDatabase()
 
     // 5) 全部成功后提交
     if (!db.commit()) {
-        qWarning() << "提交事务失败：" << db.lastError().text();
+        MedicalLogger::instance()->writeLog(
+            "Database",                      // 模块：数据库操作
+            MedicalLogger::LOG_ERROR,         // 日志等级：错误
+            QString("提交事务失败：%1").arg(db.lastError().text()), // 错误内容：提交事务失败和错误信息
+            " ",                // 操作员 ID（未登录时使用占位符）
+            "Database"                        // 来源：数据库操作
+        );
         db.rollback();
         return false;
     }

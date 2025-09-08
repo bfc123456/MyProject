@@ -1,4 +1,4 @@
-#include "toucheventhandler.h"
+#include "TouchEventHandler.h"
 
 TouchEventHandler::TouchEventHandler(QObject *parent): QObject(parent)
 {

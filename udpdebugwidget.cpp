@@ -1,7 +1,7 @@
-#include "udpdebugwidget.h"
+#include "UdpDebugWidget.h"
 #include <QPropertyAnimation>
 #include <QHostAddress>
-#include "CustomMessageBox.h"
+#include "CustomMessagebox.h"
 #include <QBuffer>
 #include <cstring>
 #include <QSplitter>

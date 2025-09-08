@@ -1,4 +1,4 @@
-#include "implantinfowidget.h"
+#include "ImplantRegistrationWidget.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
@@ -6,15 +6,16 @@
 #include <QGraphicsBlurEffect>
 #include <QEvent>
 #include <QMessageBox>
-#include "CustomMessageBox.h"
+#include "CustomMessagebox.h"
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
 #include "CloseOnlyWindow.h"
 #include <QGuiApplication>
 #include <QScreen>
+#include "MedicalLogger.h"
 
-ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
+ImplantRegistrationWidget::ImplantRegistrationWidget(QWidget *parent)
     : FramelessWindow(parent)
 {
     QScreen *screen = QGuiApplication::primaryScreen();
@@ -28,9 +29,9 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
 
     // 设置窗口初始大小
     this->resize(1024 * scaleX, 600 * scaleY);  // 设置为基于目标分辨率的大小
-    this->setObjectName("ImplantinfoWidget");
+    this->setObjectName("ImplantRegistrationWidget");
     this->setStyleSheet(R"(
-    QWidget#ImplantinfoWidget {
+    QWidget#ImplantRegistrationWidget {
         background-color: qlineargradient(
             x1: 0, y1: 1,
             x2: 1, y2: 0,
@@ -73,7 +74,7 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     titleLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
 
     QPushButton *btnSettings = new QPushButton(this);
-    connect(btnSettings, &QPushButton::clicked, this, &ImplantInfoWidget::openSettingsWindow);  // 连接点击事件到槽函数
+    connect(btnSettings, &QPushButton::clicked, this, &ImplantRegistrationWidget::openSettingsWindow);  // 连接点击事件到槽函数
     btnSettings->setIcon(QIcon(":/image/icons8-shezhi.png"));
     btnSettings->setIconSize(QSize(24*scaleX, 24*scaleY));
     btnSettings->setFlat(true);
@@ -199,7 +200,7 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
 
     // 按钮部分
     backButton = new QPushButton(tr("返回"));
-    connect(backButton, &QPushButton::clicked, this,&ImplantInfoWidget::implantReturnLogin);
+    connect(backButton, &QPushButton::clicked, this,&ImplantRegistrationWidget::implantReturnLogin);
 
     backButton->setIcon(QIcon(":/image/icons8-return.png"));
 
@@ -233,10 +234,16 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     continueButton->setIcon(QIcon(":/image/icons8-next.png"));
     connect(continueButton, &QPushButton::clicked, this, [this]() {
 
-            bool ok = insertNewSensor();  // 返回 true／false
-            if (ok) {
-                qDebug() << "进入 showImplantationSiteWidget";
+            bool ok = insertNewSensor();  // 返回 true／false   记得改回来
+            if (!ok) {
                showImplantationSiteWidget(m_serial);
+               MedicalLogger::instance()->writeLog(
+                   "ImplantationSiteWidget",
+                   MedicalLogger::LOG_INFO,
+                   "Entering ImplantationSiteWidget interface",
+                   " ",   // 目前没有登录时用占位符
+                   "UI"                 // 这里是 UI 相关操作
+               );
             } else {
                 //添加遮罩层
                 QWidget *overlay = new QWidget(this);
@@ -253,7 +260,27 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
 
                 //创建信息对话框
                 CustomMessageBox dlg(this,tr("错误"),tr("上传失败，请再次检查输入"), { tr("确定") },350 *scaleX);
-                   dlg.exec();
+                int result = dlg.exec();
+                // 判断用户的选择并记录日志
+                if (result == QDialog::Accepted) {
+                    // 用户点击了“确定”
+                    MedicalLogger::instance()->writeLog(
+                        "Upload",
+                        MedicalLogger::LOG_INFO,
+                        "User clicked 'Confirm' after upload failure",
+                        " ",  // 暂时占位，后续替换为当前用户
+                        "UI"
+                    );
+                } else {
+                    // 用户点击了“取消”或者关闭了对话框
+                    MedicalLogger::instance()->writeLog(
+                        "Upload",
+                        MedicalLogger::LOG_INFO,
+                        "User dismissed the error message without confirming",
+                        " ",  // 暂时占位，后续替换为当前用户
+                        "UI"
+                    );
+                }
 
                 //清空输入内容
                 serialInput->clear();
@@ -331,11 +358,11 @@ ImplantInfoWidget::ImplantInfoWidget(QWidget *parent)
     setLayout(mainLayout);
 }
 
-ImplantInfoWidget::~ImplantInfoWidget() {
+ImplantRegistrationWidget::~ImplantRegistrationWidget() {
 
 }
 
-void ImplantInfoWidget::showImplantationSiteWidget(const QString &serial)
+void ImplantRegistrationWidget::showImplantationSiteWidget(const QString &serial)
 {
     //添加遮罩层
     QWidget *overlay = new QWidget(this);
@@ -360,6 +387,25 @@ void ImplantInfoWidget::showImplantationSiteWidget(const QString &serial)
 
     // 5. 阻塞显示
     int result = dlg.exec();
+    if (result == QDialog::Accepted) {
+        // 用户点击了“下一步”
+        MedicalLogger::instance()->writeLog(
+            "ImplantRegistrationWidget",
+            MedicalLogger::LOG_INFO,
+            "User clicked 'Next' to proceed with sensor implantation",
+            " ",  // 操作员 ID（未登录时使用占位符）
+            "UI"                 // UI 操作
+        );
+    } else {
+        // 用户点击了“返回”
+        MedicalLogger::instance()->writeLog(
+            "ImplantationSiteWidget",
+            MedicalLogger::LOG_INFO,
+            "User clicked 'Back' to cancel sensor implantation",
+            " ",  // 操作员 ID（未登录时使用占位符）
+            "UI"                 // UI 操作
+        );
+    }
 
     // 6. 清除遮罩和模糊
     this->setGraphicsEffect(nullptr);
@@ -369,21 +415,49 @@ void ImplantInfoWidget::showImplantationSiteWidget(const QString &serial)
     // 7. 如果点击下一步，跳转到植入窗口
     if (result == QDialog::Accepted) {
         ImplantationSite* implantationSite = new ImplantationSite(this,serial);
-        qDebug() << "ImplantationSite constructed.";
+//        qDebug() << "ImplantationSite constructed.";
         implantationSite->setWindowFlags(Qt::Window);
         implantationSite->setFixedSize(1024*scaleX, 600*scaleY);
         connect(implantationSite, &ImplantationSite::returnRequested, this, [this, implantationSite]() {
             implantationSite->hide();
             this->show();
+            MedicalLogger::instance()->writeLog(
+                "implantationSite",
+                MedicalLogger::LOG_INFO,
+                "Returning to ImplantRegistrationWidget interface",
+                " ",   // 目前没有登录时用占位符
+                "UI"                 // 这里是 UI 相关操作
+            );
             implantationSite->deleteLater();
-            qDebug() << "ImplantationSite deleteLater triggered.";
+//            qDebug() << "ImplantationSite deleteLater triggered.";
         });
         implantationSite->show();
-        this->hide();
+        MedicalLogger::instance()->writeLog(
+            "implantationSite",
+            MedicalLogger::LOG_AUDIT,
+            "ImplantationSite window opened (user accepted)",
+            "UnknownOperator",
+            "UI"
+        );
+        QTimer::singleShot(200, this, [this]() {
+            this->hide();            // 隐藏当前窗口
+        });
+    }else {
+            // 用户取消/返回
+//            qDebug() << "User canceled implantation step.";
+
+            // 日志：用户取消植入操作
+            MedicalLogger::instance()->writeLog(
+                "implantationSite",
+                MedicalLogger::LOG_AUDIT,
+                "ImplantationSite canceled by user",
+                " ",
+                "UI"
+            );
     }
 }
 
-bool ImplantInfoWidget::insertNewSensor()
+bool ImplantRegistrationWidget::insertNewSensor()
 {
     //先做合法性检查：序列号 + 校准码 必须在对照表里存在
     m_serial  = serialInput->text().trimmed();
@@ -399,11 +473,25 @@ bool ImplantInfoWidget::insertNewSensor()
 
     //执行语句失败或未检查到内容皆表示失败
     if (!checkQ.exec() || !checkQ.next()) {
-        qWarning() << "校验表查询失败：" << checkQ.lastError().text();
+        QString err = "校验表查询失败: " + checkQ.lastError().text();
+        MedicalLogger::instance()->writeLog(
+            "Database",
+            MedicalLogger::LOG_ERROR,
+            err,
+            " ",
+            m_serial
+        );
         return false;
     }
     if (checkQ.value(0).toInt() == 0) {
-        qWarning() << "序列号/校准码 在对照表中不存在，禁止注册！";
+        QString err = "序列号/校准码在对照表中不存在，禁止注册！";
+        MedicalLogger::instance()->writeLog(
+            "Database",
+            MedicalLogger::LOG_WARN,
+            err,
+            " ",
+            m_serial
+        );
         return false;
     }
 
@@ -412,11 +500,25 @@ bool ImplantInfoWidget::insertNewSensor()
     existQ.prepare("SELECT COUNT(*) FROM sensor_info WHERE sensor_id=:id");
     existQ.bindValue(":id", m_serial);
     if (!existQ.exec() || !existQ.next()) {
-        qWarning() << "主表查询失败：" << existQ.lastError().text();
+        QString err = "主表查询失败: " + existQ.lastError().text();
+        MedicalLogger::instance()->writeLog(
+            "Database",
+            MedicalLogger::LOG_ERROR,
+            err,
+            " ",
+            m_serial
+        );
         return false;
     }
     if (existQ.value(0).toInt() > 0) {
-        qWarning() << "序列号已注册过，禁止重复添加！";
+        QString err = "序列号已注册过，禁止重复添加！";
+        MedicalLogger::instance()->writeLog(
+            "Database",
+            MedicalLogger::LOG_WARN,
+            err,
+            " ",
+            m_serial
+        );
         return false;
     }
 
@@ -448,15 +550,28 @@ bool ImplantInfoWidget::insertNewSensor()
     insertQ.bindValue(":loc",  QStringLiteral(""));
 
     if (!insertQ.exec()) {
-        qWarning() << "插入新传感器失败：" << insertQ.lastError().text();
+        QString errMsg = insertQ.lastError().text();
+        MedicalLogger::instance()->writeLog(
+            "Database",
+            MedicalLogger::LOG_ERROR,                          // 数据库错误
+            QString("Failed to insert new sensor: %1").arg(errMsg),
+            " ",                                 // 当前操作员（现用 UnknownOperator）
+            "DB"
+        );
         return false;
     }
 
-    qDebug() << "新传感器插入成功：" << m_serial;
+    MedicalLogger::instance()->writeLog(
+        "Database",
+        MedicalLogger::LOG_AUDIT,                              // 审计日志，关键数据操作
+        QString("New sensor inserted successfully: serial=%1").arg(m_serial),
+        " ",
+        "DB"
+    );
     return true;
 }
 
-void ImplantInfoWidget::changeEvent(QEvent *event)
+void ImplantRegistrationWidget::changeEvent(QEvent *event)
 {
     QWidget::changeEvent(event);
     if (event->type() == QEvent::LanguageChange) {

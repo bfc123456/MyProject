@@ -11,10 +11,10 @@
 #include <qwt_plot.h>
 #include <qwt_plot_curve.h>
 #include <qwt_symbol.h>
-#include "settingswidget.h"
-#include "modernwaveplot.h"
-#include "measurementdata.h"
-#include "customkeyboard.h"
+#include "SettingsWidget.h"
+#include "ModernWaveplot.h"
+#include "MeasurementData.h"
+#include "Customkeyboard.h"
 #include "FramelessWindow.h"
 
 class MeasureWidget : public FramelessWindow

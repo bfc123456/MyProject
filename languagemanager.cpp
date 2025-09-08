@@ -1,4 +1,4 @@
-#include "languagemanager.h"
+#include "LanguageManager.h"
 #include <QDebug>
 
 LanguageManager::LanguageManager(QObject *parent)

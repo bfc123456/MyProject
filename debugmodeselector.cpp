@@ -1,4 +1,4 @@
-#include "debugmodeselector.h"
+#include "DebugModeSelector.h"
 #include <QBoxLayout>
 #include <QPushButton>
 #include <QLabel>

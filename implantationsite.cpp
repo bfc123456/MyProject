@@ -1,4 +1,4 @@
-#include "implantationsite.h"
+#include "ImplantAtionSite.h"
 #include <QDebug>
 #include <QMessageBox>
 #include <QGraphicsBlurEffect>
@@ -7,6 +7,8 @@
 #include <QSqlError>
 #include <QGuiApplication>
 #include <QScreen>
+#include <QSettings>
+#include <MedicalLogger.h>
 
 ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
     : FramelessWindow(parent), m_serial(sensorId){
@@ -355,7 +357,11 @@ ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
     QLabel* signalIcon = new QLabel(frameSignal);
     signalIcon->setPixmap(QPixmap(":/image/icons8-signal.png").scaled(16, 16));
     signalIcon->setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent; color: white;");
+
+    QSettings settings("MyCompany", "MyApp");
+    int savedStrength = settings.value("system/signalStrength", 70).toInt();
     progress = new CircularProgressBar(frameSignal);
+    progress->setThreshold(savedStrength);
     progress->setProgress(90);
     progress->setFixedSize(65, 65);
 
@@ -439,7 +445,9 @@ ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
         }
 
         implantmonitor->show();
-        this->hide();
+        QTimer::singleShot(300, this, [this]() {
+            this->hide();            // 隐藏当前窗口
+        });
     });
 
     // 监听关闭信号
@@ -496,7 +504,21 @@ void ImplantationSite::OpenSettingsRequested() {
     settingswidget = new SettingsWidget();
     settingswidget->setWindowFlags(Qt::Dialog);
     settingswidget->setAttribute(Qt::WA_DeleteOnClose);
+    connect(settingswidget, &SettingsWidget::signalStrengthChanged,
+            this, [this](int v) {
+                if (progress) progress->setThreshold(v);   // 立即更新显示
+                QSettings s("MyCompany","MyApp");           // 落盘
+                s.setValue("system/signalStrength", v);
+                s.sync();
+            });
     settingswidget->show();
+    MedicalLogger::instance()->writeLog(
+        "Settings",
+        MedicalLogger::LOG_AUDIT,
+        "Settings window opened",
+        "UnknownOperator",   // 如果有登录用户 ID，可以替换掉
+        "UI"
+    );
 }
 
 //void ImplantationSite::openImplantMonitorWidget() {
@@ -578,7 +600,6 @@ void ImplantationSite::onBtnLocationClicked() {
                          350*scaleX);
     dlg.exec();
 
-
     // 3) 如果用户点“返回”，直接把按钮恢复到默认样式并 return
     if (dlg.getUserResponse() != tr("确定")) {
         // 恢复原始蓝色样式
@@ -598,22 +619,28 @@ void ImplantationSite::onBtnLocationClicked() {
         this->setGraphicsEffect(nullptr);
         overlay->close();
         overlay->deleteLater();
-
+        MedicalLogger::instance()->writeLog(
+            "Upload",                        // 模块名：上传相关操作
+            MedicalLogger::LOG_INFO,          // 日志等级：信息
+            "User cancelled the upload",      // 日志内容：用户取消了上传操作
+            " ",                //未登录时用占位符
+            "UI"                              // 来源：UI 操作
+        );
         return;
     }
 
     // 4) 用户点“确定”，先把按钮变成半透明绿
-    btn->setStyleSheet(R"(
-        QPushButton {
-          background-color: rgba(76,175,80,0.85);
-          color: #F0F0F0;
-          font-weight: 600;
-          font-size: 16px;
-          border: none;
-          border-radius: 8px;
-          padding: 10px 24px;
-        }
-    )");
+//    btn->setStyleSheet(R"(
+//        QPushButton {
+//          background-color: rgba(76,175,80,0.85);
+//          color: #F0F0F0;
+//          font-weight: 600;
+//          font-size: 16px;
+//          border: none;
+//          border-radius: 8px;
+//          padding: 10px 24px;
+//        }
+//    )");
 
     // 5) 调用上传函数
     if (uploadLocation(loc)) {
@@ -624,6 +651,23 @@ void ImplantationSite::onBtnLocationClicked() {
                             { tr("确定") },
                             300*scaleX);
         ok.exec();
+        MedicalLogger::instance()->writeLog(
+            "Implantation",
+            MedicalLogger::LOG_AUDIT,
+            QString("Implantation location uploaded successfully: %1")
+                .arg(loc=="left" ? "Left" : "Right"),
+            " ",
+            m_serial
+        );
+    }else {
+        // 上传失败时，也建议加日志
+        MedicalLogger::instance()->writeLog(
+            "Implantation",
+            MedicalLogger::LOG_ERROR,
+            "Implantation location upload failed",
+            " ",
+            m_serial
+        );
     }
     // 清除遮罩和模糊
     this->setGraphicsEffect(nullptr);

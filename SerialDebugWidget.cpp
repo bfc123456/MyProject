@@ -1,4 +1,4 @@
-#include "maintenancewidget.h"
+#include "SerialDebugWidget.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QSerialPortInfo>
@@ -7,7 +7,7 @@
 #include <QGuiApplication>
 #include <QScreen>
 
-MaintenanceWidget::MaintenanceWidget(QWidget *parent)
+SerialDebugWidget::SerialDebugWidget(QWidget *parent)
     : FramelessWindow(parent), serialManager(new SerialManager(this))
 {
     QScreen *screen = QGuiApplication::primaryScreen();
@@ -92,7 +92,7 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
         }
     )");
 
-    connect(btnclose, &QPushButton::clicked, this, &MaintenanceWidget::onBtnCloseClicked);
+    connect(btnclose, &QPushButton::clicked, this, &SerialDebugWidget::onBtnCloseClicked);
 
 
     //顶部栏布局
@@ -463,25 +463,25 @@ MaintenanceWidget::MaintenanceWidget(QWidget *parent)
     mainLayout->addLayout(secondLayout);
 
     // 连接信号与槽
-    connect(connectButton, &QPushButton::clicked, this, &MaintenanceWidget::onConnectSerialPort);
-    connect(sendButton, &QPushButton::clicked, this, &MaintenanceWidget::onSendData);
-    connect(clearReceiveButton, &QPushButton::clicked, this, &MaintenanceWidget::onClearReceive);
-    connect(clearSendButton, &QPushButton::clicked, this, &MaintenanceWidget::onClearSend);
-    connect(serialManager, &SerialManager::dataReceived, this, &MaintenanceWidget::onReceiveData);
+    connect(connectButton, &QPushButton::clicked, this, &SerialDebugWidget::onConnectSerialPort);
+    connect(sendButton, &QPushButton::clicked, this, &SerialDebugWidget::onSendData);
+    connect(clearReceiveButton, &QPushButton::clicked, this, &SerialDebugWidget::onClearReceive);
+    connect(clearSendButton, &QPushButton::clicked, this, &SerialDebugWidget::onClearSend);
+    connect(serialManager, &SerialManager::dataReceived, this, &SerialDebugWidget::onReceiveData);
 
     //UDP监听数据
 //    udpManager->startListening(5555);    // 启动监听UDP数据（监听某个端口，例如5555）
 
     // 连接信号，处理接收到的数据
-//    connect(udpManager, &UdpManager::dataReceived, this, &MaintenanceWidget::onDataReceived);
+//    connect(udpManager, &UdpManager::dataReceived, this, &SerialDebugWidget::onDataReceived);
 }
 
-MaintenanceWidget::~MaintenanceWidget()
+SerialDebugWidget::~SerialDebugWidget()
 {
     delete serialManager;
 }
 
-void MaintenanceWidget::onConnectSerialPort()
+void SerialDebugWidget::onConnectSerialPort()
 {
     // 判断当前按钮文本是“连接”还是“断开”
     if (connectButton->text() == tr("连接串口")) {
@@ -509,14 +509,14 @@ void MaintenanceWidget::onConnectSerialPort()
 }
 
 
-void MaintenanceWidget::onSendData()
+void SerialDebugWidget::onSendData()
 {
     QByteArray data = sendTextEdit->text().toUtf8();
     serialManager->sendData(data);
     qDebug() << "发送数据：" << data;
 }
 
-void MaintenanceWidget::onReceiveData(const QByteArray &data)
+void SerialDebugWidget::onReceiveData(const QByteArray &data)
 {
     qDebug() << "接收到的数据：" << data.toHex();
 
@@ -558,17 +558,17 @@ void MaintenanceWidget::onReceiveData(const QByteArray &data)
 
 }
 
-void MaintenanceWidget::onClearReceive()
+void SerialDebugWidget::onClearReceive()
 {
     receiveTextEdit->clear();
 }
 
-void MaintenanceWidget::onClearSend()
+void SerialDebugWidget::onClearSend()
 {
     sendTextEdit->clear();
 }
 
-void MaintenanceWidget::setStatus(QFrame *frame, bool isNormal)
+void SerialDebugWidget::setStatus(QFrame *frame, bool isNormal)
 {
     if (isNormal) {
         frame->setStyleSheet("background-color: green;");
@@ -577,7 +577,7 @@ void MaintenanceWidget::setStatus(QFrame *frame, bool isNormal)
     }
 }
 
-void MaintenanceWidget::parseReceivedData(const QByteArray &data)
+void SerialDebugWidget::parseReceivedData(const QByteArray &data)
 {
     // 数据格式是: [0x55 0xBB | 电压状态 | 电流状态 | 温度状态 | 输出功率状态 | 反向驻波状态]
 
@@ -600,7 +600,7 @@ void MaintenanceWidget::parseReceivedData(const QByteArray &data)
     setStatus(reverseReflectionStatusFrame, reverseReflectionStatus == 1); // 反向驻波状态
 }
 
-void MaintenanceWidget::parseAttenuationResponse(const QByteArray &data)
+void SerialDebugWidget::parseAttenuationResponse(const QByteArray &data)
 {
         // 获取设置结果（字节 2）
         unsigned char result = static_cast<unsigned char>(data[2]);
@@ -618,7 +618,7 @@ void MaintenanceWidget::parseAttenuationResponse(const QByteArray &data)
         receiveTextEdit->append(displayString);
 }
 
-void MaintenanceWidget::onDataReceived(const QByteArray &data)
+void SerialDebugWidget::onDataReceived(const QByteArray &data)
 {
     // 这里是接收到数据后处理的代码
     // 比如，可以将接收到的十六进制数据转换成字符串并显示到界面上
@@ -626,12 +626,13 @@ void MaintenanceWidget::onDataReceived(const QByteArray &data)
     qDebug() << "接收到的数据：" << dataString;
 }
 
-void MaintenanceWidget::onBtnCloseClicked()
+void SerialDebugWidget::onBtnCloseClicked()
 {
     this->close();
+
 }
 
-void MaintenanceWidget::changeEvent(QEvent *event)
+void SerialDebugWidget::changeEvent(QEvent *event)
 {
     if (event->type() == QEvent::LanguageChange) {
         titleLabel->setText("🩺 "+ tr("医疗设备管理系统"));
