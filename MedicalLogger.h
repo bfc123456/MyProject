@@ -6,6 +6,39 @@
 #include <QFile>
 #include <QMutex>
 
+/**
+ * @class MedicalLogger
+ * @brief 医疗系统日志管理类（单例模式）
+ *
+ * 该类用于医疗设备/软件中的统一日志记录，支持多线程安全写入，
+ * 并满足合规要求（如 21 CFR Part 11 审计追踪）。
+ *
+ * 功能：
+ * - 采用单例模式，保证全局唯一实例。
+ * - 提供多级别日志记录接口（信息、警告、错误、审计、数据）。
+ * - 自动维护日志文件（初始化、关闭、大小检查与轮换）。
+ * - 支持 Qt 消息处理器重定向，统一管理 qDebug/qWarning 等输出。
+ *
+ * 日志级别：
+ * - LOG_INFO  ：普通信息（系统运行状态、提示）
+ * - LOG_WARN  ：警告信息（异常但不影响运行）
+ * - LOG_ERROR ：错误信息（功能受影响，需要关注）
+ * - LOG_AUDIT ：审计日志（关键操作，合规必需，需记录 operatorId）
+ * - LOG_DATA  ：数据日志（测量/传感器数据记录）
+ *
+ * 线程安全：
+ * - 内部使用 QMutex 确保多线程并发写入日志时的完整性。
+ *
+ * 用法示例：
+ * @code
+ * MedicalLogger::instance()->init();
+ * MedicalLogger::instance()->writeLog("MeasurementModule",
+ *                                     MedicalLogger::LOG_AUDIT,
+ *                                     "User started measurement",
+ *                                     "operator123", "sensorA");
+ * @endcode
+ */
+
 class MedicalLogger : public QObject {
     Q_OBJECT
 public:

@@ -15,13 +15,49 @@
 #include "MeasurementData.h"
 #include "MeasurementConfig.h"
 
-// 波形参数计算结果
+/**
+ * @struct WaveParams
+ * @brief 存储一次完整波形计算得到的关键生理参数
+ *
+ * WaveParams 封装了血压波形分析后得到的主要结果：
+ * - 收缩压最大值（SPAP）
+ * - 舒张压最小值（DPAP）
+ * - 平均压（MPAP）
+ * - 心率
+ *
+ * 这些参数通常在测量结束后，通过对完整波形进行计算得出。
+ */
 struct WaveParams {
     float maxSPAP = 0.0f;   // 收缩压最大值
     float minDPAP = 0.0f;   // 舒张压最小值
     float avgMPAP = 0.0f;   // 平均压
     float heartRate = 0.0f; // 心率
 };
+
+/**
+ * @class MeasurementDataProcessor
+ * @brief 测量数据处理器
+ *
+ * MeasurementDataProcessor 负责接收实时传感器数据，进行波形解析、
+ * 峰值检测、心率计算和最终参数提取。该类通常运行在独立线程中，
+ * 通过 Qt 信号槽机制将解析结果传递给 UI 或数据存储模块。
+ *
+ * 核心功能：
+ * - 通过 parseData() 槽函数接收实时采样点
+ * - 检测峰值并估算心率
+ * - 在测量结束时计算最终的收缩压、舒张压、平均压等参数
+ * - 周期性发射批量波形数据用于 UI 绘制
+ *
+ * 信号：
+ * - dataParsed()：发射单次解析结果
+ * - measureFinished()：发射一次完整测量结果
+ * - processingStarted()：处理线程启动时发射
+ *
+ * 内部机制：
+ * - 使用 QMutex 保证多线程环境下数据安全
+ * - 通过 QVector<QPointF> 存储完整波形 (x: 时间, y: 压力)
+ * - 使用 QElapsedTimer 精确记录时间戳
+ */
 
 class MeasurementDataProcessor : public QObject
 {

@@ -387,25 +387,6 @@ void ImplantRegistrationWidget::showImplantationSiteWidget(const QString &serial
 
     // 5. 阻塞显示
     int result = dlg.exec();
-    if (result == QDialog::Accepted) {
-        // 用户点击了“下一步”
-        MedicalLogger::instance()->writeLog(
-            "ImplantRegistrationWidget",
-            MedicalLogger::LOG_INFO,
-            "User clicked 'Next' to proceed with sensor implantation",
-            " ",  // 操作员 ID（未登录时使用占位符）
-            "UI"                 // UI 操作
-        );
-    } else {
-        // 用户点击了“返回”
-        MedicalLogger::instance()->writeLog(
-            "ImplantationSiteWidget",
-            MedicalLogger::LOG_INFO,
-            "User clicked 'Back' to cancel sensor implantation",
-            " ",  // 操作员 ID（未登录时使用占位符）
-            "UI"                 // UI 操作
-        );
-    }
 
     // 6. 清除遮罩和模糊
     this->setGraphicsEffect(nullptr);

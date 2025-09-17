@@ -12,6 +12,35 @@
 #include "CircularProgressbar.h"
 #include "SettingsWidget.h"
 
+/**
+ * @class PatientSignalStrengthWidget
+ * @brief 术区/贴片信号强度检测与引导窗口（测量前置环节）
+ *
+ * 本窗口用于在开始正式测量之前，实时检测并展示患者（或植入/贴附点）的
+ * 信号强度，满足阈值后方可进入测量流程。提供返回登录、打开设置、开始
+ * 测量等入口，并支持叠层（overlay）与无边框样式的交互体验。
+ *
+ * 主要职责：
+ * - 实时刷新信号强度并以环形进度条展示（CircularProgressBar）
+ * - 达到门限时发出 progressThresholdReached()，允许进入测量对话框
+ * - 打开测量设置（SettingsWidget）或测量对话框（MeasurementDialog）
+ * - 多语言切换时动态更新文案
+ *
+ * 信号：
+ * - openSettingsWindow()：请求打开设置面板
+ * - followReturnToLogin()：引导返回登录/上一级
+ * - onSignalFromImplantationSite()：检测到来自植入/贴附位置信号
+ * - progressThresholdReached()：信号强度达到门限（可开始测量）
+ *
+ * 使用示例：
+ * @code
+ * auto *w = new PatientSignalStrengthWidget(parent);
+ * connect(w, &PatientSignalStrengthWidget::progressThresholdReached,
+ *         w, &PatientSignalStrengthWidget::openMeasurementDialog);
+ * w->show();
+ * @endcode
+ */
+
 class PatientSignalStrengthWidget: public FramelessWindow
 {
     Q_OBJECT

@@ -6,6 +6,30 @@
 #include <QVector>
 #include <QPointF>
 
+/**
+ * @class ModernWavePlot
+ * @brief 现代化单通道波形绘制控件（基于 QwtPlot）
+ *
+ * 该类封装了一个轻量化的波形显示控件，主要用于医疗/科学测量中的
+ * 单通道实时数据可视化。支持 **实时滚动模式** 与 **全局显示模式**，
+ * 提供接口控制曲线颜色、填充效果等。
+ *
+ * 特点：
+ * - 内部仅维护一个 QwtPlotCurve，适合单通道波形。
+ * - 支持 setSimpleData() 一次性覆盖数据并刷新。
+ * - 支持实时模式：窗口宽度可调（秒级），实现类似监护仪的滚动效果。
+ * - 支持全局模式：自动缩放坐标轴以适应所有数据。
+ * - 提供外观接口（颜色、填充、基线）便于快速定制 UI 风格。
+ *
+ * 典型用法：
+ * @code
+ * ModernWavePlot *plot = new ModernWavePlot(this);
+ * plot->setLineColor(Qt::green);
+ * plot->setLiveMode(true, 10.0); // 开启10秒滚动窗口
+ * plot->setSimpleData(wavePoints); // 输入波形数据
+ * @endcode
+ */
+
 class ModernWavePlot : public QwtPlot {
     Q_OBJECT
 public:

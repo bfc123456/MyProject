@@ -150,7 +150,7 @@ void MeasurementDataProcessor::parseData(quint32 currentValue)
     // 1) 先把“当前点”存起来（批量 + 可选全量）
     {
         QMutexLocker lk(&m_mutex);                  // 若本类只在一个线程用，可去掉锁
-        m_batch.append(pt);                         // ☆ 发UI用的批量缓冲
+        m_batch.append(pt);                         // 发UI用的批量缓冲
         m_waveformData.append(pt);                  // 可选：全量保存/导出用
     }
 
@@ -175,7 +175,7 @@ void MeasurementDataProcessor::parseData(quint32 currentValue)
                 return;                   // 没点就不发
             }
         }
-        emit dataParsed(md);              // ☆ 一批发一次（UI 只重绘一次）
+        emit dataParsed(md);              // 一批发一次（UI 只重绘一次）
     }
 
 

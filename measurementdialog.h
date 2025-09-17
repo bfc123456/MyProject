@@ -18,6 +18,37 @@
 class DeviceAcquisitionWorker;
 class MeasurementDataProcessor;
 
+/**
+ * @class MeasurementDialog
+ * @brief 单次测量的前端对话框（流程控制 + 进度展示 + 结果汇总）
+ *
+ * 本对话框用于承载一次测量的完整交互流程：从“准备就绪”到“开始测量”，
+ * 再到“测量完成并查看结果”。类内维护一个简单的状态机（READY → MEASURING → COMPLETED），
+ * 通过进度条与提示文本反馈测量进展，并在测量结束时汇总由后台处理器
+ *（MeasurementDataProcessor）计算出的最终结果（收缩压/舒张压/平均压/心率等）。
+ *
+ * 典型使用：
+ * 1) 构造时传入 sensorId 与初始信号强度；
+ * 2) 用户点击“开始测量”→ 初始化采集与处理线程，进入 MEASURING；
+ * 3) 定时刷新进度；到达总时长或收到完成信号后，转入 COMPLETED；
+ * 4) 用户可点击“查看结果”或“重新测量”，并可选择提交数据库。
+ *
+ * 线程/模块分工（推荐）：
+ * - DeviceAcquisitionWorker：采集原始数据并投递至处理线程；
+ * - MeasurementDataProcessor：解析波形、峰值检测、心率与参数计算；
+ * - MeasurementDialog：管理 UI 与状态、接收最终结果并展示/落库。
+ *
+ * 信号与槽：
+ * - 槽 onStartButtonClicked()/onRestartButtonClicked()/onViewResultButtonClicked() 控制流程切换；
+ * - 槽 onMeasureCompleted() 接收最终结果并更新 UI；
+ * - 信号 exitOverlay()/closePatientSignalStrengthWidget() 通知上层界面跳转或收起叠层。
+ *
+ * 注意：
+ * - 进度条刷新由定时器驱动（建议周期与 MeasurementConfig 中配置保持一致）；
+ * - 数据库写入通过 updateResultToDatabase() 在 COMPLETED 后触发；
+ * - 多语言支持通过 changeEvent() 动态更新界面文案。
+ */
+
 class MeasurementDialog : public QDialog
 {
     Q_OBJECT
