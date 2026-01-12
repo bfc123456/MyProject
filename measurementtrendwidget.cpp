@@ -1,4 +1,4 @@
-#include "MeasurementTrendWidget.h"
+#include "measurementtrendwidget.h"
 #include "multiuserloginwindow.h"
 #include <QScreen>
 #include <QGuiApplication>
@@ -15,7 +15,7 @@
 #include <QSqlError>
 #include <QMessageBox>
 #include <QtGlobal>
-#include <Global.h>
+#include <global.h>
 #include <QDir>
 #include <QFileDialog>
 /*************** TrendChart 类实现****************/

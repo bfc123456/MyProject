@@ -1,5 +1,5 @@
 #include "updatemanager.h"
-#include "MedicalLogger.h"
+#include "medicallogger.h"
 
 #include <QDir>
 #include <QFile>

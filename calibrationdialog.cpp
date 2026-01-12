@@ -1,11 +1,14 @@
-#include "CalibrationDialog.h"
+#include "calibrationdialog.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFont>
 #include <QMessageBox>
-#include "Customkeyboard.h"
+#include "customkeyboard.h"
 #include <QGuiApplication>
 #include <QScreen>
+#include <QGraphicsDropShadowEffect>
+#include <QPainterPath>
+#include <QRegion>
 
 CalibrationDialog::CalibrationDialog(QWidget* parent)
     : CloseOnlyWindow(parent)
@@ -20,11 +23,93 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
     scaleX = (float)screenWidth / 1024;
     scaleY = (float)screenHeight / 600;
 
-    setWindowTitle(tr("校准传感器"));
     setFixedSize(400*scaleX, 280*scaleY);
-    setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 14px;");
+    setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
+    setAttribute(Qt::WA_TranslucentBackground);
+    setObjectName("CalibrationDialog");
 
-    QVBoxLayout* mainLayout = new QVBoxLayout(this);
+    setStyleSheet(R"(
+    #CalibrationDialog{
+        background: transparent;
+    }
+    )");
+
+    QVBoxLayout* rootLayout = new QVBoxLayout(this);
+    rootLayout->setContentsMargins(0, 0, 0, 0);
+    rootLayout->setAlignment(Qt::AlignCenter);
+
+    // 卡片容器
+    QFrame* card = new QFrame(this);
+    card->setObjectName("card");
+    card->setFixedSize(400*scaleX, 280*scaleY);
+
+    const int r = 16; // 圆角半径，和 QSS 里一致
+
+    QPainterPath path;
+    path.addRoundedRect(card->rect(), r, r);
+    setMask(QRegion(path.toFillPolygon().toPolygon()));
+
+    card->setStyleSheet(R"(
+    #card{
+        background-color: #262A33;
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,90);
+    }
+    QLabel{
+        color: rgba(255,255,255,220);
+    }
+    )");
+
+    auto *shadow = new QGraphicsDropShadowEffect(this);
+    shadow->setBlurRadius(26);
+    shadow->setOffset(0, 10);
+    shadow->setColor(QColor(0, 0, 0, 180));
+    card->setGraphicsEffect(shadow);
+
+    rootLayout->addWidget(card);
+
+    QVBoxLayout* mainLayout = new QVBoxLayout(card);
+    mainLayout->setContentsMargins(
+        26*scaleX, 22*scaleY,
+        26*scaleX, 24*scaleY
+    );
+    mainLayout->setSpacing(14*scaleY);
+
+    //创建关闭按钮
+//    QPushButton *closeButton = new QPushButton(this);
+//    closeButton->setIcon(QIcon(":/image/icons-close.png"));
+//    closeButton->setIconSize(QSize(20 * scaleX, 20 * scaleX));
+    closeButton = new QPushButton(card);
+    closeButton->setObjectName("closeBtn");
+    closeButton->setIcon(QIcon(":/image/icons-close.png"));
+    closeButton->setIconSize(QSize(20*scaleX,20*scaleX));
+    closeButton->setFixedSize(28*scaleX, 28*scaleX);
+    closeButton->setCursor(Qt::PointingHandCursor);
+
+    closeButton->setStyleSheet(R"(
+    #closeBtn{
+        background: transparent;
+        border: none;
+        border-radius: 14px;
+        color: rgba(255,255,255,180);
+        font-size: 14px;
+        font-weight: 700;
+    }
+    #closeBtn:hover{
+        background: rgba(255,255,255,40);
+        color: white;
+    }
+    #closeBtn:pressed{
+        background: rgba(0,0,0,70);
+    }
+    )");
+
+
+    //创建按钮布局，用于设置关闭按钮的显示位置
+    QHBoxLayout *headerLayout = new QHBoxLayout();
+    headerLayout->setContentsMargins(0,0,0,0);
+    headerLayout->addWidget(closeButton,0,Qt::AlignRight);
+    mainLayout->addLayout(headerLayout);
 
     title = new QLabel(tr("校准传感器"));
     title->setFixedWidth(180*scaleX);
@@ -37,15 +122,16 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
     QLabel* bpValue = new QLabel("120/80");
     bpValue->setFixedWidth(80*scaleX);
     bpValue->setAlignment(Qt::AlignCenter);
-    bpValue->setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent; color: white;");
     QLabel* pulseValue = new QLabel("94");
     pulseValue->setFixedWidth(80*scaleX);
     pulseValue->setAlignment(Qt::AlignCenter);
-    pulseValue->setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent; color: white;");
     QLabel* unit = new QLabel("mmHg");
     unit->setFixedWidth(120*scaleX);
     unit->setAlignment(Qt::AlignCenter);
-    unit->setStyleSheet("font-weight: bold; font-size: 16px; background-color: transparent; color: white;");
+    bpValue->setStyleSheet("font-size: 28px; font-weight: 700; color: white;background-color: transparent;");
+    pulseValue->setStyleSheet("font-size: 28px; font-weight: 700; color: white;background-color: transparent;");
+    unit->setStyleSheet("font-size: 12px; color: rgba(255,255,255,160);background-color: transparent;");
+
 
     QFont valueFont;
     valueFont.setPointSize(22);
@@ -74,20 +160,25 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
     inputEdit->setFixedSize(120*scaleX,35*scaleY);
     inputEdit->setFocusPolicy(Qt::ClickFocus);  // 只有点击时才能获取焦
     inputEdit->setStyleSheet(R"(
-        QLineEdit {
-            padding-left: 8px;
-            color: #666666;
-            border: 1px solid #ccc;  /*浅灰色边框 */
-            border-radius: 4px;
-            background-color: white; /*背景色 */
-        }
+    QLineEdit{
+        padding-left: 10px;
+        color: rgba(255,255,255,230);
+        border: 1px solid rgba(255,255,255,70);
+        border-radius: 8px;
+        background-color: rgba(255,255,255,18);
+    }
+    QLineEdit:focus{
+        border: 1px solid rgba(30,140,255,200);
+        background-color: rgba(255,255,255,24);
+    }
     )");
 
-    // 拿到单例键盘
-    currentKeyboard = CustomKeyboard::instance(this);
 
-    // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
-    currentKeyboard->registerEdit(inputEdit,QPoint(-250*scaleX, 0));
+//    // 拿到单例键盘
+//    currentKeyboard = CustomKeyboard::instance(this);
+
+//    // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
+//    currentKeyboard->registerEdit(inputEdit,QPoint(-250*scaleX, 0));
 
     inputLayout->addWidget(inputLabel);
     inputLayout->addWidget(inputEdit);
@@ -109,54 +200,27 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
     saveBtn->setIconSize(QSize(20*scaleX, 20*scaleY));
     saveBtn->setFixedSize(115*scaleX, 40*scaleY);
 
-    resetBtn->setStyleSheet(R"(
-    QPushButton {
-        background-color: qlineargradient(
-            x1:0, y1:0, x2:0, y2:1,
-            stop:0 rgba(95, 169, 246, 180),
-            stop:1 rgba(49, 122, 198, 180)
-        );
-        border: 1px solid rgba(163, 211, 255, 0.6); /* 半透明高光边框 */
-        border-radius: 6px;
+    QString btnStyle = R"(
+    QPushButton{
+        background-color: #1E8CFF;
+        border: none;
+        border-radius: 10px;
         color: white;
-        font-weight: bold;
+        font-weight: 700;
         font-size: 14px;
-        padding: 2px 5px;
+        padding: 6px 18px;
     }
+    QPushButton:hover{
+        background-color: #3C9DFF;
+    }
+    QPushButton:pressed{
+        background-color: #1673D2;
+    }
+    )";
+    resetBtn->setStyleSheet(btnStyle);
+    saveBtn->setStyleSheet(btnStyle);
 
-    QPushButton:pressed {
-        background-color: qlineargradient(
-            stop: 0 rgba(47, 106, 158, 200),
-            stop: 1 rgba(31, 78, 121, 200)
-        );
-        padding-left: 2px;
-        padding-top: 2px;
-    }
-    )");
 
-    saveBtn->setStyleSheet(R"(
-    QPushButton {
-        background-color: qlineargradient(
-            stop: 0 rgba(110, 220, 145, 180),
-            stop: 1 rgba(58, 170, 94, 180)
-        );
-        border: 1px solid rgba(168, 234, 195, 0.6);
-        border-radius: 6px;
-        color: white;
-        font-weight: bold;
-        font-size: 14px;
-        padding: 2px 5px;
-    }
-
-    QPushButton:pressed {
-        background-color: qlineargradient(
-            stop: 0 rgba(44, 128, 73, 200),
-            stop: 1 rgba(29, 102, 53, 200)
-        );
-        padding-left: 2px;
-        padding-top: 2px;
-    }
-    )");
     mainLayout->addSpacing(20*scaleY);
     buttonLayout->addWidget(resetBtn);
     buttonLayout->addStretch();
@@ -172,6 +236,8 @@ CalibrationDialog::CalibrationDialog(QWidget* parent)
     connect(resetBtn, &QPushButton::clicked, this, [this]() {
         inputEdit->clear();
     });
+    connect(closeButton, &QPushButton::clicked, this, &CalibrationDialog::close);
+
 }
 
 QString CalibrationDialog::getCalibrationValue() const

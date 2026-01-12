@@ -9,13 +9,13 @@
 #include <QLabel>
 #include <QFrame>
 #include <QVBoxLayout>
-#include "ModernWaveplot.h"
-#include "SettingsWidget.h"
-#include "CircularProgressbar.h"
-#include "CustomMessagebox.h"
-#include "CalibrationDialog.h"
-#include "ImplantMonitor.h"
-#include "FramelessWindow.h"
+#include "modernwaveplot.h"
+#include "settingswidget.h"
+#include "circularprogressbar.h"
+#include "custommessagebox.h"
+#include "calibrationdialog.h"
+#include "implantmonitor.h"
+#include "framelesswindow.h"
 #include <qwt_plot_grid.h>
 
 /**
@@ -86,7 +86,7 @@ private:
     QString m_serial;
     QLabel *idLabel;
 
-    SettingsWidget *settingswidget;
+//    SettingsWidget *settingswidget;
     CalibrationDialog *calibrationialog = nullptr;
     ImplantMonitor *implantmonitor = nullptr;
 

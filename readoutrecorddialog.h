@@ -6,7 +6,8 @@
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
-#include "MeasurementData.h"
+#include "measurementdata.h"
+#include "closeonlywindow.h"
 
 /**
  * @class ReadoutRecordDialog
@@ -33,7 +34,7 @@
  * - float scaleX, scaleY：界面缩放比例（适配不同分辨率）。
  */
 
-class ReadoutRecordDialog : public QDialog {
+class ReadoutRecordDialog : public CloseOnlyWindow {
     Q_OBJECT
 
 public:
@@ -52,6 +53,9 @@ signals:
     void onRefreshButtonClicked();
 
 private:
+    void changeEvent(QEvent *event);
+
+    QLabel *titleLabel;
     QTableWidget *table;
     QPushButton *btnRefresh;
     QPushButton *btnDelete;

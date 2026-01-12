@@ -5,6 +5,10 @@
 #include <qwt_plot_curve.h>
 #include <QVector>
 #include <QPointF>
+#include <qwt_plot_panner.h>
+#include <qwt_event_pattern.h>
+#include "customyscaledraw.h"
+#include "customzoomer.h"
 
 /**
  * @class ModernWavePlot
@@ -29,12 +33,16 @@
  * plot->setSimpleData(wavePoints); // 输入波形数据
  * @endcode
  */
+#define DEFAULT_X_MIN 0
+#define DEFAULT_X_MAX 30
+#define DEFAULT_Y_MIN 0
+#define DEFAULT_Y_MAX 100
 
 class ModernWavePlot : public QwtPlot {
     Q_OBJECT
 public:
     explicit ModernWavePlot(QWidget *parent = nullptr);
-    ~ModernWavePlot() = default;
+    ~ModernWavePlot();
 
     // 数据接口（GUI UI线程调用）
     void setSimpleData(const QVector<QPointF>& data);   //覆盖当前数据并刷新
@@ -46,8 +54,15 @@ public:
     void setLineColor(const QColor& color);      // 设置曲线颜色
     void setFillColor(const QColor& fill, double baseline = 0.0); // 设置填充
 
+public slots:
+    // X轴单位切换（如 s → ms → μs）
+    void onXUnitChanged(const QString& unit);
+    // Y轴单位切换（如 MHz → kHz → Hz）
+    void onYUnitChanged(const QString& unit);
+
 private:
     void initPlotStyle(); // 保留原样式初始化
+    void initPlotInteraction();//初始化鼠标在交互
     QwtPlotCurve* m_curve; // 仅一个曲线对象，无需会话
     QVector<QPointF> m_currentData; // 仅一个容器存当前数据
     void adjustAxesLive();   // 实时滚动模式
@@ -57,6 +72,21 @@ private:
 private:
     bool   m_liveMode = false;
     double m_windowSec = 8.0;  // 实时窗口宽度（秒）
+    QwtPlotPanner* m_panner; // 鼠标平移组件
+    CustomZoomer* m_zoomer; // 缩放（双击/右键）组件
+    QVector<QPointF> m_originalData; // 存储原始基础单位数据（X:秒，Y:MHz）
+    void updateScaledCurve();        // 重缩放数据并刷新曲线
+
+    // 关键补充：单位与刻度参数
+    QString m_xUnit = "ms";          // X轴当前单位（默认毫秒）
+    double m_xScaleFactor = 1000.0;  // X轴缩放因子（秒→毫秒×1000）
+    double m_xMin = 0.0;             // X轴初始最小值（默认0）
+    double m_xMax = 10000.0;         // X轴初始最大值（默认10000ms）
+
+    QString m_yUnit = "MHZ";          // Y轴当前单位（默认兆赫兹）
+    double m_yScaleFactor = 1.0;     // Y轴缩放因子（MHz不缩放）
+    double m_yMin = 0.0;             // Y轴初始最小值（默认0）
+    double m_yMax = 50.0;       // Y轴初始最大值（默认50MHz）
 
 };
 

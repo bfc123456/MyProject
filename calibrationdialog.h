@@ -6,9 +6,9 @@
 #include <QLineEdit>
 #include <QLabel>
 #include <QPushButton>
-#include <Customkeyboard.h>
+#include <customkeyboard.h>
 #include <QCloseEvent>
-#include "CloseOnlyWindow.h"
+#include "closeonlywindow.h"
 
 /**
  * @class CalibrationDialog
@@ -49,6 +49,7 @@ private:
     QLabel* inputLabel;
     QPushButton* resetBtn;
     QPushButton* saveBtn;
+    QPushButton *closeButton = nullptr;
 
     float scaleX;
     float scaleY;

@@ -30,13 +30,12 @@ public:
     explicit CloseOnlyWindow(QWidget *parent = nullptr)
       : QDialog(parent)
     {
-        // 去掉最大化/最小化，只保留“关闭”按钮
-        setWindowFlags(
-              Qt::Window
-            | Qt::CustomizeWindowHint
-            | Qt::WindowTitleHint
-            | Qt::WindowCloseButtonHint
-        );
+        // 去掉标题栏
+        setWindowFlags( (Qt::Dialog | Qt::FramelessWindowHint)
+                        & ~Qt::WindowSystemMenuHint
+                        & ~Qt::WindowMinMaxButtonsHint
+                        & ~Qt::WindowCloseButtonHint
+                        );
     }
 };
 

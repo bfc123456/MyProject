@@ -13,14 +13,15 @@
 #include <QElapsedTimer>
 #include <QElapsedTimer>
 #include <QStackedWidget>
-#include "CloseOnlyWindow.h"
-#include "FramelessWindow.h"
-#include "UdpDebugWidget.h"
-#include "CustomCombobox.h"
-#include "Customkeyboard.h"
-#include "SettingsWidget.h"
-#include "SerialDebugWidget.h"
-#include "ImplantRegistrationWidget.h"
+#include "closeonlywindow.h"
+#include "framelesswindow.h"
+#include "udpdebugwidget.h"
+#include "customcombobox.h"
+#include "customkeyboard.h"
+#include "settingswidget.h"
+#include "serialdebugwidget.h"
+#include "implantregistrationwidget.h"
+#include "languagemanager.h"
 
 class PatientSignalStrengthWidget;   // 前向声明
 
@@ -49,11 +50,12 @@ class MultiUserLoginWindow : public FramelessWindow   {
 public:
     explicit MultiUserLoginWindow(QWidget *parent = nullptr);
     ~MultiUserLoginWindow();
-    void changeLanguage(const QString &languageCode);    // 切换界面语言
+    void onLanguageChanged(const QString &languageCode);    // 切换界面语言
     void openSettingsWindow();    // 打开设置界面
 
 protected:
     void paintEvent(QPaintEvent *event) override;    // 窗口自绘（无边框风格）
+    void changeEvent(QEvent *event) override;   // 接收语言切换事件
 
 private:
 
@@ -66,21 +68,20 @@ private:
     QLabel *errorLabel;
     QElapsedTimer clickTimer;    //连续点击记录器
     QTranslator translator;    // 界面翻译器（中英文切换）
-    CustomKeyboard* currentKeyboard;    //虚拟键盘
+//    CustomKeyboard* currentKeyboard;    //虚拟键盘
+    QString m_currentLangCode;
 
     QStackedWidget *stackedWidget;
-    SettingsWidget *settingswidget;
+    SettingsWidget *settingswidget = nullptr;;
     std::unique_ptr<ImplantRegistrationWidget> implantRegistrationWindow;
     std::unique_ptr<PatientSignalStrengthWidget> PatientSignalStrengthWidgetwindow;
     std::unique_ptr<SerialDebugWidget> serialDebugWidget;
     std::unique_ptr<udpDebugWidget> udpdebugwidget;
 
-    bool isInitialized = false; //初始化标志位
     enum ErrorType { NoError = 0, ErrLength, ErrAuth };    //错误标签
     ErrorType   m_lastError = NoError;
 
     void showHiddenWidget();
-    void changeEvent(QEvent *event) override;
 
 private slots:
     void onSettingClicked();

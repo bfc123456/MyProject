@@ -1,6 +1,6 @@
-#include "MeasurementDialog.h"
-#include "MeasurementDataProcessor.h"
-#include "DeviceAcquisitionWorker.h"
+#include "measurementdialog.h"
+#include "measurementdataprocessor.h"
+#include "deviceacquisitionworker.h"
 #include <QRandomGenerator>
 #include <QGuiApplication>
 #include <QScreen>

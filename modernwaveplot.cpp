@@ -1,4 +1,4 @@
-#include "ModernWaveplot.h"
+#include "modernwaveplot.h"
 #include <qwt_plot_canvas.h>
 #include <qwt_scale_widget.h>
 #include <qwt_plot_grid.h>
@@ -12,9 +12,12 @@
 
 ModernWavePlot::ModernWavePlot(QWidget *parent)
     : QwtPlot(parent)
-    , m_curve(new QwtPlotCurve()) // 初始化唯一曲线
+    , m_curve(new QwtPlotCurve())
+    , m_panner(nullptr)
 {
     initPlotStyle();
+    initPlotInteraction();
+
     // 曲线默认配置（抗锯齿、颜色等）
     m_curve->setRenderHint(QwtPlotItem::RenderAntialiased);
     m_curve->setPen(QPen(QColor(0, 170, 255), 2));
@@ -26,6 +29,12 @@ ModernWavePlot::ModernWavePlot(QWidget *parent)
     m_curve->setPaintAttribute(QwtPlotCurve::ClipPolygons, true); // 剪裁填充多边形
 }
 
+ModernWavePlot::~ModernWavePlot()
+{
+    delete m_curve;
+    delete m_panner;
+}
+
 /**
  * @brief 初始化绘图风格：黑色画布、白色网格/坐标轴、初始范围。
  * @complexity O(1)
@@ -34,14 +43,17 @@ void ModernWavePlot::initPlotStyle() {
     setFrameStyle(QFrame::NoFrame);
     plotLayout()->setCanvasMargin(0);
 
+    // 画布样式
     canvas()->setAutoFillBackground(true);
     canvas()->setPalette(QPalette(Qt::black));
     canvas()->setAttribute(Qt::WA_OpaquePaintEvent, true);
 
+    // 网格
     QwtPlotGrid* grid = new QwtPlotGrid();
     grid->setPen(QPen(QColor(255, 255, 255, 15), 1, Qt::DotLine));
     grid->attach(this);
 
+    // 坐标轴字体与颜色
     auto setupAxis = [](QwtScaleWidget* axis) {
         QFont font("Arial", 10);
         axis->setFont(font);
@@ -52,9 +64,46 @@ void ModernWavePlot::initPlotStyle() {
     setupAxis(axisWidget(QwtPlot::xBottom));
     setupAxis(axisWidget(QwtPlot::yLeft));
 
-    // 初始轴范围
-    setAxisScale(QwtPlot::xBottom, 0, 20);
-    setAxisScale(QwtPlot::yLeft, 0, 500);
+    // 自定义Y轴刻度（整数显示）
+    QwtScaleWidget* yAxis = axisWidget(QwtPlot::yLeft);
+    CustomYScaleDraw* customYScale = new CustomYScaleDraw(0);
+    yAxis->setScaleDraw(customYScale);
+
+    // --------------------------
+    // 关键修复：初始化刻度与标题（与成员变量匹配）
+    // --------------------------
+    // X轴：0~10000ms，标题带单位
+    setAxisScale(QwtPlot::xBottom, m_xMin, m_xMax);
+    QwtText xTitle(QString("Time (%1)").arg(m_xUnit));
+    axisWidget(QwtPlot::xBottom)->setTitle(xTitle);
+
+    // Y轴：0~58e6Hz，标题带单位
+    setAxisScale(QwtPlot::yLeft, m_yMin, m_yMax);
+    QwtText yTitle(QString("Frequency (%1)").arg(m_yUnit));
+    axisWidget(QwtPlot::yLeft)->setTitle(yTitle);
+}
+
+// 初始化鼠标交互：左键平移、双击放大、右键重置
+// 初始化交互：左键平移、缩放组件（双击放大/右键重置）
+void ModernWavePlot::initPlotInteraction()
+{
+    // 1. 平移组件：正常初始化（不受影响）
+    m_panner = new QwtPlotPanner(canvas());
+    m_panner->setMouseButton(Qt::LeftButton);
+    m_panner->setAxisEnabled(QwtPlot::xBottom, true);
+    m_panner->setAxisEnabled(QwtPlot::yLeft, true);
+
+    // 2. 关键修改：将 QWidget* 安全转为 QwtPlotCanvas*
+    QwtPlotCanvas* plotCanvas = dynamic_cast<QwtPlotCanvas*>(canvas());
+    if (plotCanvas != nullptr) { // 确保转型成功（避免空指针）
+        m_zoomer = new CustomZoomer(plotCanvas);
+    } else {
+        // 异常处理：转型失败时（理论上不会触发，除非 Qwt 版本异常）
+        qWarning() << "QwtPlot canvas cast to QwtPlotCanvas failed!";
+        m_zoomer = nullptr;
+    }
+
+    canvas()->setMouseTracking(true); // 启用鼠标跟踪
 }
 
 
@@ -70,36 +119,39 @@ void ModernWavePlot::initPlotStyle() {
  * @thread_safety 必须在 GUI 线程调用。
  */
 void ModernWavePlot::setSimpleData(const QVector<QPointF>& data) {
-    m_currentData = data; // 覆盖当前数据
-    m_curve->setSamples(m_currentData); // 曲线绑定新数据
-    // 根据模式调整轴
+    m_originalData = data;
+    updateScaledCurve(); // 先将数据缩放到当前单位（默认毫秒）
+
+    // 根据模式调整轴范围
     if (m_liveMode) {
-        adjustAxesLive();  // 实时滚动窗口
+        adjustAxesLive();
     } else {
-        adjustAxesFull();  // 全局自适应
-    }
-    const double left  = axisScaleDiv(QwtPlot::xBottom).lowerBound();
-    const double right = axisScaleDiv(QwtPlot::xBottom).upperBound();
-
-    // 只取窗口内的点，且强制 x 递增（同一时刻 +ε）
-    QVector<QPointF> vis;
-    vis.reserve(m_currentData.size());
-    double lastX = -std::numeric_limits<double>::infinity();
-
-    for (const auto& pt : m_currentData) {
-        double x = pt.x();
-        if (x < left || x > right) continue;
-        if (x <= lastX) x = lastX + 1e-9;         // ☆ 关键：严格递增
-        vis.push_back(QPointF(x, pt.y()));
-        lastX = x;
+        adjustAxesFull();
     }
 
-    m_curve->setSamples(vis);
+    // Live 模式：过滤窗口内数据
+    if (m_liveMode) {
+        const double left  = axisScaleDiv(QwtPlot::xBottom).lowerBound();
+        const double right = axisScaleDiv(QwtPlot::xBottom).upperBound();
 
-    // 基线建议用“当前可视 y 下界”或你需要的固定值
+        QVector<QPointF> vis;
+        vis.reserve(m_currentData.size());
+        double lastX = -std::numeric_limits<double>::infinity();
+
+        for (const auto& pt : m_currentData) {
+            double x = pt.x();
+            if (x < left || x > right) continue;
+            if (x <= lastX) x = lastX + 1e-9; // 保证 X 严格递增
+            vis.push_back(QPointF(x, pt.y()));
+            lastX = x;
+        }
+
+        m_curve->setSamples(vis);
+    }
+
+    // 设置基线并刷新
     const double baseline = axisScaleDiv(QwtPlot::yLeft).lowerBound();
     m_curve->setBaseline(baseline);
-
     replot();
 }
 
@@ -128,21 +180,26 @@ void ModernWavePlot::setLiveMode(bool on, double windowSec) {
  */
 void ModernWavePlot::adjustAxesLive() {
     if (m_currentData.isEmpty()) {
-        setAxisScale(QwtPlot::xBottom, 0.0, m_windowSec);
+        // 初始窗口：秒 → 当前单位（默认×1000转毫秒）
+        double initialRight = m_windowSec * m_xScaleFactor;
+        setAxisScale(QwtPlot::xBottom, 0.0, initialRight);
         return;
     }
 
     const double xMax = m_currentData.last().x();
+    // 窗口宽度：秒 → 当前单位
+    double windowSize = m_windowSec * m_xScaleFactor;
+
     double left, right;
-    if (xMax < m_windowSec) {
+    if (xMax < windowSize) {
         left = 0.0;
-        right = m_windowSec;              // 起步阶段固定 8s，不缩放
+        right = windowSize;
     } else {
-        left  = xMax - m_windowSec;       // 滑动窗口
+        left  = xMax - windowSize;
         right = xMax;
     }
 
-    // 仅对可见窗口内的点求 Y 极值
+    // 计算Y轴极值（原有逻辑不变）
     double yMin = std::numeric_limits<double>::infinity();
     double yMax = -std::numeric_limits<double>::infinity();
     for (const auto& pt : m_currentData) {
@@ -152,11 +209,11 @@ void ModernWavePlot::adjustAxesLive() {
         }
     }
     if (!std::isfinite(yMin) || !std::isfinite(yMax) || yMin == yMax) {
-        // 防御：窗口内没有点或平线
         yMin = (yMin == yMin) ? yMin - 1.0 : 0.0;
         yMax = (yMax == yMax) ? yMax + 1.0 : 1.0;
     }
 
+    // 设置轴范围（带边距）
     const double xMargin = (right - left) * 0.02;
     const double yMargin = (yMax - yMin) * 0.05;
     setAxisScale(QwtPlot::xBottom, left - xMargin, right + xMargin);
@@ -170,18 +227,20 @@ void ModernWavePlot::adjustAxesLive() {
 void ModernWavePlot::adjustAxesFull() {
     if (m_currentData.isEmpty()) return;
 
-    double xMin = m_currentData.first().x();
+    double xMin = 0.0;
     double xMax = m_currentData.last().x();
     double yMin = m_currentData.first().y();
     double yMax = yMin;
 
     for (const auto& pt : m_currentData) {
-        xMin = qMin(xMin, pt.x());
-        xMax = qMax(xMax, pt.x());
+        xMax = qMax(xMax, pt.x()); // 基于缩放后的数据（默认毫秒）
         yMin = qMin(yMin, pt.y());
         yMax = qMax(yMax, pt.y());
     }
-    if (yMin == yMax) { yMin -= 1; yMax += 1; }
+    if (yMin == yMax) {
+        yMin -= 1;
+        yMax += 1;
+    }
 
     const double xMargin = (xMax - xMin) * 0.02;
     const double yMargin = (yMax - yMin) * 0.02;
@@ -200,8 +259,8 @@ void ModernWavePlot::clearSimpleData() {
     m_currentData.clear(); // 清空容器
     m_curve->setSamples(m_currentData); // 曲线设为空
     // 恢复初始轴范围
-    setAxisScale(QwtPlot::xBottom, 0, 20);
-    setAxisScale(QwtPlot::yLeft, 0, 500);
+    setAxisScale(QwtPlot::xBottom, DEFAULT_X_MIN, DEFAULT_X_MAX);
+    setAxisScale(QwtPlot::yLeft, DEFAULT_Y_MIN, DEFAULT_Y_MAX);
     replot(); // 刷新空白界面
 }
 
@@ -244,6 +303,7 @@ void ModernWavePlot::autoAdjustCurrentAxes() {
  */
 void ModernWavePlot::showFullSimpleWaveform() {
     adjustAxesFull();  // 基于所有数据调整轴
+    m_curve->setSamples(m_currentData);
     replot(); // 刷新显示
 }
 
@@ -273,4 +333,121 @@ void ModernWavePlot::setFillColor(const QColor& fill, double baseline) {
         m_curve->setBrush(QBrush(fill));   // 填充画刷
         m_curve->setBaseline(baseline);    // 填充基线
     }
+}
+
+// 重缩放数据并刷新曲线
+void ModernWavePlot::updateScaledCurve() {
+    QVector<QPointF> scaledData;
+    scaledData.reserve(m_originalData.size());
+    for (const auto& pt : m_originalData) {
+        // 按当前缩放因子重计算X/Y
+        double xScaled = pt.x() * m_xScaleFactor;
+        double yScaled = pt.y() * m_yScaleFactor;
+        scaledData.append(QPointF(xScaled, yScaled));
+    }
+    m_currentData = scaledData;
+    m_curve->setSamples(m_currentData); // 更新曲线数据
+    replot(); // 刷新波形图
+}
+
+// X轴单位切换：修复刻度计算与范围有效性
+void ModernWavePlot::onXUnitChanged(const QString& unit) {
+    m_xUnit = unit;
+
+    // 1. 计算缩放因子（原始数据X为“秒”）
+    if (unit == "ms") {
+        m_xScaleFactor = 1.0;
+    } else if (unit == "s") {
+        m_xScaleFactor = 0.001;
+    }
+
+    // 2. 计算新刻度范围（优先用初始刻度，数据非空则用数据范围）
+    double newXMin, newXMax;
+    if (m_currentData.isEmpty()) {
+        // 数据为空：用初始刻度转换
+        if (unit == "ms") {
+            newXMin = m_xMin;       // 0ms
+            newXMax = m_xMax;       // 10000ms
+        } else if (unit == "s") {
+            newXMin = m_xMin / 1000.0; // 0s
+            newXMax = m_xMax / 1000.0; // 10s
+        }
+    } else {
+        // 数据非空：用数据的实际范围转换
+        double dataXMin = m_currentData.first().x() / m_xScaleFactor;
+        double dataXMax = m_currentData.last().x() / m_xScaleFactor;
+        newXMin = dataXMin * m_xScaleFactor;
+        newXMax = dataXMax * m_xScaleFactor;
+    }
+
+    // 3. 设置有效刻度（避免范围异常）
+    if (newXMin < newXMax) {
+        setAxisScale(QwtPlot::xBottom, newXMin, newXMax);
+    } else {
+        // 防御：范围无效时用初始值
+        setAxisScale(QwtPlot::xBottom, m_xMin, m_xMax);
+    }
+
+    // 4. 更新标题与数据
+    QwtText xTitle(QString("Time (%1)").arg(unit));
+    axisWidget(QwtPlot::xBottom)->setTitle(xTitle);
+    updateScaledCurve();
+    replot();
+}
+
+// Y轴单位切换：同X轴逻辑，确保刻度有效
+// Y轴单位切换：同X轴逻辑，确保刻度有效
+void ModernWavePlot::onYUnitChanged(const QString& unit) {
+    m_yUnit = unit;
+
+    // 1. 计算缩放因子（原始数据Y为“Hz”）
+    if (unit == "MHZ") {
+        m_yScaleFactor = 1.0; // MHZ 不变
+    } else if (unit == "KHZ") {
+        m_yScaleFactor = 1000.0; // KHZ -> Hz * 1000
+    }
+
+    // 2. 计算新刻度范围
+    double newYMin, newYMax;
+
+    // 处理数据为空的情况
+    if (m_currentData.isEmpty()) {
+        // 如果数据为空，直接使用默认范围
+        if (unit == "MHZ") {
+            newYMin = m_yMin;       // 默认范围 0 MHz
+            newYMax = m_yMax;       // 默认范围 50 MHz
+        } else if (unit == "KHZ") {
+            newYMin = m_yMin * 1000.0; // 转换为 KHZ
+            newYMax = m_yMax * 1000.0; // 转换为 KHZ
+        }
+    } else {
+        // 数据非空：用数据的实际范围转换
+        double dataYMin = m_currentData.first().y(); // 直接取原始值
+        double dataYMax = m_currentData.last().y();  // 直接取原始值
+
+        // 使用 yScaleFactor 进行转换
+        newYMin = dataYMin / m_yScaleFactor;
+        newYMax = dataYMax / m_yScaleFactor;
+    }
+
+    // 3. 确保刻度有效，避免范围异常
+    if (newYMin < newYMax) {
+        setAxisScale(QwtPlot::yLeft, newYMin, newYMax); // 设置有效的 Y 轴范围
+    } else {
+        // 防御：范围无效时恢复到默认值
+        setAxisScale(QwtPlot::yLeft, m_yMin, m_yMax);
+    }
+
+    // 4. 更新标题与数据
+    QwtText yTitle(QString("Frequency (%1)").arg(unit));
+    axisWidget(QwtPlot::yLeft)->setTitle(yTitle);
+
+    // 5. 调试输出，检查新刻度
+    qDebug() << "New Y axis range: " << newYMin << " - " << newYMax;
+
+    // 6. 更新曲线
+    updateScaledCurve();
+
+    // 7. 强制重新绘制图形
+    replot();
 }

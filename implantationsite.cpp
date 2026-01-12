@@ -1,4 +1,4 @@
-#include "ImplantAtionSite.h"
+#include "implantationsite.h"
 #include <QDebug>
 #include <QMessageBox>
 #include <QGraphicsBlurEffect>
@@ -8,7 +8,7 @@
 #include <QGuiApplication>
 #include <QScreen>
 #include <QSettings>
-#include <MedicalLogger.h>
+#include <medicallogger.h>
 
 ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
     : FramelessWindow(parent), m_serial(sensorId){
@@ -233,6 +233,11 @@ ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
     helpButton->setStyleSheet("QPushButton { background-color: rgba(255,0,0,0.6); color: white; font-weight: bold; } QPushButton:pressed { background-color: red; }");
 
     connect(helpButton, &QPushButton::clicked, this, [this]() {
+        // 创建并应用模糊效果
+        QGraphicsBlurEffect *blurEffect = new QGraphicsBlurEffect();
+        blurEffect->setBlurRadius(10);  // 设置模糊半径
+        this->setGraphicsEffect(blurEffect);  // 应用模糊效果到父窗口
+
         // 创建QDialog作为自定义消息框
         CustomMessageBox dlg(
             this,
@@ -240,10 +245,14 @@ ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
             tr("1. 移动传感器至天线中心，然后缓慢移动\n\n"
                "2. 确认信号强度逐渐变强然后停止，并重复三次"),
             { tr("确认") },
-            400*scaleX  // 对话框宽度
+            400 * scaleX  // 对话框宽度
         );
 
+        // 弹出自定义消息框
         dlg.exec();
+
+        // 在消息框关闭后恢复原状
+        this->setGraphicsEffect(nullptr);  // 移除模糊效果
     });
 
 
@@ -363,7 +372,7 @@ ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
     progress = new CircularProgressBar(frameSignal);
     progress->setThreshold(savedStrength);
     progress->setProgress(90);
-    progress->setFixedSize(65, 65);
+    progress->setFixedSize(65*scaleY, 65*scaleY);
 
     QHBoxLayout* signalTopLayout = new QHBoxLayout();
     signalTopLayout->addWidget(signalTitle);
@@ -371,7 +380,8 @@ ImplantationSite::ImplantationSite( QWidget* parent , const QString &sensorId)
     signalTopLayout->addWidget(signalIcon);
 
     signalLayout->addLayout(signalTopLayout);
-    signalLayout->addWidget(progress, 0, Qt::AlignHCenter);
+    signalLayout->addWidget(progress, 0, Qt::AlignCenter);
+    signalLayout->setSpacing(10*scaleY);
     thirdRow->addWidget(frameSignal);
 
     mainLayout->addLayout(thirdRow);
@@ -501,22 +511,61 @@ ImplantationSite::~ImplantationSite() {
 }
 
 void ImplantationSite::OpenSettingsRequested() {
-    settingswidget = new SettingsWidget();
+    // 1. 记录函数入口及当前状态
+    qDebug() << "[ImplantationSite] 进入 OpenSettingsRequested() 函数，准备创建 SettingsWidget";
+    qDebug() << "[ImplantationSite] 当前 progress 指针状态：" << (progress ? "有效" : "空指针");
+
+    // 2. 创建 SettingsWidget 实例，记录地址
+    SettingsWidget *settingswidget = new SettingsWidget(this);
+    qDebug() << "[ImplantationSite] 创建 SettingsWidget 实例，地址：" << settingswidget;
+
+    // 3. 设置窗口属性，记录操作
     settingswidget->setWindowFlags(Qt::Dialog);
     settingswidget->setAttribute(Qt::WA_DeleteOnClose);
+    qDebug() << "[ImplantationSite] 设置 SettingsWidget 属性：Qt::Dialog | WA_DeleteOnClose";
+
+    // 4. 连接信号槽，添加日志追踪信号触发
     connect(settingswidget, &SettingsWidget::signalStrengthChanged,
             this, [this](int v) {
-                if (progress) progress->setThreshold(v);   // 立即更新显示
-                QSettings s("MyCompany","MyApp");           // 落盘
+                qDebug() << "[ImplantationSite] 收到 signalStrengthChanged 信号，强度值：" << v;
+                // 检查 progress 指针有效性
+                if (!progress) {
+                    qDebug() << "[ImplantationSite] 警告：progress 是空指针，无法更新阈值！";
+                    return;
+                }
+                // 更新进度条阈值
+                progress->setThreshold(v);
+                qDebug() << "[ImplantationSite] 已更新 progress 阈值为：" << v;
+                // 写入配置文件
+                QSettings s("MyCompany","MyApp");
                 s.setValue("system/signalStrength", v);
                 s.sync();
+                qDebug() << "[ImplantationSite] 已将信号强度阈值写入配置文件：" << v;
             });
+
+    // 5. 监听 SettingsWidget 销毁事件，追踪内存释放
+    connect(settingswidget, &QObject::destroyed, this, [settingswidget](QObject *obj) {
+//        qDebug() << "[ImplantationSite] SettingsWidget 开始销毁，地址：" << settingswidget
+//                 << "，销毁对象：" << obj;
+        // 验证销毁的对象是否为 settingswidget 本身
+        if (obj == settingswidget) {
+            qDebug() << "[ImplantationSite] SettingsWidget 销毁完成，地址：" << settingswidget;
+        } else {
+            qDebug() << "[ImplantationSite] 警告：销毁的对象不是目标 SettingsWidget！预期："
+                     << settingswidget << "，实际：" << obj;
+        }
+    });
+
+    // 6. 显示窗口，记录操作
     settingswidget->show();
+    qDebug() << "[ImplantationSite] SettingsWidget 已显示，地址：" << settingswidget;
+
+    // 7. 记录审计日志（原有逻辑）
     MedicalLogger::instance()->writeLog(
         "Settings",
         MedicalLogger::LOG_AUDIT,
         "Settings window opened",
-        "UnknownOperator",   // 如果有登录用户 ID，可以替换掉
+        "UnknownOperator",
         "UI"
     );
 }
@@ -629,18 +678,18 @@ void ImplantationSite::onBtnLocationClicked() {
         return;
     }
 
-    // 4) 用户点“确定”，先把按钮变成半透明绿
-//    btn->setStyleSheet(R"(
-//        QPushButton {
-//          background-color: rgba(76,175,80,0.85);
-//          color: #F0F0F0;
-//          font-weight: 600;
-//          font-size: 16px;
-//          border: none;
-//          border-radius: 8px;
-//          padding: 10px 24px;
-//        }
-//    )");
+     //4) 用户点“确定”，先把按钮变成半透明绿
+    btn->setStyleSheet(R"(
+        QPushButton {
+          background-color: rgba(76,175,80,0.85);
+          color: #F0F0F0;
+          font-weight: 600;
+          font-size: 16px;
+          border: none;
+          border-radius: 8px;
+          padding: 10px 24px;
+        }
+    )");
 
     // 5) 调用上传函数
     if (uploadLocation(loc)) {

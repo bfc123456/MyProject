@@ -1,7 +1,7 @@
-#include "UdpDebugWidget.h"
+#include "udpdebugwidget.h"
 #include <QPropertyAnimation>
 #include <QHostAddress>
-#include "CustomMessagebox.h"
+#include "custommessagebox.h"
 #include <QBuffer>
 #include <cstring>
 #include <QSplitter>
@@ -110,12 +110,12 @@ udpDebugWidget::udpDebugWidget(QWidget *parent)
     portLineEdit->setPlaceholderText(tr("请输入本地主机端口"));
     portLineEdit->setFixedHeight(45*scaleY);
 
-    //虚拟键盘
-    currentKeyboard = CustomKeyboard::instance(this);
+//    //虚拟键盘
+//    currentKeyboard = CustomKeyboard::instance(this);
 
-    // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
-    currentKeyboard->registerEdit(ipLineEdit, QPoint(50*scaleX,0));
-    currentKeyboard->registerEdit(portLineEdit, QPoint(50*scaleX,0));
+//    // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
+//    currentKeyboard->registerEdit(ipLineEdit, QPoint(50*scaleX,0));
+//    currentKeyboard->registerEdit(portLineEdit, QPoint(50*scaleX,0));
 
     connectBtn = new QPushButton(tr("开启"));
     connectBtn->setFixedHeight(45*scaleY);

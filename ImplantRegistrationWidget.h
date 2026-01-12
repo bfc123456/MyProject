@@ -8,10 +8,10 @@
 #include <QDateEdit>
 #include <QPushButton>
 #include <QCloseEvent>
-#include "Customkeyboard.h"
-#include "CustomDateedit.h"
-#include "ImplantAtionSite.h"
-#include "FramelessWindow.h"
+#include "customkeyboard.h"
+#include "implantationsite.h"
+#include "framelesswindow.h"
+#include "touchdateedit.h"
 
 /**
  * @class ImplantRegistrationWidget
@@ -62,7 +62,7 @@ private:
     QLineEdit *checksumInput;
     QLineEdit *implantDoctorInput;
     QLineEdit *treatDoctorInput;
-    QDateEdit *implantDateInput;
+    TouchDateEdit *implantDateInput;
 
     // 操作按钮
     QPushButton *backButton;

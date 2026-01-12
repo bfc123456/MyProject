@@ -1,0 +1,74 @@
+#ifndef THREAD_WORK_STATE_H
+#define THREAD_WORK_STATE_H
+
+#pragma once
+
+#include <QtGlobal>
+#include <QAtomicInteger>
+#include <QMetaType>
+
+enum class ThreadWorkState : quint8
+{
+    Idle = 0,
+    Starting,
+    Working,
+    Stopping,
+    Error
+};
+
+Q_DECLARE_METATYPE(ThreadWorkState)
+
+inline const char* ThreadWorkStateToString(ThreadWorkState s)
+{
+    switch (s) {
+    case ThreadWorkState::Idle:     return "Idle";
+    case ThreadWorkState::Starting: return "Starting";
+    case ThreadWorkState::Working:  return "Working";
+    case ThreadWorkState::Stopping: return "Stopping";
+    case ThreadWorkState::Error:    return "Error";
+    default:                        return "Unknown";
+    }
+}
+
+inline bool ThreadWorkStateIsBusy(ThreadWorkState s)
+{
+    return s == ThreadWorkState::Starting
+        || s == ThreadWorkState::Working
+        || s == ThreadWorkState::Stopping;
+}
+
+/**
+ * @brief 线程工作状态（Qt5 安全版）
+ */
+class ThreadWorkStateStore
+{
+public:
+    ThreadWorkStateStore() = default;
+    explicit ThreadWorkStateStore(ThreadWorkState init)
+    {
+        set(init);
+    }
+
+    ThreadWorkState get() const
+    {
+        return static_cast<ThreadWorkState>(m_state.load());
+    }
+
+    void set(ThreadWorkState s)
+    {
+        m_state.store(static_cast<int>(s));
+    }
+
+    bool is(ThreadWorkState s) const
+    {
+        return get() == s;
+    }
+
+private:
+    QAtomicInteger<int> m_state {
+        static_cast<int>(ThreadWorkState::Idle)
+    };
+};
+
+
+#endif // THREAD_WORK_STATE_H

@@ -8,10 +8,10 @@
 #include <QTextEdit>
 #include <QLineEdit>
 #include <QLabel>
-#include "SerialManager.h"
-#include "UdpManager.h"
-#include "FramelessWindow.h"
-#include "Customkeyboard.h"
+#include "serialmanager.h"
+#include "udpmanager.h"
+#include "framelesswindow.h"
+#include "customkeyboard.h"
 
 /**
  * @class SerialDebugWidget

@@ -17,5 +17,6 @@
 static constexpr int MEASUREMENT_TOTAL_DURATION_MS   = 1000; // 总时长
 static constexpr int MEASUREMENT_UPDATE_INTERVAL_MS  = 300;   // 更新间隔
 static constexpr int MEASUREMENT_PROGRESS_MAX        = 100;   // 进度条最大值
+const double ORIGINAL_SAMPLING_INTERVAL              = 0.001;   //原始数据采样间隔
 
 #endif

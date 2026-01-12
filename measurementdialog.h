@@ -10,9 +10,9 @@
 #include <QTimer>
 #include <QDateTime>
 #include <QVector>
-#include "MeasurementTrendWidget.h"
-#include "MeasurementData.h"  // 包含独立的结构体定义
-#include "Global.h"
+#include "measurementtrendwidget.h"
+#include "measurementdata.h"  // 包含独立的结构体定义
+#include "global.h"
 
 //前向声明
 class DeviceAcquisitionWorker;

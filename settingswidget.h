@@ -1,15 +1,27 @@
 
+/********************************************************************************/
+/* 文件名    : SettingsWidget.h                                                 */
+/* 功能      : 系统设置界面（包括信号强度、语言切换、系统操作等）               */
+/* 版本      : 1.0.0                                                              */
+/* 作者      :                                                       */
+/* 日期      : 2025-12-26                                                       */
+/* 说明      : 该文件定义了系统设置界面，提供信号强度调整、语言切换及其他系统操作功能   */
+/********************************************************************************/
+
 #ifndef SETTINGSWIDGET_H
 #define SETTINGSWIDGET_H
 
+//1) Project Headers
+#include "framelesswindow.h"
+
+//2) Qt Headers
 #include <QWidget>
 #include <QLabel>
 #include <QPushButton>
 #include <QSlider>
 #include <QComboBox>
-#include "FramelessWindow.h"
 
-
+//前置对象声明
 class LoginWindow;
 
 /**
@@ -44,41 +56,46 @@ public:
     ~SettingsWidget();
 
 signals:
-    void requestDelete(SettingsWidget* self);   // 请求销毁自身
-    void settingsWidgetClose();
-    void signalStrengthChanged(int value);  // 信号强度变化时发出
+    void SigRequestDelete(SettingsWidget* self);   // 请求销毁自身
+    void SigSettingsWidgetClose();
+    void SigStrengthChanged(int value);  // 信号强度变化时发出
 
 protected:
     void changeEvent(QEvent *event) override;   // 响应语言切换事件
 
 private slots:
-    void onLanguageChanged(const QString &);    // 语言切换处理槽函数
-    void onRebootClicked();                     // 重启按钮点击
-    void onShutdownClicked();                   // 关机按钮点击
-    void onBtnCloseClicked();                   // 关闭按钮点击
-    void onUpdateClicked();                     // 软件更新按钮点击
+    void SlotOInLanguageChanged(const QString &);    // 语言切换处理槽函数
+    void SlotOnRebootClicked();                     // 重启按钮点击
+    void SlotOnShutdownClicked();                   // 关机按钮点击
+    void SlotOnBtnCloseClicked();                   // 关闭按钮点击
+    void SlotOnUpdateClicked();                     // 软件更新按钮点击
 
 private:
-    QLabel *systemSettingsLabel;
-    QLabel *signalStrengthLabel;
-    QLabel *languageLabel;
-    QLabel *rebootLabel;
-    QLabel *shutdownLabel;
-    QLabel *systemInfoLabel;
-    QLabel *updateLabel;
-    QLabel *softwareVersionLabel1;
-    QLabel *softwareVersionLabel2;
-    QLabel *titleLabel;
+    // UI 控件
+    QLabel* m_pSystemSettingsLabel {nullptr};
+    QLabel* m_pSignalStrengthLabel {nullptr};
+    QLabel* m_pLanguageLabel {nullptr};
+    QLabel* m_pRebootLabel {nullptr};
+    QLabel* m_pShutdownLabel {nullptr};
+    QLabel* m_pSystemInfoLabel {nullptr};
+    QLabel* m_pUpdateLabel {nullptr};
+    QLabel* m_pSoftwareVersionLabel1 {nullptr};
+    QLabel* m_pSoftwareVersionLabel2 {nullptr};
+    QLabel* m_pTitleLabel {nullptr};
 
-    QSlider *signalStrengthSlider;
-    QComboBox *languageComboBox;
-    QPushButton *modifyButton;
-    QPushButton *rebootButton;
-    QPushButton *shutdownButton;
-    QPushButton *updateButton;
+    // 控件
+    QSlider* m_pSignalStrengthSlider {nullptr};
+    QComboBox* m_pLanguageComboBox {nullptr};
+    QPushButton* m_pModifyButton {nullptr};
+    QPushButton* m_pRebootButton {nullptr};
+    QPushButton* m_pShutdownButton {nullptr};
+    QPushButton* m_pUpdateButton {nullptr};
 
-    float scaleX;
-    float scaleY;
+    // 界面缩放
+    float m_fScaleX {1.0f};
+    float m_fScaleY {1.0f};
+
+    void Retranslate();                    // 统一刷新控件文本
 };
 
 #endif // SETTINGSWIDGET_H

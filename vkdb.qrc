@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/vkbd/styles">
+        <file>mydark/main.qml</file>
+        <file>mydark/content/InputPanel.qml</file>
+    </qresource>
+</RCC>

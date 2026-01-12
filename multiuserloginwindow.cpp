@@ -10,37 +10,26 @@
 #include <QDebug>
 #include <QCloseEvent>
 #include <QGraphicsDropShadowEffect>
-#include "TouchEventHandler.h"
-#include "DebugModeSelector.h"
+#include "toucheventhandler.h"
+#include "debugmodeselector.h"
 #include <QGuiApplication>
 #include <QScreen>
 #include <QPropertyAnimation>
-#include "PatientSignalStrengthWidget.h"
-#include "MedicalLogger.h"
+#include "medicallogger.h"
 
 MultiUserLoginWindow::MultiUserLoginWindow(QWidget *parent)
     : FramelessWindow (parent)
 {
     // 获取屏幕分辨率
     QScreen *screen = QGuiApplication::primaryScreen();
-    QRect screenGeometry = screen->geometry();
-    int screenWidth = screenGeometry.width();
-    int screenHeight = screenGeometry.height();
+    QRect avail = screen->availableGeometry();
 
-    // 计算缩放比例
-    float scaleX = (float)screenWidth / 1024;
-    float scaleY = (float)screenHeight / 600;
+    float scaleX = float(avail.width())  / 1024.0f;
+    float scaleY = float(avail.height()) / 600.0f;
 
-    // 设置窗口初始大小
-    this->resize(1024 * scaleX, 600 * scaleY);  // 设置为基于目标分辨率的大小
-
-    // 读取用户上次选择的语言
-    QSettings settings("MyCompany", "MyApp");
-    QString languageCode = settings.value("language", "zh_CN").toString();  // 默认中文
-    qDebug() << "MainWindow: Loaded language:" << languageCode;
-
-    // 设置软件语言
-    changeLanguage(languageCode);
+    resize(int(1024 * scaleX), int(600 * scaleY));
+    // 居中到可用区域
+    move(avail.center() - rect().center());
 
     TouchEventHandler *touchEventHandler = new TouchEventHandler(this);  // 创建触控事件处理器
     this->installEventFilter(touchEventHandler);  // 安装事件过滤器
@@ -126,6 +115,11 @@ MultiUserLoginWindow::MultiUserLoginWindow(QWidget *parent)
     )");
     connect(loginButton, &QPushButton::clicked, this, &MultiUserLoginWindow::onLoginClicked);
     connect(passwordEdit, &QLineEdit::textChanged, this, &MultiUserLoginWindow::clearErrorMessage);  // 用户修改密码时清除错误
+    connect(&LanguageManager::instance(), &LanguageManager::languageChanged,
+            this, &MultiUserLoginWindow::onLanguageChanged);
+    // 初始化语言（从全局管理器获取，而非直接读 QSettings）
+    QString currentLang = LanguageManager::instance().currentLanguage();
+    qDebug() << "LoginWindow: Current language from manager:" << currentLang;
 
     usernameCombox->addItem(tr("家用模式"));
     usernameCombox->addItem(tr("植入模式"));
@@ -181,8 +175,10 @@ MultiUserLoginWindow::MultiUserLoginWindow(QWidget *parent)
     )");
 
     //接入虚拟键盘
-    currentKeyboard = CustomKeyboard::instance(this);
-    currentKeyboard->registerEdit(passwordEdit,QPoint(-120*scaleX,120*scaleY));
+//    currentKeyboard = CustomKeyboard::instance(this);
+//    currentKeyboard->registerEdit(passwordEdit,QPoint(-120*scaleX,120*scaleY));
+//     VirtualKeyboardHelper::attachTo(this);
+
 
     // 初始化错误信息标签（默认不可见）
     errorLabel = new QLabel(this);
@@ -238,8 +234,6 @@ MultiUserLoginWindow::MultiUserLoginWindow(QWidget *parent)
 
     setLayout(mainLayout);
 
-    isInitialized = true;
-
 }
 
 MultiUserLoginWindow::~MultiUserLoginWindow() {}
@@ -277,7 +271,7 @@ void MultiUserLoginWindow::onLoginClicked(){
        }
 
        // 根据选择的角色验证密码
-       if (selectedRole == tr("家用模式") && password == tr("123456")) // 假设患者的密码是123456
+       if (selectedRole == tr("家用模式") && password == "123456") // 假设患者的密码是123456
        {
            // 打开患者界面
            openPatientSignalStrengthWidgetWindow();
@@ -287,7 +281,7 @@ void MultiUserLoginWindow::onLoginClicked(){
                "Operator_Home", "UI"
            );
        }
-       else if (selectedRole == tr("植入模式") && password == tr("000000")) // 假设医生的密码是000000
+       else if (selectedRole == tr("植入模式") && password == "000000") // 假设医生的密码是000000
        {
            // 打开医生界面
            openImplantRegistrationWidget();
@@ -445,45 +439,25 @@ void MultiUserLoginWindow::showHiddenWidget() {
     overlay->deleteLater();
 }
 
-void MultiUserLoginWindow::changeLanguage(const QString &languageCode)
+void MultiUserLoginWindow::onLanguageChanged(const QString &languageCode)
 {
-    // 1. 卸载任何已有翻译
-    qApp->removeTranslator(&translator);
+    // 关键日志1：确认信号是否传到登录窗口
+    qDebug() << "[LoginWindow] ########## 收到 languageChanged 信号 ##########";
+    qDebug() << "[LoginWindow] 目标语言代码：" << languageCode;
+    qDebug() << "[LoginWindow] 当前语言代码（从管理器获取）：" << LanguageManager::instance().currentLanguage();
 
-    // 2. 如果切的是英文（或其它你真正有 qm 文件的语言），再去 load/安装
-    if (languageCode != "zh_CN") {
-        QString qmPath = QString(":/translations/translations/%1.qm").arg(languageCode);
-        if (translator.load(qmPath)) {
-            qApp->installTranslator(&translator);
-//            qDebug() << "Loaded translation:" << qmPath;
-            MedicalLogger::instance()->writeLog(
-                "Translation",
-                MedicalLogger::LOG_AUDIT,
-                QString("Language switched to %1 (file=%2)").arg(languageCode, qmPath),
-                " ",
-                "UI"
-            );
-        } else {
-            qDebug() << "Failed to load translation:" << qmPath;
-            MedicalLogger::instance()->writeLog(
-                "Translation",
-                MedicalLogger::LOG_ERROR,
-                QString("Language switch failed: %1 (file=%2)").arg(languageCode, qmPath),
-                " ",
-                "UI"
-            );
-        }
+    // 关键日志2：检查信号来源是否正确（排除信号发送者异常）
+    QObject *senderObj = sender();
+    if (senderObj == &LanguageManager::instance()) {
+        qDebug() << "[LoginWindow] 信号发送者：LanguageManager 单例（正确）";
+    } else {
+        qDebug() << "[LoginWindow] 信号发送者异常！发送者地址：" << senderObj;
     }
 
-    // 3. 保存用户偏好
-    QSettings settings("MyCompany","MyApp");
-    settings.setValue("language", languageCode);
-
-    // 4. **无论 load 成不成功，都要广播 LanguageChange**
+    // 后续原有逻辑（发送 LanguageChange 事件）
+    qDebug() << "[LoginWindow] 准备发送 LanguageChange 事件，触发界面更新";
     QEvent ev(QEvent::LanguageChange);
-    for (QWidget* w : QApplication::topLevelWidgets()) {
-      QApplication::sendEvent(w, &ev);
-    }
+    QApplication::sendEvent(this, &ev);
 }
 
 void MultiUserLoginWindow::openSettingsWindow(){
@@ -553,9 +527,9 @@ void MultiUserLoginWindow::openImplantRegistrationWidget() {
     connect(implantRegistrationWindow.get(), &ImplantRegistrationWidget::implantReturnLogin, this, &MultiUserLoginWindow::closeImplantRegistrationWidget);
 
     // 添加对 destroyed 信号的监听，确保窗口销毁时清理资源
-    connect(implantRegistrationWindow.get(), &QObject::destroyed, this, [this]() {
-        implantRegistrationWindow.reset(); // 窗口被销毁后，确保指针置空
-    });
+//    connect(implantRegistrationWindow.get(), &QObject::destroyed, this, [this]() {
+//        implantRegistrationWindow.reset(); // 窗口被销毁后，确保指针置空
+//    });
 
     // 延迟显示目标窗口（注册页）
     implantRegistrationWindow->show();   // 让目标窗口显示
@@ -579,14 +553,26 @@ void MultiUserLoginWindow::closeImplantRegistrationWidget(){
         "implantRegistrationWindow",
         MedicalLogger::LOG_INFO,
         "Returned to main login screen after closing Implant Registration",
-        " ",   // 目前没有登录时用占位符
-        "UI"                 // 这里是 UI 相关操作
+        " ",
+        "UI"
     );
-    // 这里使用延迟来模拟切换
-    QTimer::singleShot(300, this, [this]() {
-        implantRegistrationWindow->close();
-        implantRegistrationWindow.reset();
-    });
+
+    // 2. 延迟操作前，再次确认窗口状态（避免极端情况）
+    if (implantRegistrationWindow) {
+
+        QTimer::singleShot(300, this, [this]() {
+
+            if (implantRegistrationWindow) {
+                implantRegistrationWindow.reset();
+            } else {
+                // 关键日志：捕获悬空指针访问的风险
+                qCritical() << "[延迟300ms] 错误：implantRegistrationWindow 已为空！无法执行 close() 和 reset()";
+            }
+        });
+    } else {
+        // 4. 窗口已为空时的异常日志
+        qCritical() << "[closeImplantRegistrationWidget] 警告：implantRegistrationWindow 已为空，无需延迟关闭";
+    }
 }
 
 void MultiUserLoginWindow::showMultiUserLoginWindow() {
@@ -660,34 +646,67 @@ void MultiUserLoginWindow::closePatientSignalStrengthWidgetwindow() {
     }
 }
 
-void MultiUserLoginWindow::changeEvent(QEvent *event) {
-    if (isInitialized && event->type() == QEvent::LanguageChange) {
-        // 更新所有界面上的文本
-        if (titleLabel)
-        titleLabel->setText(tr("医疗设备管理系统"));
-        loginButton->setText(tr("登录"));
+void MultiUserLoginWindow::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        // 关键日志3：确认 LanguageChange 事件被触发
+        qDebug() << "[LoginWindow] ########## 进入 LanguageChange 事件 ##########";
 
-        usernameCombox->clear();
-        usernameCombox->addItem(tr("家用模式"));
-        usernameCombox->addItem(tr("植入模式"));
-
-        passwordEdit->setPlaceholderText(tr("请输入六位密码"));
-
-        //错误标签
-        //根据上次的错误状态重新设置一次文本
-        switch (m_lastError) {
-        case ErrLength:
-            errorLabel->setText(tr("密码必须是六位"));
-            break;
-        case ErrAuth:
-            errorLabel->setText(tr("用户或密码错误"));
-            break;
-        case NoError:
-        default:
-            errorLabel->setText(" ");
-            break;
+        // 针对核心控件，打印“更新前vs更新后”的文本（看是否真的变化）
+        // ① 标题标签
+        if (titleLabel) {
+            QString oldText = titleLabel->text();
+            titleLabel->setText(tr("医疗设备管理系统"));
+            QString newText = titleLabel->text();
+            qDebug() << "[LoginWindow] 标题标签更新：";
+            qDebug() << "[LoginWindow]   更新前：" << oldText;
+            qDebug() << "[LoginWindow]   更新后：" << newText;
+            if (oldText != newText) {
+                qDebug() << "[LoginWindow]   ✅ 标题文本更新成功";
+            } else {
+                qDebug() << "[LoginWindow]   ❌ 标题文本未变化（可能翻译文件无对应词条）";
+            }
+        } else {
+            qDebug() << "[LoginWindow]   ❌ 标题标签（titleLabel）为空！无法更新";
         }
 
+        // ② 下拉框选项（家用/植入模式）
+        if (usernameCombox) {
+            qDebug() << "[LoginWindow] 下拉框选项更新：";
+            // 先记录更新前的选项
+            QString oldItem1 = usernameCombox->itemText(0);
+            QString oldItem2 = usernameCombox->itemText(1);
+            // 执行更新
+            usernameCombox->clear();
+            QString newItem1 = tr("家用模式");
+            QString newItem2 = tr("植入模式");
+            usernameCombox->addItem(newItem1);
+            usernameCombox->addItem(newItem2);
+            // 打印对比
+            qDebug() << "[LoginWindow]   选项1：" << oldItem1 << " → " << newItem1;
+            qDebug() << "[LoginWindow]   选项2：" << oldItem2 << " → " << newItem2;
+            if (oldItem1 != newItem1 || oldItem2 != newItem2) {
+                qDebug() << "[LoginWindow]   ✅ 下拉框选项更新成功";
+            } else {
+                qDebug() << "[LoginWindow]   ❌ 下拉框选项未变化（可能翻译文件无对应词条）";
+            }
+        } else {
+            qDebug() << "[LoginWindow]   ❌ 下拉框（usernameCombox）为空！无法更新";
+        }
+
+        // ③ 登录按钮+密码提示（可选，快速确认）
+        if (loginButton) {
+            QString oldBtnText = loginButton->text();
+            loginButton->setText(tr("登录"));
+            qDebug() << "[LoginWindow] 登录按钮更新：" << oldBtnText << " → " << loginButton->text();
+        }
+        if (passwordEdit) {
+            QString oldHint = passwordEdit->placeholderText();
+            passwordEdit->setPlaceholderText(tr("请输入六位密码"));
+            qDebug() << "[LoginWindow] 密码提示更新：" << oldHint << " → " << passwordEdit->placeholderText();
+        }
+
+        qDebug() << "[LoginWindow] ########## LanguageChange 事件执行完毕 ##########";
     }
     QWidget::changeEvent(event);
 }

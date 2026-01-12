@@ -1,0 +1,4 @@
+#ifndef THREAD_WORK_STATE_H
+#define THREAD_WORK_STATE_H
+
+#endif // THREAD_WORK_STATE_H

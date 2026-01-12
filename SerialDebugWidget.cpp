@@ -1,4 +1,4 @@
-#include "SerialDebugWidget.h"
+#include "serialdebugwidget.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QSerialPortInfo>
@@ -250,11 +250,11 @@ SerialDebugWidget::SerialDebugWidget(QWidget *parent)
     receiveTextEdit = new QTextEdit(this);
     receiveTextEdit->setReadOnly(true);
 
-    // 拿到单例键盘
-    currentKeyboard = CustomKeyboard::instance(this);
+//    // 拿到单例键盘
+//    currentKeyboard = CustomKeyboard::instance(this);
 
-    // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
-    currentKeyboard->registerEdit(sendTextEdit, QPoint(-5*scaleX,350*scaleY));
+//    // 给每个 QLineEdit 注册一次偏移（如果你想要默认偏移都一样，就写同一个 QPoint）
+//    currentKeyboard->registerEdit(sendTextEdit, QPoint(-5*scaleX,350*scaleY));
 
     showdatalayout->addWidget(senddatalabel);
     showdatalayout->addWidget(sendTextEdit);

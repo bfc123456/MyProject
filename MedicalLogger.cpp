@@ -1,4 +1,4 @@
-#include "MedicalLogger.h"
+#include "medicallogger.h"
 #include <QDir>
 #include <QDebug>
 #include <QMutexLocker>

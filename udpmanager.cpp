@@ -1,4 +1,4 @@
-#include "UdpManager.h"
+#include "udpmanager.h"
 #include <QHostAddress>
 
 UdpManager::UdpManager(QObject *parent)

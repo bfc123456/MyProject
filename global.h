@@ -24,31 +24,31 @@
  *   推荐在退出时正确清理（quit + wait + delete）
  */
 
+// 前置声明
+class ImplantMonitor;               // 前置声明
+class DeviceAcquisitionWorker;      // 前置声明
+class MeasurementDataProcessor;     // 前置声明
 
-class MultiUserLoginWindow;     // 前置声明
-class DeviceAcquisitionWorker;     // 前置声明
-class MeasurementDataProcessor;   // 前置声明
+// 常量声明
+extern const int MD_PROGRESS_TOTAL_DURATION;    // 总时长（毫秒）
+extern const int MD_PROGRESS_UPDATE_INTERVAL;   // UI 更新间隔（毫秒）
+extern const int MD_PROGRESS_MAX_VALUE;         // 进度条最大值
 
-// 总时长（毫秒）
-extern const int MD_PROGRESS_TOTAL_DURATION;
+//1)Project Headers
+#include "implantmonitor.h"
 
-// UI 更新间隔（毫秒）
-extern const int MD_PROGRESS_UPDATE_INTERVAL;
-
-// 进度条最大值
-extern const int MD_PROGRESS_MAX_VALUE;
-
+//2)Qt Headers
 #include <QThread>
 
-extern MultiUserLoginWindow* globalLoginWindowPointer;  // 声明一个全局指针
-//extern UdpManager* globaludpcontrol;  // 声明一个全局指针
+// 全局 UI 指针
+extern ImplantMonitor* g_pGlobalImplantMonitorPtr; // 声明一个全局指针
 
 // UDP 接收线程及对象
-extern DeviceAcquisitionWorker* g_DeviceAcquisitionWorker;
-extern QThread* g_receiverThread;
+extern DeviceAcquisitionWorker* g_pDeviceAcquisitionWorkerPtr; // 声明全局指针，指向采集工作对象
+extern QThread* g_pReceiverThreadPtr; // 声明全局指针，指向接收线程
 
 // 数据处理线程及对象
-extern MeasurementDataProcessor* g_MeasurementDataProcessor;
-extern QThread* g_processorThread;
+extern MeasurementDataProcessor* g_pMeasurementDataProcessorPtr; // 声明全局指针，指向数据处理工作对象
+extern QThread* g_pProcessorThreadPtr; // 声明全局指针，指向处理线程
 
 #endif // APP_GLOBAL_H

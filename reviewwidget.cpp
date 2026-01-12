@@ -1,4 +1,4 @@
-#include "ReviewWidget.h"
+#include "reviewwidget.h"
 #include "multiuserloginwindow.h"
 #include <QHeaderView>
 #include <QPixmap>
@@ -9,12 +9,13 @@
 #include <QGraphicsBlurEffect>
 #include <QDialog>
 #include <QApplication>
-#include "Global.h"
+#include "global.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QGuiApplication>
 #include <QScreen>
-#include "MedicalLogger.h"
+#include "medicallogger.h"
+#include "exitconfirmdialog.h"
 
 ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
   : FramelessWindow(parent), m_serial(sensorId) {
@@ -72,7 +73,11 @@ ReviewWidget::ReviewWidget(QWidget *parent , const QString &sensorId)
 
     titleLabel = new QLabel(tr("新植入物"), this);
     titleLabel->setFixedSize(120*scaleX, 35*scaleY);
-    titleLabel->setStyleSheet("font-size: 18px; font-weight: bold; color: white;");
+    titleLabel->setStyleSheet(
+        "font-size: 18px;"
+        "font-weight: bold;"
+        "color: rgba(255, 255, 255, 200);"   // 200/255 ≈ 78% 不透明
+    );
     titleLabel->setAlignment(Qt::AlignCenter);
 
     idLabel = new QLabel();
@@ -430,118 +435,32 @@ void ReviewWidget::showExitConfirmWidget()
 
     // 创建提示弹窗
 
-    QDialog prompt(this);
-    prompt.setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
-    prompt.setStyleSheet(R"(
-        QDialog, QWidget {
-            background-color: qlineargradient(
-                x1: 0, y1: 0, x2: 0, y2: 1,
-                stop: 0 rgba(30, 50, 80, 0.9),
-                stop: 1 rgba(10, 25, 50, 0.75)
-            );
-            color: white;
-            font-size: 14px;
-            border-radius: 10px;
+    ExitConfirmDialog prompt(this);
+    // 连接“关闭系统”信号 → 退出应用
+    connect(&prompt, &ExitConfirmDialog::shutdownSystem,
+            QApplication::instance(), &QApplication::quit);
+
+    // 连接“返回主界面”信号 → 显示主界面 + 隐藏当前界面
+    connect(&prompt, &ExitConfirmDialog::returnToMain, this, [this, &prompt]() {
+        if (globalImplantMonitorPointer) {
+            globalImplantMonitorPointer->show();
+            MedicalLogger::instance()->writeLog(
+                        "ReviewWidget",
+                        MedicalLogger::LOG_INFO,
+                        "Main login screen displayed",
+                        "UnknownOperator",
+                        "UI"
+                        );
         }
-    )");
-    prompt.setWindowTitle(tr("提示"));
-    prompt.setFixedSize(400*scaleX, 200*scaleY);
-
-    // 内容布局与按钮
-    QVBoxLayout *mainLayout = new QVBoxLayout(&prompt);
-
-    QLabel *label = new QLabel(tr("请确认您的下一步操作"));
-    label->setAlignment(Qt::AlignCenter);
-    label->setStyleSheet("background-color: transparent; color: white; font-size: 16px;");
-    mainLayout->addWidget(label);
-
-    QHBoxLayout *buttonLayout = new QHBoxLayout;
-    QPushButton *exitButton = new QPushButton(tr("关闭系统"));
-    QPushButton *returnButton = new QPushButton(tr("返回主界面"));
-
-    // 按钮样式略...
-    exitButton->setFixedSize(135*scaleX, 45*scaleY);
-    exitButton->setIcon(QIcon(":/image/icons8-shutdown.png"));
-    returnButton->setFixedSize(135*scaleX, 45*scaleY);
-    returnButton->setIcon(QIcon(":/image/icons8-return.png"));
-
-    exitButton->setStyleSheet(R"(
-        QPushButton {
-            background-color: qlineargradient(
-                x1:0, y1:0, x2:0, y2:1,
-                stop:0 rgba(95, 169, 246, 180),
-                stop:1 rgba(49, 122, 198, 180)
-            );
-            border: 1px solid rgba(163, 211, 255, 0.6);
-            border-radius: 6px;
-            color: white;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        QPushButton:pressed {
-            background-color: qlineargradient(
-                stop: 0 rgba(47, 106, 158, 200),
-                stop: 1 rgba(31, 78, 121, 200)
-            );
-            padding-left: 2px;
-            padding-top: 2px;
-        }
-    )");
-
-    returnButton->setStyleSheet(R"(
-        QPushButton {
-            background-color: qlineargradient(
-                stop: 0 rgba(110, 220, 145, 180),
-                stop: 1 rgba(58, 170, 94, 180)
-            );
-            border: 1px solid rgba(168, 234, 195, 0.6);
-            border-radius: 6px;
-            color: white;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        QPushButton:pressed {
-            background-color: qlineargradient(
-                stop: 0 rgba(44, 128, 73, 200),
-                stop: 1 rgba(29, 102, 53, 200)
-            );
-            padding-left: 2px;
-            padding-top: 2px;
-        }
-    )");
-
-    buttonLayout->addStretch();
-    buttonLayout->addWidget(exitButton);
-    buttonLayout->addSpacing(40*scaleY);
-    buttonLayout->addWidget(returnButton);
-    buttonLayout->addStretch();
-
-    mainLayout->addLayout(buttonLayout);
-
-    QObject::connect(exitButton, &QPushButton::clicked, QApplication::instance(), &QApplication::quit);
-    QObject::connect(returnButton, &QPushButton::clicked, this, [this, &prompt]() {
-         if (globalLoginWindowPointer) {
-             globalLoginWindowPointer->show();  // 显示主界面
-             MedicalLogger::instance()->writeLog(
-                 "ReviewWidget",                         // 模块：登录相关
-                 MedicalLogger::LOG_INFO,         // 日志等级：信息
-                 "Main login screen displayed",   // 日志内容：显示主登录界面
-                 "UnknownOperator",               // 操作员 ID（未登录时使用占位符）
-                 "UI"                             // 来源：UI 操作
-             );
-         }
-         QTimer::singleShot(800, this, [this]() {
-            this->hide();  // 隐藏回顾界面
-            this->close();  // 关闭当前回顾界面
+        QTimer::singleShot(800, this, [this]() {
+            this->hide();
+            this->close();
             this->deleteLater();
-         });
-         prompt.close();
-//         delete this;    // 删除当前窗口对象，释放内存
-     });
+        });
+        prompt.close();
+    });
 
-    // 显示对话框
+    // 显示弹窗
     prompt.exec();
 
     // 清除遮罩和模糊

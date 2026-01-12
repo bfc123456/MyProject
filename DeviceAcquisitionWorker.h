@@ -5,8 +5,9 @@
 #include <QMutex>
 #include <QTimer>
 #include <QQueue>
-#include "UdpManager.h"
-#include "MedicalLogger.h"
+#include "medicallogger.h"
+#include "thread_work_state.h"
+#include "measurementdataprocessor.h"
 
 /**
  * @class DeviceAcquisitionWorker
@@ -37,81 +38,36 @@
  *       否则无法正确完成 UDP 绑定与信号连接。
  */
 
-class DeviceAcquisitionWorker : public QObject {
+class UdpManager;
+
+class DeviceAcquisitionWorker : public QObject
+{
     Q_OBJECT
 public:
     explicit DeviceAcquisitionWorker(QObject *parent = nullptr);
-    ~DeviceAcquisitionWorker() override;
-
-    // 固定通信参数（业务层配置）
-    static const QHostAddress kLocalIp;
-    static const quint16      kLocalPort;
-    static const QHostAddress kDeviceIp;
-    static const quint16      kDevicePort;
-//    void startCacheDrainer();
+    ~DeviceAcquisitionWorker();
 
 public slots:
-    /**
-     * @brief 在接收线程中初始化网络（bind + 连接 readyRead）
-     * 必须在该对象已经 moveToThread 对应线程并且线程 start() 后调用。
-     */
     void initUdpManager();
-
-    /**
-     * @brief 开始一次会话：发送 Start 命令，等待首包（或 ACK）后才真正启用数据处理。
-     * 注意：UdpManager 始终在监听，但只有 sessionActive_ 开启时才会上抛 dataReceived。
-     */
-    void startAcquisition();
-    /**
-     * @brief 停止会话：发送 Stop 命令并关闭会话开关。
-     */
-    void stopAcquisition();
-
-signals:
-    /**
-     * @brief 首包（或 START_ACK）到达，确认下位机已开始发送。
-     * UI 可以据此更新状态为 “RUNNING”。
-     */
-    void sessionStarted();
-
-    /**
-     * @brief 会话停止（软停/硬停），UI 可据此回到 IDLE。
-     */
-    void acquisitionStopped();
-
-    /**
-     * @brief 发生不可恢复错误（bind 失败、发送失败等）。
-     */
-    void acquisitionError(const QString& msg);
-
-    /**
-     * @brief 解析出一条 mag5 数据（你现有的信号，供处理器使用）。
-     */
-    void mag5DataReceived(quint32 currentValue);
+    void requestStart();    // UI点击开始：发送START + 允许分发
+    void requestStop();     // UI点击停止：发送STOP + 禁止分发
 
 private slots:
-    /**
-     * @brief 处理 UdpManager 上抛的原始 UDP 数据（仅会话开启时才会收到）。
-     */
-    void onReadyRead(const QByteArray& data);
-
-//    void drainCacheTick();              // 定时从缓存中取一个发出
-
-private:
-    // 内部工具
-    QByteArray buildStartFrame() const; // 构造 0x55 Start
-    QByteArray buildStopFrame()  const; // 构造 0xAA Stop
+    void onUdpPacket(const QByteArray &data);
+signals:
+    void rawPacketReceived(const QByteArray& data);
+    void fftPacketReceived(const QByteArray& data);
+    void acquisitionStopped();
+    void acquisitionError(const QString& msg);
 
 private:
-    UdpManager* udpManager{nullptr};
-    bool sessionActive_{false};       // 会话开关（控制是否处理数据）
-    bool awaitingFirst_{false};       // 已发 Start，等待首包/ACK 确认
+    QByteArray buildStartFrame() const;
+    QByteArray buildStopFrame() const;
 
-//    QQueue<quint32> m_valueCache;       // 缓存最大值（FIFO）
-//    QTimer          m_cacheDrainer;     // 滴灌定时器
-//    QMutex          m_cacheMutex;       // 保护队列
-//    int             m_maxCacheSize = 4096; // 缓存上限，防止堆积
-//    int             m_pointsPerTick = 1;   // 每次tick发几个点（1=最平滑）
+private:
+    AtomicState m_state;
+    UdpManager* udpManager = nullptr;
 };
+
 
 #endif // DEVICEACQUISITIONWORKER_H

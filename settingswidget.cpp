@@ -1,8 +1,23 @@
-#include "SettingsWidget.h"
+
+/********************************************************************************/
+/* 文件名    : SettingsWidget.cpp                                                 */
+/* 功能      : 系统设置界面（包括信号强度、语言切换、系统操作等）               */
+/* 版本      : 1.0.0                                                              */
+/* 作者      :                                                         */
+/* 日期      : 2025-12-26                                                       */
+/* 说明      : 该文件实现了系统设置界面，提供信号强度调整、语言切换及其他系统操作功能   */
+/********************************************************************************/
+
+//1) Project Headers
+#include "settingswidget.h"
 #include "multiuserloginwindow.h"
-#include "CustomMessagebox.h"
-#include "CustomCombobox.h"
-#include "LanguageManager.h"
+#include "custommessagebox.h"
+#include "customcombobox.h"
+#include "languagemanager.h"
+#include "bluroverlayguard.h"
+#include "updatemanager.h"
+
+//2) Qt Headers
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QSpacerItem>
@@ -15,8 +30,8 @@
 #include <QImage>
 #include <QPixmap>
 #include <QScreen>
-#include "updatemanager.h"
 
+//构造函数
 SettingsWidget::SettingsWidget( QWidget *parent)
     : FramelessWindow(parent)
 {
@@ -24,15 +39,15 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     // 获取屏幕分辨率
     QScreen *screen = QGuiApplication::primaryScreen();
     QRect screenGeometry = screen->geometry();
-    int screenWidth = screenGeometry.width();
-    int screenHeight = screenGeometry.height();
+    int iScreenWidth = screenGeometry.width();
+    int iScreenHeight = screenGeometry.height();
 
     // 计算缩放比例
-    scaleX = (float)screenWidth / 1024;
-    scaleY = (float)screenHeight / 600;
+    m_fScaleX = (float)iScreenWidth / 1024;
+    m_fScaleY = (float)iScreenHeight / 600;
 
     // 设置窗口初始大小
-    this->resize(1024 * scaleX, 600 * scaleY);  // 设置为基于目标分辨率的大小
+    this->resize(1024 * m_fScaleX, 600 * m_fScaleY);  // 设置为基于目标分辨率的大小
 
     this->setObjectName("SettingsWidget");
     this->setStyleSheet(R"(
@@ -47,35 +62,35 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     }
     )");
 
-    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    QVBoxLayout *pMainLayout = new QVBoxLayout(this);
 
     // 顶部栏部件
-    QWidget *topBar = new QWidget(this);
-    topBar->setFixedHeight(50 * scaleY);
-    topBar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    QWidget *pTopBarWidget = new QWidget(this);
+    pTopBarWidget->setFixedHeight(50 * m_fScaleY);
+    pTopBarWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
     // 设置透明背景（如果你使用渐变背景）
-    topBar->setStyleSheet("background-color: transparent;");
+    pTopBarWidget->setStyleSheet("background-color: transparent;");
 
     // 系统名称 Label（左侧）
-    QLabel *iconLabel = new QLabel(this);
+    QLabel *pConLabel = new QLabel(this);
     QPixmap pix(":/image/icons8-tingzhen.png");
     // 缩放到合适大小，比如 24×24
-    pix = pix.scaled(24 * scaleX, 24 * scaleY, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    iconLabel->setPixmap(pix);
-    iconLabel->setFixedSize(pix.size());
+    pix = pix.scaled(24 * m_fScaleX, 24 * m_fScaleY, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    pConLabel->setPixmap(pix);
+    pConLabel->setFixedSize(pix.size());
 
-    titleLabel = new QLabel(tr("医疗设备管理系统"), this);
-    titleLabel->setStyleSheet("color: white; font-size: 25px; font-weight: bold;");
-    titleLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    m_pTitleLabel = new QLabel(tr("医疗设备管理系统"), this);
+    m_pTitleLabel->setStyleSheet("color: white; font-size: 25px; font-weight: bold;");
+    m_pTitleLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
     //设置按钮（右侧）
-    QPushButton *btnclose = new QPushButton(this);
-    btnclose->setIcon(QIcon(":/image/icons-close.png"));
-    btnclose->setIconSize(QSize(30 * scaleX, 30 * scaleY));
-    btnclose->setFlat(true);  // 去除按钮边框
+    QPushButton *pCloseBtn = new QPushButton(this);
+    pCloseBtn->setIcon(QIcon(":/image/icons-close.png"));
+    pCloseBtn->setIconSize(QSize(30 * m_fScaleX, 30 * m_fScaleY));
+    pCloseBtn->setFlat(true);  // 去除按钮边框
     // 设置点击视觉反馈
-    btnclose->setStyleSheet(R"(
+    pCloseBtn->setStyleSheet(R"(
         QPushButton {
             border: none;
             background-color: transparent;
@@ -86,22 +101,22 @@ SettingsWidget::SettingsWidget( QWidget *parent)
         }
     )");
 
-    connect(btnclose, &QPushButton::clicked, this, &SettingsWidget::onBtnCloseClicked);
+    connect(pCloseBtn, &QPushButton::clicked, this, &SettingsWidget::SlotOnBtnCloseClicked);
 
 
     //顶部栏布局
-    QHBoxLayout *tittleLayout = new QHBoxLayout(topBar);
-    tittleLayout->addWidget(iconLabel);
-    tittleLayout->addWidget(titleLabel);
-    tittleLayout->addStretch();
-    tittleLayout->addWidget(btnclose);
-    tittleLayout->setContentsMargins(10 * scaleX, 0, 10 * scaleX, 0);  // 左右边距
+    QHBoxLayout *pTittleLayout = new QHBoxLayout(pTopBarWidget);
+    pTittleLayout->addWidget(pConLabel);
+    pTittleLayout->addWidget(m_pTitleLabel);
+    pTittleLayout->addStretch();
+    pTittleLayout->addWidget(pCloseBtn);
+    pTittleLayout->setContentsMargins(10 * m_fScaleX, 0, 10 * m_fScaleX, 0);  // 左右边距
 
-    mainLayout->addWidget(topBar);
+    pMainLayout->addWidget(pTopBarWidget);
 
-    QWidget *topWidget = new QWidget();
-    topWidget->setFixedHeight(320 * scaleY);
-    topWidget->setStyleSheet(R"(
+    QWidget *pTopWidget = new QWidget();
+    pTopWidget->setFixedHeight(320 * m_fScaleY);
+    pTopWidget->setStyleSheet(R"(
         QWidget {
             background-color: qlineargradient(
                 x1: 0, y1: 0, x2: 0, y2: 1,
@@ -118,33 +133,33 @@ SettingsWidget::SettingsWidget( QWidget *parent)
         }
     )");
 
-    QVBoxLayout*mainbottomLayout = new QVBoxLayout();
-    mainbottomLayout->setContentsMargins(180 * scaleX, 30 * scaleY, 180 * scaleX, 30 * scaleY);
-    QVBoxLayout *topLayout = new QVBoxLayout(topWidget);
+    QVBoxLayout*pMainpBottomLayout = new QVBoxLayout();
+    pMainpBottomLayout->setContentsMargins(180 * m_fScaleX, 30 * m_fScaleY, 180 * m_fScaleX, 30 * m_fScaleY);
+    QVBoxLayout *pTopLayout = new QVBoxLayout(pTopWidget);
 
-    systemSettingsLabel = new QLabel(tr("系统设置"));
-    systemSettingsLabel->setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 20px; font-weight: bold; color: white;");
-    systemSettingsLabel->setFixedHeight(40 * scaleY);
-    topLayout->addWidget(systemSettingsLabel);
+    m_pSystemSettingsLabel = new QLabel(tr("系统设置"));
+    m_pSystemSettingsLabel->setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 20px; font-weight: bold; color: white;");
+    m_pSystemSettingsLabel->setFixedHeight(40 * m_fScaleY);
+    pTopLayout->addWidget(m_pSystemSettingsLabel);
 
     // 信号强度滑块区域
-    QHBoxLayout *signalLayout = new QHBoxLayout();
-    signalStrengthLabel = new QLabel(tr("最小信号强度"));
-    signalStrengthLabel->setFixedSize(250 * scaleX, 40 * scaleY);
-    signalStrengthLabel->setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px; font-weight: bold; color: white;");
+    QHBoxLayout *pSignalLayout = new QHBoxLayout();
+    m_pSignalStrengthLabel = new QLabel(tr("最小信号强度"));
+    m_pSignalStrengthLabel->setFixedSize(250 * m_fScaleX, 40 * m_fScaleY);
+    m_pSignalStrengthLabel->setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px; font-weight: bold; color: white;");
 
     // 优先从应用属性拿（main 已经放进去），否则回退到 QSettings
     QVariant prop = qApp->property("signalStrength");
     int v = prop.isValid() ? prop.toInt()
                            : QSettings().value("system/signalStrength", 70).toInt();
 
-    signalStrengthSlider = new QSlider(Qt::Horizontal);
-    signalStrengthSlider->setRange(0, 100);
-    signalStrengthSlider->setValue(v);
-    signalStrengthSlider->setFixedWidth(160 * scaleX);
-    signalStrengthSlider->setFixedHeight(35);
+    m_pSignalStrengthSlider = new QSlider(Qt::Horizontal);
+    m_pSignalStrengthSlider->setRange(0, 100);
+    m_pSignalStrengthSlider->setValue(v);
+    m_pSignalStrengthSlider->setFixedWidth(160 * m_fScaleX);
+    m_pSignalStrengthSlider->setFixedHeight(35);
 
-    signalStrengthSlider->setStyleSheet(R"(
+    m_pSignalStrengthSlider->setStyleSheet(R"(
         QSlider {
             background: #212121;  /* 滑动条背景色：深灰色 */
             height: 20px;  /* 增加滑动条的高度 */
@@ -176,18 +191,18 @@ SettingsWidget::SettingsWidget( QWidget *parent)
         }
     )");
 
-    QLabel *signalStrengthValue = new QLabel(QString::number(v) + "%");
-    signalStrengthValue->setFixedSize(50 * scaleX, 40 * scaleY);
-    signalStrengthValue->setAlignment(Qt::AlignCenter);
-    signalStrengthValue->setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 22px; font-weight: bold; color: white;");
+    QLabel *pSigStrengthValueLabel = new QLabel(QString::number(v) + "%");
+    pSigStrengthValueLabel->setFixedSize(50 * m_fScaleX, 40 * m_fScaleY);
+    pSigStrengthValueLabel->setAlignment(Qt::AlignCenter);
+    pSigStrengthValueLabel->setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 22px; font-weight: bold; color: white;");
 
-    connect(signalStrengthSlider, &QSlider::valueChanged, [signalStrengthValue](int value) {
-        signalStrengthValue->setText(QString::number(value) + "%");
+    connect(m_pSignalStrengthSlider, &QSlider::valueChanged, [pSigStrengthValueLabel](int value) {
+        pSigStrengthValueLabel->setText(QString::number(value) + "%");
     });
 
-    modifyButton = new QPushButton(tr("修  改"));
+    m_pModifyButton = new QPushButton(tr("修  改"));
     QPixmap pixmapModify(":/image/icons8-edit.png");
-    modifyButton->setStyleSheet(R"(
+    m_pModifyButton->setStyleSheet(R"(
         QPushButton {
             background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
                                         stop: 0 rgba(76, 175, 80, 180),
@@ -209,9 +224,9 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     )");
 
     // “修改”按钮：二次确认 → 写回 → 更新应用属性（全局可读）
-    connect(modifyButton, &QPushButton::clicked, this, [=](){
+    connect(m_pModifyButton, &QPushButton::clicked, this, [=](){
         //从 label 里安全解析百分比
-        int nv = signalStrengthValue->text().remove('%').toInt();
+        int nv = pSigStrengthValueLabel->text().remove('%').toInt();
 
         // 二次确认
         CustomMessageBox ask(
@@ -219,10 +234,10 @@ SettingsWidget::SettingsWidget( QWidget *parent)
             tr(" "),
             tr("将最小信号强度设置为 %1% ？\n此设置会立即生效，并在下次开机保留。").arg(nv),
             { tr("是"), tr("否") },
-            300 * scaleX
+            300 * m_fScaleX
         );
 
-        if (ask.exec() != QDialog::Accepted || ask.getUserResponse() != tr("是"))
+        if (ask.exec() != QDialog::Accepted || ask.GetUserResponse() != tr("是"))
                 return;
 
         //持久化到 QSettings（开机记住）
@@ -232,7 +247,7 @@ SettingsWidget::SettingsWidget( QWidget *parent)
 
         //运行期全局可读 + 广播给其他模块
         qApp->setProperty("signalStrength", nv);
-        emit signalStrengthChanged(nv);   // 其他模块 connect 这个信号即可立即生效
+        emit SigStrengthChanged(nv);   // 其他模块 connect 这个信号即可立即生效
 
         //自定义“已保存”提示（也可用系统 QMessageBox::information）
         CustomMessageBox ok(
@@ -240,7 +255,7 @@ SettingsWidget::SettingsWidget( QWidget *parent)
                     tr("已保存"),
                     tr("最小信号强度已更新为 %1%。").arg(nv),
         { tr("确定") },
-                    260 * scaleX
+                    260 * m_fScaleX
                     );
         ok.exec();
 
@@ -249,23 +264,23 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     QImage image3 = pixmapModify.toImage();
     image3.invertPixels();
     pixmapModify = QPixmap::fromImage(image3);
-    modifyButton->setIcon(QIcon(pixmapModify));
-    modifyButton->setIconSize(QSize(15 * scaleY, 15 * scaleY));
-    modifyButton->setFixedSize(115 * scaleX, 40 * scaleY);
+    m_pModifyButton->setIcon(QIcon(pixmapModify));
+    m_pModifyButton->setIconSize(QSize(15 * m_fScaleY, 15 * m_fScaleY));
+    m_pModifyButton->setFixedSize(115 * m_fScaleX, 40 * m_fScaleY);
 
-    signalLayout->addWidget(signalStrengthLabel);
-    signalLayout->addWidget(signalStrengthSlider);
-    signalLayout->addWidget(signalStrengthValue);
-    signalLayout->addWidget(modifyButton);
+    pSignalLayout->addWidget(m_pSignalStrengthLabel);
+    pSignalLayout->addWidget(m_pSignalStrengthSlider);
+    pSignalLayout->addWidget(pSigStrengthValueLabel);
+    pSignalLayout->addWidget(m_pModifyButton);
 
-    topLayout->addLayout(signalLayout);
+    pTopLayout->addLayout(pSignalLayout);
 
     // 语言设置
-    QHBoxLayout *languageLayout = new QHBoxLayout();
-    languageLabel = new QLabel(tr("语言设置"));
-    languageLabel->setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px; font-weight: bold; color: white;");
-    languageComboBox = new CustomComboBox(25 * scaleY,this);
-    languageComboBox->setStyleSheet(R"(
+    QHBoxLayout *pLanguageLayout = new QHBoxLayout();
+    m_pLanguageLabel = new QLabel(tr("语言设置"));
+    m_pLanguageLabel->setStyleSheet("font-family: 'Microsoft YaHei'; font-size: 12px; font-weight: bold; color: white;");
+    m_pLanguageComboBox = new CustomComboBox(25 * m_fScaleY,this);
+    m_pLanguageComboBox->setStyleSheet(R"(
     QComboBox {
         font-family: 'Microsoft YaHei';
         font-size: 18px;
@@ -287,31 +302,58 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     }
     )");
 
-    languageComboBox->addItem(tr("中文"), "zh_CN");
-    languageComboBox->addItem(tr("英语"), "en_US");
-    languageComboBox->setFixedSize(150 * scaleX, 40 * scaleY);
+    m_pLanguageComboBox->addItem(tr("中文"), "zh_CN");
+    m_pLanguageComboBox->addItem(tr("英语"), "en_US");
+    m_pLanguageComboBox->setFixedSize(150 * m_fScaleX, 40 * m_fScaleY);
 
-    QString currentLang = LanguageManager::instance().currentLanguage();
-    int idx = languageComboBox->findData(currentLang);
-    if (idx >= 0) languageComboBox->setCurrentIndex(idx);
 
-    connect(languageComboBox, &QComboBox::currentTextChanged, this, [=](const QString &) {
-        QString selectedCode = languageComboBox->currentData().toString();
-        LanguageManager::instance().switchLanguage(selectedCode);
+    QString strCurrentLang = LanguageManager::instance().currentLanguage();
+    int idx = m_pLanguageComboBox->findData(strCurrentLang);
+    if (idx >= 0) m_pLanguageComboBox->setCurrentIndex(idx);
+
+    // 3. 连接选择变化信号
+    // 设置界面中语言选择框的连接代码（添加详细日志）
+    connect(m_pLanguageComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [=](int index) {
+        Q_UNUSED(index);
+        // 获取选中项的语言代码和显示文本
+        QString strSelectedCode = m_pLanguageComboBox->currentData().toString();
+        QString strSelectedText = m_pLanguageComboBox->currentText(); // 显示给用户的文本（如"中文"、"English"）
+
+        // 关键日志：打印用户选择的详细信息
+        qDebug() << "[SettingsWidget] 语言选择框索引变化，开始处理...";
+        qDebug() << "[SettingsWidget]   选中的显示文本：" << strSelectedText;
+        qDebug() << "[SettingsWidget]   对应的语言代码：" << strSelectedCode;
+
+        if (strSelectedCode.isEmpty()) {
+            qDebug() << "[SettingsWidget]   ❌ 选中项语言代码为空，不执行切换";
+            return;
+        }
+
+        // 检查是否与当前语言一致（提前规避无效切换）
+        QString strCurrentLang = LanguageManager::instance().currentLanguage();
+        if (strSelectedCode == strCurrentLang) {
+            qDebug() << "[SettingsWidget]   提示：选中语言与当前语言一致（" << strCurrentLang << "），无需切换";
+            return;
+        }
+
+        // 调用管理器切换语言，打印调用前日志
+        qDebug() << "[SettingsWidget]   准备调用 LanguageManager::switchLanguage(" << strSelectedCode << ")";
+        LanguageManager::instance().switchLanguage(strSelectedCode);
+        qDebug() << "[SettingsWidget]   调用切换函数完成，等待管理器处理...";
     });
 
-
-    languageLayout->addWidget(languageLabel);
-    languageLayout->addWidget(languageComboBox);
-    topLayout->addLayout(languageLayout);
+    pLanguageLayout->addWidget(m_pLanguageLabel);
+    pLanguageLayout->addWidget(m_pLanguageComboBox);
+    pTopLayout->addLayout(pLanguageLayout);
 
     // 重启按钮
-    QHBoxLayout *rebootLayout = new QHBoxLayout();
-    rebootLabel = new QLabel(tr("系统重启"));
-    rebootButton = new QPushButton(tr("重新启动"));
+    QHBoxLayout *pRebootLayout = new QHBoxLayout();
+    m_pRebootLabel = new QLabel(tr("系统重启"));
+    m_pRebootButton = new QPushButton(tr("重新启动"));
     QPixmap rebootIcon(":/image/icons8-reset.png");
 
-    rebootButton->setStyleSheet(R"(
+    m_pRebootButton->setStyleSheet(R"(
         QPushButton {
             background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
                                         stop: 0 rgba(255, 183, 77, 180),
@@ -334,20 +376,20 @@ SettingsWidget::SettingsWidget( QWidget *parent)
 
 
     QImage rebootImage = rebootIcon.toImage(); rebootImage.invertPixels();
-    rebootButton->setIcon(QIcon(QPixmap::fromImage(rebootImage)));
-    rebootButton->setFixedSize(115 * scaleX, 40 * scaleY);
-    connect(rebootButton, &QPushButton::clicked, this, &SettingsWidget::onRebootClicked);
-    rebootLayout->addWidget(rebootLabel);
-    rebootLayout->addWidget(rebootButton);
-    topLayout->addLayout(rebootLayout);
+    m_pRebootButton->setIcon(QIcon(QPixmap::fromImage(rebootImage)));
+    m_pRebootButton->setFixedSize(115 * m_fScaleX, 40 * m_fScaleY);
+    connect(m_pRebootButton, &QPushButton::clicked, this, &SettingsWidget::SlotOnRebootClicked);
+    pRebootLayout->addWidget(m_pRebootLabel);
+    pRebootLayout->addWidget(m_pRebootButton);
+    pTopLayout->addLayout(pRebootLayout);
 
     // 关机按钮
-    QHBoxLayout *shutdownLayout = new QHBoxLayout();
-    shutdownLabel = new QLabel(tr("系统关机"));
-    shutdownButton = new QPushButton(tr("关  机"));
+    QHBoxLayout *pShutdownLayout = new QHBoxLayout();
+    m_pShutdownLabel = new QLabel(tr("系统关机"));
+    m_pShutdownButton = new QPushButton(tr("关  机"));
     QPixmap shutdownIcon(":/image/icons8-shutdown.png");
 
-    shutdownButton->setStyleSheet(R"(
+    m_pShutdownButton->setStyleSheet(R"(
         QPushButton {
             background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
                                         stop: 0 rgba(244, 67, 54, 180),
@@ -370,19 +412,19 @@ SettingsWidget::SettingsWidget( QWidget *parent)
 
 
     QImage shutdownImage = shutdownIcon.toImage(); shutdownImage.invertPixels();
-    shutdownButton->setIcon(QIcon(QPixmap::fromImage(shutdownImage)));
-    shutdownButton->setFixedSize(115 * scaleX, 40 * scaleY);
-    connect(shutdownButton, &QPushButton::clicked, this, &SettingsWidget::onShutdownClicked);
-    shutdownLayout->addWidget(shutdownLabel);
-    shutdownLayout->addWidget(shutdownButton);
+    m_pShutdownButton->setIcon(QIcon(QPixmap::fromImage(shutdownImage)));
+    m_pShutdownButton->setFixedSize(115 * m_fScaleX, 40 * m_fScaleY);
+    connect(m_pShutdownButton, &QPushButton::clicked, this, &SettingsWidget::SlotOnShutdownClicked);
+    pShutdownLayout->addWidget(m_pShutdownLabel);
+    pShutdownLayout->addWidget(m_pShutdownButton);
 
     //软件更新
-    QHBoxLayout *updateLayout = new QHBoxLayout();
-    updateLabel = new QLabel(tr("软件更新"));
-    QPushButton *updateButton = new QPushButton(tr("更  新"));
+    QHBoxLayout *pUpdateLayout = new QHBoxLayout();
+    m_pUpdateLabel = new QLabel(tr("软件更新"));
+    m_pUpdateButton = new QPushButton(tr("更  新"));
     QPixmap updateIcon(":/image/icons8-update-64.png"); // 准备一个更新图标
 
-    updateButton->setStyleSheet(R"(
+    m_pUpdateButton->setStyleSheet(R"(
         QPushButton {
             background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
                 stop:0 rgba(33,150,243,180),
@@ -403,25 +445,25 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     )");
 
     QImage updateImage = updateIcon.toImage(); updateImage.invertPixels();
-    updateButton->setIcon(QIcon(QPixmap::fromImage(updateImage)));
-    updateButton->setFixedSize(115 * scaleX, 40 * scaleY);
+    m_pUpdateButton->setIcon(QIcon(QPixmap::fromImage(updateImage)));
+    m_pUpdateButton->setFixedSize(115 * m_fScaleX, 40 * m_fScaleY);
 
-    connect(updateButton, &QPushButton::clicked, this, &SettingsWidget::onUpdateClicked);
+    connect(m_pUpdateButton, &QPushButton::clicked, this, &SettingsWidget::SlotOnUpdateClicked);
 
-    updateLayout->addWidget(updateLabel);
-    updateLayout->addWidget(updateButton);
-    topLayout->addLayout(updateLayout);
+    pUpdateLayout->addWidget(m_pUpdateLabel);
+    pUpdateLayout->addWidget(m_pUpdateButton);
+    pTopLayout->addLayout(pUpdateLayout);
 
 
-    topLayout->addLayout(shutdownLayout);
+    pTopLayout->addLayout(pShutdownLayout);
 
     // 添加顶部
-    mainbottomLayout->addWidget(topWidget);
+    pMainpBottomLayout->addWidget(pTopWidget);
 
     // 添加底部信息
-    QWidget *bottomWidget = new QWidget();
+    QWidget *pBottomWidget = new QWidget();
 
-    bottomWidget->setStyleSheet(R"(
+    pBottomWidget->setStyleSheet(R"(
     QWidget {
         background-color: qlineargradient(
             x1: 0, y1: 0, x2: 0, y2: 1,
@@ -438,55 +480,119 @@ SettingsWidget::SettingsWidget( QWidget *parent)
     }
     )");
 
-    bottomWidget->setFixedHeight(120 * scaleY);
-    QVBoxLayout *bottomLayout = new QVBoxLayout(bottomWidget);
+    pBottomWidget->setFixedHeight(120 * m_fScaleY);
+    QVBoxLayout *pBottomLayout = new QVBoxLayout(pBottomWidget);
 
-    systemInfoLabel = new QLabel(tr("系统信息"));
-    systemInfoLabel->setFixedHeight(40 * scaleY);
-    softwareVersionLabel1 = new QLabel(tr("   软件版本:"));
-    softwareVersionLabel2 = new QLabel("V1.0.0   ");
-    softwareVersionLabel2->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    m_pSystemInfoLabel = new QLabel(tr("系统信息"));
+    m_pSystemInfoLabel->setFixedHeight(40 * m_fScaleY);
+    m_pSoftwareVersionLabel1 = new QLabel(tr("   软件版本:"));
+    m_pSoftwareVersionLabel2 = new QLabel("V1.0.0   ");
+    m_pSoftwareVersionLabel2->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
 
-    QHBoxLayout *infoRow = new QHBoxLayout();
-    infoRow->addWidget(softwareVersionLabel1);
-    infoRow->addWidget(softwareVersionLabel2);
+    QHBoxLayout *pInfoRowLayout = new QHBoxLayout();
+    pInfoRowLayout->addWidget(m_pSoftwareVersionLabel1);
+    pInfoRowLayout->addWidget(m_pSoftwareVersionLabel2);
 
-    bottomLayout->addWidget(systemInfoLabel);
-    bottomLayout->addLayout(infoRow);
-    mainbottomLayout->addWidget(bottomWidget);
-    mainLayout->addLayout(mainbottomLayout);
-
-
+    pBottomLayout->addWidget(m_pSystemInfoLabel);
+    pBottomLayout->addLayout(pInfoRowLayout);
+    pMainpBottomLayout->addWidget(pBottomWidget);
+    pMainLayout->addLayout(pMainpBottomLayout);
+    Retranslate(); // 首次设置文案
 }
 
+//析构函数
 SettingsWidget::~SettingsWidget() {}
 
-void SettingsWidget::onLanguageChanged(const QString &)
+//void SettingsWidget::SlotOInLanguageChanged(const QString &)
+//{
+//    QString langCode = m_pLanguageComboBox->currentData().toString();
+//    LanguageManager::instance().switchLanguage(langCode);
+//}
+
+/***********************************************************************************************
+ * FUNC    : SlotOInLanguageChanged
+ * IN      : langCode (QString) - 当前选择的语言代码
+ * OUT     : None
+ * RETURN  : void
+ * AUTHOR  : 2025-12-26 Create by lxh for SettingsWidget class
+ * NOTE    : 触发语言切换事件，更新语言设置
+ ************************************************************************************************/
+void SettingsWidget::SlotOInLanguageChanged(const QString &)
 {
-    QString langCode = languageComboBox->currentData().toString();
+    QString langCode = m_pLanguageComboBox->currentData().toString();
+    qDebug() << "[SlotOInLanguageChanged槽] 触发语言切换，代码：" << langCode;
     LanguageManager::instance().switchLanguage(langCode);
 }
 
-void SettingsWidget::onRebootClicked()
+/***********************************************************************************************
+ * FUNC    : SlotOnRebootClicked
+ * IN      : None
+ * OUT     : None
+ * RETURN  : void
+ * AUTHOR  : 2025-12-26 Create by lxh for SettingsWidget class
+ * NOTE    : 触发系统重启操作，弹出确认对话框，用户确认后重启应用程序
+ ************************************************************************************************/
+void SettingsWidget::SlotOnRebootClicked()
 {
+    // 1. 进入函数自动加背景模糊 + 遮罩
+    BlurOverlayGuard blurGuard(this, /*blurRadius=*/20, /*alpha=*/100);
+
     CustomMessageBox msgBox(this, tr("确认重启"), tr("确定要重新启动应用程序吗？"),
-                            {tr("是"), tr("否")}, 300 * scaleX);
-    if (msgBox.exec() == QDialog::Accepted && msgBox.getUserResponse() == tr("是")) {
+                            {tr("是"), tr("否")}, 300 * m_fScaleX);
+    msgBox.exec();
+    // 3. 根据用户选择执行关机
+    if (msgBox.GetUserResponse() == tr("是")) {
         QProcess::startDetached(QCoreApplication::applicationFilePath());
         qApp->quit();
     }
 }
 
-void SettingsWidget::onShutdownClicked()
+/***********************************************************************************************
+ * FUNC    : SlotOnShutdownClicked
+ * IN      : None
+ * OUT     : None
+ * RETURN  : void
+ * AUTHOR  : 2025-12-26 Create by lxh for SettingsWidget class
+ * NOTE    : 触发系统关机操作，弹出确认对话框，用户确认后关闭应用程序
+ ************************************************************************************************/
+
+void SettingsWidget::SlotOnShutdownClicked()
 {
-    CustomMessageBox msgBox(this, tr("确认关机"), tr("确定要关闭应用程序吗？"),
-                            {tr("是"), tr("否")}, 300 * scaleX);
-    if (msgBox.exec() == QDialog::Accepted && msgBox.getUserResponse() == tr("是")) {
+    // 1. 进入函数自动加背景模糊 + 遮罩
+    BlurOverlayGuard blurGuard(this, /*blurRadius=*/20, /*alpha=*/100);
+
+    // 2. 弹出确认对话框
+    CustomMessageBox msgBox(
+        this,
+        tr("确认关机"),
+        tr("确定要关闭应用程序吗？"),
+        { tr("是"), tr("否") },
+        300 * m_fScaleX
+    );
+
+    msgBox.exec();  // 阻塞等待用户点击
+
+    // 3. 根据用户选择执行关机
+    if (msgBox.GetUserResponse() == tr("是")) {
         qApp->quit();
     }
+    // 函数结束时 blurGuard 析构 -> 自动清除遮罩和模糊
 }
 
-void SettingsWidget::onUpdateClicked() {
+/***********************************************************************************************
+ * FUNC    : SlotOnUpdateClicked
+ * IN      : None
+ * OUT     : None
+ * RETURN  : void
+ * AUTHOR  : 2025-12-26 Create by lxh for SettingsWidget class
+ * NOTE    : 触发软件更新操作，检查U盘更新包并执行更新
+ ************************************************************************************************/
+
+void SettingsWidget::SlotOnUpdateClicked()
+{
+    // 使用之前封装好的类
+    BlurOverlayGuard blurGuard(this, /*blurRadius=*/20, /*alpha=*/120);
+
     UpdateManager um(this);
 
     // 1) 查找 U 盘 UPDATE 目录
@@ -494,7 +600,7 @@ void SettingsWidget::onUpdateClicked() {
     if (!um.hasUsbUpdate(&usbDir)) {
         CustomMessageBox(this, tr("软件更新"),
             tr("未检测到软件更新U盘，请插入后重试。"),
-            { tr("确定") }, 380*scaleX).exec();
+            { tr("确定") }, 380*m_fScaleX).exec();
         return;
     }
 
@@ -503,24 +609,25 @@ void SettingsWidget::onUpdateClicked() {
     if (!um.loadManifest(usbDir + "/manifest.json", manifest)) {
         CustomMessageBox(this, tr("软件更新"),
             tr("更新清单读取失败。"),
-            { tr("确定") }, 380*scaleX).exec();
+            { tr("确定") }, 380*m_fScaleX).exec();
         return;
     }
-    const QString version = manifest.value("version").toString();
+
+    const QString version   = manifest.value("version").toString();
     const QString expectSha = manifest.value("sha256").toString();
 
     // 3) 校验包
     if (!um.verifyPackage(usbDir + "/app_update.pkg", expectSha)) {
         CustomMessageBox(this, tr("软件更新"),
             tr("更新包校验失败。"),
-            { tr("确定") }, 380*scaleX).exec();
+            { tr("确定") }, 380*m_fScaleX).exec();
         return;
     }
 
     // 4) 用户确认
     if (CustomMessageBox(this, tr("软件更新"),
         tr("检测到新版本 %1，是否继续更新？").arg(version),
-        { tr("取消"), tr("继续") }, 420*scaleX).exec() != 1) {
+        { tr("取消"), tr("继续") }, 420*m_fScaleX).exec() != 1) {
         return;
     }
 
@@ -529,42 +636,85 @@ void SettingsWidget::onUpdateClicked() {
     if (!um.stageUpdate(usbDir, staging)) {
         CustomMessageBox(this, tr("软件更新"),
             tr("复制更新包失败。"),
-            { tr("确定") }, 380*scaleX).exec();
+            { tr("确定") }, 380*m_fScaleX).exec();
         return;
     }
 
-    // 6) 重启应用以应用更新（pending 标记）
+    // 6) 重启确认
     if (CustomMessageBox(this, tr("软件更新"),
         tr("将重启应用以应用更新，是否现在重启？"),
-        { tr("取消"), tr("继续") }, 420*scaleX).exec() != 1) {
+        { tr("取消"), tr("继续") }, 420*m_fScaleX).exec() != 1) {
         return;
     }
+
+    // 应用即将退出，不需要担心 blurGuard 析构
     um.markPendingAndRestart(staging);
 }
+
+/***********************************************************************************************
+ * FUNC    : ChangeEvent
+ * IN      : event (QEvent*) - 事件对象
+ * OUT     : None
+ * RETURN  : void
+ * AUTHOR  : 2025-12-26 Create by lxh for SettingsWidget class
+ * NOTE    : 语言变化时调用，更新界面控件文本
+ ************************************************************************************************/
 
 void SettingsWidget::changeEvent(QEvent *event)
 {
     if (event->type() == QEvent::LanguageChange) {
-        qDebug() << "SettingsWidget 收到 LanguageChange 事件";
-        titleLabel->setText(tr("医疗设备管理系统"));
-        systemSettingsLabel->setText(tr("系统设置"));
-        signalStrengthLabel->setText(tr("最小信号强度"));
-        modifyButton->setText(tr("修  改"));
-        languageLabel->setText(tr("语言设置"));
-        rebootLabel->setText(tr("系统重启"));
-        rebootButton->setText(tr("重新启动"));
-        shutdownLabel->setText(tr("系统关机"));
-        shutdownButton->setText(tr("关  机"));
-        systemInfoLabel->setText(tr("系统信息"));
-        softwareVersionLabel1->setText(tr("软件版本:"));
-
-        languageComboBox->setItemText(0, tr("中文"));
-        languageComboBox->setItemText(1, tr("英语"));
+        Retranslate();
     }
     QWidget::changeEvent(event);
 }
 
-void SettingsWidget::onBtnCloseClicked(){
+/***********************************************************************************************
+ * FUNC    : SlotOnBtnCloseClicked
+ * IN      : None
+ * OUT     : None
+ * RETURN  : void
+ * AUTHOR  : 2025-12-26 Create by lxh for SettingsWidget class
+ * NOTE    : 关闭设置界面并发送销毁请求信号
+ ************************************************************************************************/
+
+void SettingsWidget::SlotOnBtnCloseClicked(){
     this->close();
-    emit requestDelete(this);  // 通知外部处理删除
+    emit SigRequestDelete(this);  // 通知外部处理删除
+}
+
+/***********************************************************************************************
+ * FUNC    : Retranslate
+ * IN      : None
+ * OUT     : None
+ * RETURN  : void
+ * AUTHOR  : 2025-12-26 Create by lxh for SettingsWidget class
+ * NOTE    : 刷新界面控件的文本（根据当前语言）
+ ************************************************************************************************/
+
+void SettingsWidget::Retranslate()
+{
+    qDebug() << "SettingsWidget 收到 LanguageChange 事件";
+
+    if (m_pTitleLabel)            m_pTitleLabel->setText(tr("医疗设备管理系统"));
+    if (m_pSystemSettingsLabel)   m_pSystemSettingsLabel->setText(tr("系统设置"));
+    if (m_pSignalStrengthLabel)   m_pSignalStrengthLabel->setText(tr("最小信号强度"));
+    if (m_pModifyButton)          m_pModifyButton->setText(tr("修  改"));
+    if (m_pLanguageLabel)         m_pLanguageLabel->setText(tr("语言设置"));
+    if (m_pUpdateLabel)           m_pUpdateLabel->setText(tr("软件更新"));
+    if (m_pUpdateButton)          m_pUpdateButton->setText(tr("更新"));
+    if (m_pRebootLabel)           m_pRebootLabel->setText(tr("系统重启"));
+    if (m_pRebootButton)          m_pRebootButton->setText(tr("重新启动"));
+    if (m_pShutdownLabel)         m_pShutdownLabel->setText(tr("系统关机"));
+    if (m_pShutdownButton)        m_pShutdownButton->setText(tr("关  机"));
+    if (m_pSystemInfoLabel)       m_pSystemInfoLabel->setText(tr("系统信息"));
+    if (m_pSoftwareVersionLabel1) m_pSoftwareVersionLabel1->setText(tr("软件版本:"));
+
+    if (m_pLanguageComboBox) {
+        int keep = m_pLanguageComboBox->currentIndex();  // 保留选择
+        if (m_pLanguageComboBox->count() > 0) m_pLanguageComboBox->setItemText(0, tr("中文"));
+        if (m_pLanguageComboBox->count() > 1) m_pLanguageComboBox->setItemText(1, tr("英语"));
+        if (keep >= 0 && keep < m_pLanguageComboBox->count())
+            m_pLanguageComboBox->setCurrentIndex(keep);
+    }
+
 }

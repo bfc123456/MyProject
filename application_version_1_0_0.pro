@@ -1,4 +1,4 @@
-QT       += core gui serialport sql virtualkeyboard serialport network
+QT       += core gui quick qml serialport  sql virtualkeyboard serialport network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -9,6 +9,7 @@ CONFIG += c++14
 # depend on your compiler). Please consult the documentation of the
 # deprecated API in order to know how to port your code away from it.
 DEFINES += QT_DEPRECATED_WARNINGS
+QT_VIRTUALKEYBOARD_STYLE=test virtualkeyboard
 
 # You can also make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -16,79 +17,73 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    CalibrationDialog.cpp \
-    CardiaCoutputDialog.cpp \
-    CircularProgressBar.cpp \
-    CustomComboBox.cpp \
-    CustomDateEdit.cpp \
-    CustomKeyBoard.cpp \
-    CustomMessageBox.cpp \
-    DatabaseManager.cpp \
-    DebugModeselector.cpp \
-    DeviceAcquisitionWorker.cpp \
-    ExitconfirmDialog.cpp \
-    Global.cpp \
-    ImplantAtionSite.cpp \
-    ImplantMonitor.cpp \
-    ImplantRegistrationWidget.cpp \
-    LanguageManager.cpp \
-    MeasurementDataProcessor.cpp \
-    MeasurementDialog.cpp \
-    MeasurementTrendWidget.cpp \
-    MedicalLogger.cpp \
-    ModernWavePlot.cpp \
-    PatientSignalStrengthWidget.cpp \
-    ReadoutrecordDialog.cpp \
-    ReviewWidget.cpp \
-    RhcinputDialog.cpp \
-    SerialDebugWidget.cpp \
-    SerialManager.cpp \
-    SettingsWidget.cpp \
-    TouchEventHandler.cpp \
-    UdpDebugWidget.cpp \
-    MultiUserLoginWindow.cpp \
-    UdpManager.cpp \
-    UpdateManager.cpp \
+    bluroverlayguard.cpp \
+    cardiacoutputdialog.cpp \
+    circularprogressbar.cpp \
+    customcombobox.cpp \
+    customkeyboard.cpp \
+    custommessagebox.cpp \
+    customyscaledraw.cpp \
+    customzoomer.cpp \
+    databasemanager.cpp \
+    debugmodeselector.cpp \
+    deviceacquisitionworker.cpp \
+    exitconfirmdialog.cpp \
+    global.cpp \
+    implantmonitor.cpp \
+    languagemanager.cpp \
+    measurementdataprocessor.cpp \
+    medicallogger.cpp \
+    modernwaveplot.cpp \
+    readoutrecorddialog.cpp \
+    rhcinputdialog.cpp \
+    serialdebugwidget.cpp \
+    serialmanager.cpp \
+    settingswidget.cpp \
+    splashscreen.cpp \
+    touchdateedit.cpp \
+    toucheventhandler.cpp \
+    udpdebugwidget.cpp \
+    udpmanager.cpp \
+    updatemanager.cpp \
     main.cpp
 
 HEADERS += \
-    CalibrationDialog.h \
-    CardiacoutputDialog.h \
-    CircularProgressbar.h \
-    CloseOnlyWindow.h \
-    CustomCombobox.h \
-    CustomDateedit.h \
-    CustomMessagebox.h \
-    Customkeyboard.h \
-    DatabaseManager.h \
-    DebugModeSelector.h \
-    DeviceAcquisitionWorker.h \
-    ExitconfirmDialog.h \
-    FramelessWindow.h \
-    Global.h \
-    ImplantAtionSite.h \
-    ImplantMonitor.h \
-    ImplantRegistrationWidget.h \
-    LanguageManager.h \
-    MeasurementConfig.h \
-    MeasurementData.h \
-    MeasurementDataProcessor.h \
-    MeasurementDialog.h \
-    MeasurementTrendWidget.h \
-    MedicalLogger.h \
-    ModernWaveplot.h \
-    PatientSignalStrengthWidget.h \
-    ReadoutrecordDialog.h \
-    ReviewWidget.h \
-    RhcinputDialog.h \
-    SerialDebugWidget.h \
-    SerialManager.h \
-    SettingsWidget.h \
-    TouchEventHandler.h \
-    UdpDebugWidget.h \
-    UdpManager.h \
-    MultiUserLoginWindow.h \
-    UpdateManager.h
+    bluroverlayguard.h \
+    cardiacoutputdialog.h \
+    circularprogressbar.h \
+    closeonlywindow.h \
+    customcombobox.h \
+    customkeyboard.h \
+    custommessagebox.h \
+    customyscaledraw.h \
+    customzoomer.h \
+    databasemanager.h \
+    databuffer.h \
+    debugmodeselector.h \
+    deviceacquisitionworker.h \
+    exitconfirmdialog.h \
+    framelesswindow.h \
+    global.h \
+    implantmonitor.h \
+    languagemanager.h \
+    measurementconfig.h \
+#    measuremeFntdata.h \
+    measurementdataprocessor.h \
+    medicallogger.h \
+    modernwaveplot.h \
+    readoutrecorddialog.h \
+    rhcinputdialog.h \
+    serialdebugwidget.h \
+    serialmanager.h \
+    settingswidget.h \
+    splashscreen.h \
+    thread_work_state.h \
+    touchdateedit.h \
+    toucheventhandler.h \
+    udpdebugwidget.h \
+    udpmanager.h \
+    updatemanager.h
 
 FORMS += \
 #    historycheck.ui \
@@ -103,7 +98,8 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 RESOURCES += \
-    images.qrc
+    images.qrc \
+    qml.qrc
 
 
 DISTFILES += \

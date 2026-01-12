@@ -7,7 +7,7 @@
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include "CloseOnlyWindow.h"
+#include "closeonlywindow.h"
 
 /**
  * @class ExitConfirmDialog
@@ -40,8 +40,13 @@ public:
 signals:
     void shutdownClicked();
     void returnHomeClicked();
+    void shutdownSystem();
+    void returnToMain();
+
 
 private:
+    void changeEvent(QEvent *event);
+
     QLabel *messageLabel;
     QPushButton *shutdownButton;
     QPushButton *returnButton;

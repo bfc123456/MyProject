@@ -1,4 +1,4 @@
-#include "SerialManager.h"
+#include "serialmanager.h"
 #include <QDebug>
 
 SerialManager::SerialManager(QObject *parent)

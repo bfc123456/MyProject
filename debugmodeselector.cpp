@@ -1,4 +1,4 @@
-#include "DebugModeSelector.h"
+#include "debugmodeselector.h"
 #include <QBoxLayout>
 #include <QPushButton>
 #include <QLabel>
@@ -19,18 +19,39 @@ DebugModeSelector::DebugModeSelector(QWidget *parent) : CloseOnlyWindow(parent)
 
     setFixedSize(400*scaleX, 280*scaleY);
 
-    this->setStyleSheet(R"(
-        QWidget {
-             background-color: qlineargradient(
-                 x1: 0, y1: 0, x2: 0, y2: 1,
-                 stop: 0 rgba(30, 50, 80, 0.9),     /* 顶部：偏亮蓝灰，透明度 0.9 */
-                 stop: 1 rgba(10, 25, 50, 0.75)     /* 底部：深蓝，透明度 0.75 */
-             );
+    setStyleSheet(R"(
+        QDialog {
+            background-color: #333333; /* 深灰色背景 */
+            border: 2px solid white;   /* 白色外边框 */
+            border-radius: 10px;
             color: white;
             font-size: 14px;
-            border-radius: 10px;
         }
     )");
+
+    // 创建关闭按钮
+    QPushButton *closeButton = new QPushButton(this);
+    closeButton->setIcon(QIcon(":/image/icons-close.png"));
+    closeButton->setIconSize(QSize(20 * scaleX, 20 * scaleX));
+    closeButton->setStyleSheet(R"(
+        QPushButton {
+            background-color: transparent;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            padding: 5px 10px;
+        }
+        QPushButton:hover {
+            color: #CCCCCC; /*  hover 时浅灰 */
+        }
+    )");
+    closeButton->setFixedSize(30, 30);  // 设置按钮的大小
+
+    // 创建按钮布局，用于设置关闭按钮的显示位置
+    QHBoxLayout *headerLayout = new QHBoxLayout();
+    headerLayout->setContentsMargins(0, 0, 0, 0);  // 移除间距
+    headerLayout->addWidget(closeButton, 0, Qt::AlignRight);  // 将关闭按钮放置在右侧
 
     QVBoxLayout *mainlayout = new QVBoxLayout(this);
     QLabel *tittle = new QLabel(tr("请选择调试类型"),this);
@@ -41,6 +62,7 @@ DebugModeSelector::DebugModeSelector(QWidget *parent) : CloseOnlyWindow(parent)
         background-color: transparent;
     )");
 
+    mainlayout->addLayout(headerLayout);
     mainlayout->addStretch();
     mainlayout->addWidget(tittle);
     QHBoxLayout *tittlelayout = new QHBoxLayout();
@@ -50,49 +72,35 @@ DebugModeSelector::DebugModeSelector(QWidget *parent) : CloseOnlyWindow(parent)
     udpBtn->setMinimumSize(100*scaleX, 100*scaleY);
 
     serialBtn->setStyleSheet(R"(
-        QPushButton {
-            background-color: qlineargradient(
-                stop: 0 rgba(110, 220, 145, 180),
-                stop: 1 rgba(58, 170, 94, 180)
-            );
-            border: 1px solid rgba(168, 234, 195, 0.6);
-            border-radius: 6px;
-            color: white;
-            font-weight: bold;
-            font-size: 18px;
-            padding: 10px 20px;
-        }
-
-        QPushButton:pressed {
-            background-color: qlineargradient(
-                stop: 0 rgba(44, 128, 73, 200),
-                stop: 1 rgba(29, 102, 53, 200)
-            );
-            padding-left: 2px;
-            padding-top: 2px;
-        }
-    )");
+                   QPushButton {
+                       background-color: #2196F3; /* 蓝色按钮 */
+                       border: none;
+                       border-radius: 6px;
+                       color: white;
+                       font-weight: bold;
+                       font-size: 14px;
+                       padding: 8px 20px;
+                   }
+                   QPushButton:pressed {
+                       background-color: #1976D2; /* 按下时更深的蓝色 */
+                       padding-left: 2px;
+                       padding-top: 2px;
+                   }
+               )");
 
 
     udpBtn->setStyleSheet(R"(
         QPushButton {
-            background-color: qlineargradient(
-                stop: 0 rgba(135, 165, 250, 180),
-                stop: 1 rgba(100, 120, 220, 180)
-            );
-            border: 1px solid rgba(190, 200, 250, 0.5);
+            background-color: #2196F3; /* 蓝色按钮 */
+            border: none;
             border-radius: 6px;
             color: white;
             font-weight: bold;
-            font-size: 18px;
-            padding: 10px 20px;
+            font-size: 14px;
+            padding: 8px 20px;
         }
-
         QPushButton:pressed {
-            background-color: qlineargradient(
-                stop: 0 rgba(70, 90, 180, 200),
-                stop: 1 rgba(50, 70, 160, 200)
-            );
+            background-color: #1976D2; /* 按下时更深的蓝色 */
             padding-left: 2px;
             padding-top: 2px;
         }
@@ -115,5 +123,8 @@ DebugModeSelector::DebugModeSelector(QWidget *parent) : CloseOnlyWindow(parent)
        emit modeSelected("udp");
         this->accept();
     });
+
+    // 连接关闭按钮的信号
+    connect(closeButton, &QPushButton::clicked, this, &DebugModeSelector::close);
 
 }

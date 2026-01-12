@@ -6,14 +6,14 @@
 #include <QByteArray>
 #include <QDebug>
 #include <QElapsedTimer>
-#include "MeasurementData.h"
-#include "DeviceAcquisitionWorker.h"
+#include <QQueue>
+#include "measurementdata.h"
 #include <QRandomGenerator>
 #include <QElapsedTimer>
 #include <QMutex>
 #include <QMutexLocker>
-#include "MeasurementData.h"
-#include "MeasurementConfig.h"
+#include "measurementdata.h"
+#include "measurementconfig.h"
 
 /**
  * @struct WaveParams
@@ -27,13 +27,40 @@
  *
  * 这些参数通常在测量结束后，通过对完整波形进行计算得出。
  */
-struct WaveParams {
-    float maxSPAP = 0.0f;   // 收缩压最大值
-    float minDPAP = 0.0f;   // 舒张压最小值
-    float avgMPAP = 0.0f;   // 平均压
-    float heartRate = 0.0f; // 心率
+enum class ThreadWorkState
+{
+    Idle,
+    Starting,
+    Working,
+    Stopping,
+    Error
 };
 
+inline bool ThreadWorkStateIsBusy(ThreadWorkState s)
+{
+    return (s == ThreadWorkState::Starting ||
+            s == ThreadWorkState::Working  ||
+            s == ThreadWorkState::Stopping);
+}
+
+class AtomicState
+{
+public:
+    ThreadWorkState get() const { return m_state; }
+    void set(ThreadWorkState s) { m_state = s; }
+    bool is(ThreadWorkState s) const { return m_state == s; }
+private:
+    ThreadWorkState m_state { ThreadWorkState::Idle };
+};
+
+// ===================== 数据结构 =====================
+struct WaveParams
+{
+    float maxSPAP   = 0.f;
+    float minDPAP   = 0.f;
+    float avgMPAP   = 0.f;
+    float heartRate = 0.f;
+};
 /**
  * @class MeasurementDataProcessor
  * @brief 测量数据处理器
@@ -62,53 +89,66 @@ struct WaveParams {
 class MeasurementDataProcessor : public QObject
 {
     Q_OBJECT
-
 public:
-
     explicit MeasurementDataProcessor(QObject* parent = nullptr);
     ~MeasurementDataProcessor();
 
 public slots:
+    // 由 UI / Controller 调用
+    void requestStart();
+    void requestStop();
 
-    void setMeasuring(bool status);
-    void parseData(quint32 currentValue);    // 接收发送线程传来的单个浮点数（核心槽函数）
+    // 由接收线程调用（QueuedConnection）
+    void onRawPacketArrived(const QByteArray& data);
+    void onFftPacketArrived(const QByteArray& data);
 
+public:
+    // 导出时用：一次性“取走”所有包（swap，不复制，不影响实时）
+    void takeAllQueues(QQueue<QByteArray>& outRaw, QQueue<QByteArray>& outFft);
 
 signals:
-    void dataParsed(const MeasurementData& result);
+    // 注意：这里不再发“全量波形”，而是发“一个UI帧”（节流后的批量点）
+    void waveformUpdated(const QVector<QPointF>& frame);
+
+    // 测量结束（你原来的）
     void measureFinished(const MeasurementData& result);
-    void processingStarted();   // 新增：线程开始时发射
-//    void processingFinished();  // 新增：线程结束时发射
+
+    void processingError(const QString& msg);
 
 private:
-    QMutex m_mutex; // 保护共享数据的线程安全锁
-    qint64 m_measureStartMs = 0; // 仅保留一个时间变量，由外部传入
-    QVector<QPointF> m_waveformData;  // 完整波形数据（时间x, 压力y）
-    bool m_isMeasuring = false;       // 测量状态标记
+    void resetSession();
 
-    // 实时临时变量（轻量更新）
-    quint32 m_tempMaxSPAP = 0;        // 实时临时收缩压
-    quint32 m_tempMinDPAP = 0;        // 实时临时舒张压
-    double m_tempHeartRate = 0.0;     // 实时临时心率
-    qint64 m_lastPeakTime = 0;        // 上次峰值时间（毫秒）
-    quint32 m_peakThreshold = 50;     // 峰值检测阈值（初始值50，可动态调整）
-    const int MIN_DATA_FOR_HR = 10;   // 计算心率最小数据量（避免初始噪声）
+    // ===== 存储（全量） =====
+    void storeRawPacket(const QByteArray& data);
+    void storeFftPacket(const QByteArray& data);
 
-    // 后台复杂计算（测量结束后调用）
-    WaveParams calculateFinalParams(); // 基于完整波形计算准确参数
-    QList<int> detectPeaks(const QVector<QPointF>& waveform); // 准确峰值检测
-    void resetMeasurementState();      // 重置测量状态
-    bool allowFirstPacket_{false};
+    // ===== UI波形（抽样 + 节流） =====
+    QVector<QPointF> sampleFftForUi(const QByteArray& fftPkt) const;  // FFT抽样策略
+    void appendUiPointsAndMaybeFlush(const QVector<QPointF>& pts);
+    void tryFlushUiFrame(); // 条件触发：20ms 或 200点
 
-    QElapsedTimer m_elapsed;   // 单调时钟
-    qint64 m_t0_ns = 0;        // 首包时间基准
-    qint64 m_lastPkt_ns       = 0;  // 最近一包（纳秒）
+    // ===== 最终参数计算（可沿用你现有的算法） =====
+    WaveParams calculateFinalParams();
+    QList<int> detectPeaks(const QVector<QPointF>& waveform);
 
-    //以下为测试使用
-    QVector<QPointF> m_batch;
-    QElapsedTimer    m_batchClock;
-    static constexpr int BATCH_MS = 20;    // 每 20ms 发 UI 一次
-    static constexpr int BATCH_N  = 200;   // 或者每 200 点发一次
+private:
+    AtomicState m_state;
+    QMutex m_mutex;
+
+    // 全量缓存（导出用）
+    QQueue<QByteArray> m_rawQueue;
+    QQueue<QByteArray> m_fftQueue;
+
+    // 如果你最终参数要用波形，可保留完整波形（注意：如果只抽样用于显示，参数可能不准）
+    QVector<QPointF> m_waveformForParams;
+
+    // UI节流缓冲（只用于显示）
+    QVector<QPointF> m_uiBuffer;
+    QElapsedTimer m_sessionClock; // 测量起点
+    QElapsedTimer m_uiClock;      // 节流计时
+
+    static constexpr int UI_PUSH_MS = 80;   // 20ms推一次
+    static constexpr int UI_PUSH_N  = 120;  // 或累计200点推一次
 };
 
 #endif // MEASUREMENTDataProcessor_H

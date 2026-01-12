@@ -6,11 +6,11 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QPointer>
-#include "Customkeyboard.h"
-#include "FramelessWindow.h"
-#include "MeasurementDialog.h"
-#include "CircularProgressbar.h"
-#include "SettingsWidget.h"
+#include "customkeyboard.h"
+#include "framelesswindow.h"
+#include "measurementdialog.h"
+#include "circularprogressbar.h"
+#include "settingswidget.h"
 
 /**
  * @class PatientSignalStrengthWidget

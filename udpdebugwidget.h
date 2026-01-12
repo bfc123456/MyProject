@@ -7,7 +7,7 @@
 #include <QLineEdit>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include "ModernWaveplot.h"
+#include "modernwaveplot.h"
 #include <qwt_plot_curve.h>
 #include <qwt_series_data.h>
 #include <QUdpSocket>
@@ -15,8 +15,8 @@
 #include <QFile>
 #include <QTextStream>
 #include <QElapsedTimer>
-#include "FramelessWindow.h"
-#include "Customkeyboard.h"
+#include "framelesswindow.h"
+#include "customkeyboard.h"
 
 /**
  * @class udpDebugWidget

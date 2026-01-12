@@ -1,4 +1,4 @@
-#include "PatientSignalStrengthWidget.h"
+#include "patientsignalstrengthwidget.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
@@ -6,7 +6,7 @@
 #include <QDialog>
 #include <QAbstractItemView>
 #include <QMovie>
-#include "Global.h"
+#include "global.h"
 #include "SerialStore.h"
 #include <QGuiApplication>
 #include <QScreen>

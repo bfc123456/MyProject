@@ -2,7 +2,7 @@
 #define DEBUGMODESELECTOR_H
 
 #include<QDialog>
-#include "CloseOnlyWindow.h"
+#include "closeonlywindow.h"
 
 /**
  * @class DebugModeSelector

@@ -1,110 +1,214 @@
-#include "CustomMessageBox.h"
+
+/********************************************************************************/
+/* 文件名    : closeonlywindow.cpp                                                */
+/* 功能      : 消息对话框自定义界面（去除最小化与最大化，仅保留关闭按钮）               */
+/* 版本      : 1.0.0                                                              */
+/* 作者      :                                                         */
+/* 日期      : 2025-12-26                                                       */
+/* 说明      : 该文件实现了消息对话框界面并提供界面关闭功能   */
+/********************************************************************************/
+
+//1) Project Headers
+#include "custommessagebox.h"
+
+//2) Qt Headers
 #include <QGuiApplication>
 #include <QScreen>
+#include <QFrame>
+#include <QGraphicsDropShadowEffect>
 
-CustomMessageBox::CustomMessageBox(QWidget *parent, const QString &title, const QString &message,
-                                   const QVector<QString> &buttons, int width)
-    : CloseOnlyWindow(parent), userResponse("No")  // 默认用户选择“No”
+//构造函数
+CustomMessageBox::CustomMessageBox(QWidget *pParent, const QString &strTitle, const QString &strMessage,
+                                   const QVector<QString> &vecStrButtons, int iWidth)
+    : CloseOnlyWindow(pParent),
+      strUserResponse("No")
 {
-    setWindowTitle(title);
-    this->setObjectName("Custommessagebox");
-    this->setStyleSheet(R"(
-        QWidget#Custommessagebox {
-        background-color: qlineargradient(
-            x1: 0, y1: 0, x2: 0, y2: 1,
-            stop: 0 rgba(15, 34, 67, 200),     /* 深蓝：顶部 */
-            stop: 1 rgba(10, 25, 50, 180)      /* 更深蓝：底部 */
-        );
-        border-radius: 12px;
+    setWindowTitle(strTitle);
+    // ========= 屏幕缩放 =========
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect screenGeometry = screen->geometry();
+    int screenWidth  = screenGeometry.width();
+    int screenHeight = screenGeometry.height();
+
+    m_fScaleX = (float)screenWidth  / 1024;
+    m_fScaleY = (float)screenHeight / 600;
+
+    // ========= 无边框 + 透明背景（让外面看起来是浮在主界面上的卡片） =========
+    setWindowFlags(Qt::Dialog |
+                   Qt::FramelessWindowHint |
+                   Qt::CustomizeWindowHint);
+    setAttribute(Qt::WA_TranslucentBackground);
+
+    // 外层不要设置背景色，让它保持透明
+    // setStyleSheet(...) 改成只给内部 card 用
+
+    // ========= 中间卡片容器 =========
+    QFrame *cardFrame = new QFrame(this);
+    cardFrame->setObjectName("msgCard");
+    cardFrame->setFixedWidth(iWidth);                 // 传进来的宽度给卡片用
+    cardFrame->setStyleSheet(R"(
+        #msgCard {
+            background-color: #262A33;          /* 雅雅黑深灰 */
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,90);  /* 细浅白边 */
+        }
+        #msgCard QLabel {
+            color: white;
+            font-size: 14px;
         }
     )");
 
-    // 获取屏幕分辨率
-    QScreen *screen = QGuiApplication::primaryScreen();
-    QRect screenGeometry = screen->geometry();
-    int screenWidth = screenGeometry.width();
-    int screenHeight = screenGeometry.height();
+    // 阴影效果（让卡片“浮起来”）
+    auto *shadow = new QGraphicsDropShadowEffect(this);
+    shadow->setBlurRadius(28);
+    shadow->setOffset(0, 10);
+    shadow->setColor(QColor(0, 0, 0, 180));
+    cardFrame->setGraphicsEffect(shadow);
 
-    // 计算缩放比例
-    scaleX = (float)screenWidth / 1024;
-    scaleY = (float)screenHeight / 600;
-
-
-    // 设置固定宽度，自动计算高度
-    setFixedWidth(width);
-
-    // 创建自定义图标标签
-    iconLabel = new QLabel(this);
-    iconLabel->setStyleSheet("font-weight: bold; font-"
-                              "size: 16px; background-color: transparent; color: white;");
-    QPixmap iconPixmap(":image/exclamation_mark.png");  // 使用固定的默认图标路径
-    iconLabel->setPixmap(iconPixmap.scaled(40*scaleX, 40*scaleY, Qt::KeepAspectRatio));  // 设置图标大小
-    iconLabel->setAlignment(Qt::AlignCenter);  // 将图标居中
-
-    // 创建自定义消息标签
-    messageLabel = new QLabel(message, this);
-    messageLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-    messageLabel->setAlignment(Qt::AlignCenter);
-    messageLabel->setWordWrap(true);
-    messageLabel->setStyleSheet("font-weight: bold; font-" "size: 16px; background-color: transparent; color: white;");  // 确保字体变白
-
-    //限制最大宽度，避免超出窗口
-    messageLabel->setMaximumWidth(width - 8*scaleX);
-    messageLabel->setMinimumWidth(width - 6*scaleX);
-
-    // 创建按钮，并连接它们的信号
-    buttonLayout = new QHBoxLayout();
-    for (const QString &buttonText : buttons) {
-        QPushButton *button = new QPushButton(buttonText, this);
-
-        button->setFixedSize(120*scaleX, 40*scaleY);
-        // 设置按钮样式（默认蓝色按钮 + 白色文字）
-        button->setStyleSheet(R"(
+    // ========= 标题栏：右上角关闭按钮 =========
+    QPushButton *pCloseButton = new QPushButton(cardFrame);
+    pCloseButton->setIcon(QIcon(":/image/icons-close.png"));
+    pCloseButton->setIconSize(QSize(20 * m_fScaleX, 20 * m_fScaleX));
+    pCloseButton->setFixedSize(28* m_fScaleX, 28* m_fScaleX);
+    pCloseButton->setCursor(Qt::PointingHandCursor);
+    pCloseButton->setStyleSheet(R"(
         QPushButton {
-            background-color: qlineargradient(
-                x1:0, y1:0, x2:0, y2:1,
-                stop:0 rgba(95, 169, 246, 180),
-                stop:1 rgba(49, 122, 198, 180)
-            );
-            border: 1px solid rgba(163, 211, 255, 0.6); /* 半透明高光边框 */
-            border-radius: 6px;
-            color: white;
-            font-weight: bold;
-            font-size: 14px;
-            padding: 8px 20px;
+            background-color: transparent;
+            border: none;
         }
+        QPushButton:hover {
+            background-color: #3A3F4A;
+            border-radius: 15px;
+        }
+    )");
 
-        QPushButton:pressed {
-            background-color: qlineargradient(
-                stop: 0 rgba(47, 106, 158, 200),
-                stop: 1 rgba(31, 78, 121, 200)
-            );
-            padding-left: 2px;
-            padding-top: 2px;
+    QHBoxLayout *headerLayout = new QHBoxLayout();
+    headerLayout->setContentsMargins(0, 0, 0, 0);
+    headerLayout->addStretch();
+    headerLayout->addWidget(pCloseButton, 0, Qt::AlignRight);
+
+    // ========= 中间图标 =========
+    m_pIconLabel = new QLabel(cardFrame);
+    m_pIconLabel->setAlignment(Qt::AlignCenter);
+    m_pIconLabel->setStyleSheet("background-color: transparent;");
+    QPixmap iconPixmap(":/image/exclamation_mark1.png");   // 确认这里路径是 :/image/...
+    m_pIconLabel->setPixmap(iconPixmap.scaled(52 * m_fScaleX, 52 * m_fScaleY,
+                                           Qt::KeepAspectRatio,
+                                           Qt::SmoothTransformation));
+
+    // ========= 消息文本 =========
+    m_pMessageLabel = new QLabel(strMessage, cardFrame);
+    m_pMessageLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    m_pMessageLabel->setAlignment(Qt::AlignCenter);
+    m_pMessageLabel->setWordWrap(true);
+    m_pMessageLabel->setStyleSheet(R"(
+        QLabel {
+            background-color: transparent;
+            color: rgba(255,255,255,220);
+            font-size: 15px;
         }
+    )");
+
+    // ========= 底部按钮组 =========
+    QHBoxLayout* pBtnLayout = new QHBoxLayout();
+    pBtnLayout->setSpacing(36 * m_fScaleX);
+
+    for (const QString &buttonText : vecStrButtons) {
+        QPushButton *pBtn = new QPushButton(buttonText, cardFrame);
+        pBtn->setFixedSize(120 * m_fScaleX, 40 * m_fScaleY);
+        pBtn->setCursor(Qt::PointingHandCursor);
+
+        pBtn->setStyleSheet(R"(
+            QPushButton {
+                background-color: #1E8CFF;      /* 主色蓝 */
+                border: none;
+                border-radius: 6px;
+                color: white;
+                font-weight: bold;
+                font-size: 14px;
+                padding: 6px 20px;
+            }
+            QPushButton:hover {
+                background-color: #3C9DFF;
+            }
+            QPushButton:pressed {
+                background-color: #1673D2;
+            }
         )");
 
-        connect(button, &QPushButton::clicked, this, [this, buttonText](){
-            userResponse = buttonText;  // 获取按钮文本作为响应
-            accept();  // 关闭窗口
+        connect(pBtn, &QPushButton::clicked, this, [this, buttonText]() {
+            strUserResponse = buttonText;
+            accept();
         });
-        buttonList.append(button);
-        buttonLayout->addWidget(button);
+
+        vecBtnList.append(pBtn);
+        pBtnLayout->addWidget(pBtn, 0, Qt::AlignCenter);
     }
 
-    // 创建垂直布局
-    mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(20 * scaleX, 15 * scaleY, 20 * scaleX, 15 * scaleY);
-    mainLayout->setSpacing(20 * scaleY);
-    mainLayout->addWidget(iconLabel);  // 添加图标
-    mainLayout->addWidget(messageLabel);  // 添加消息
-    mainLayout->addSpacing(20*scaleY);  // 设置间距
-    mainLayout->addLayout(buttonLayout);  // 添加按钮
-    mainLayout->setSizeConstraint(QLayout::SetMinAndMaxSize);
-    mainLayout->setSizeConstraint(QLayout::SetDefaultConstraint);
+    // ========= 卡片内部布局 =========
+    QVBoxLayout *pCardLayout = new QVBoxLayout(cardFrame);
+    pCardLayout->setContentsMargins(26 * m_fScaleX, 18 * m_fScaleY,
+                                   26 * m_fScaleX, 24 * m_fScaleY);
+    pCardLayout->setSpacing(18 * m_fScaleY);
+
+    pCardLayout->addLayout(headerLayout);
+    pCardLayout->addSpacing(10 * m_fScaleY);
+    pCardLayout->addWidget(m_pIconLabel, 0, Qt::AlignCenter);
+    pCardLayout->addSpacing(8 * m_fScaleY);
+    pCardLayout->addWidget(m_pMessageLabel);
+    pCardLayout->addSpacing(18 * m_fScaleY);
+    pCardLayout->addLayout(pBtnLayout);
+
+    // ========= 外层布局：让卡片在整个对话框中居中 =========
+    QVBoxLayout* pMainLayout = new QVBoxLayout(this);
+    pMainLayout->setContentsMargins(0, 0, 0, 0);
+    pMainLayout->addStretch();
+    pMainLayout->addWidget(cardFrame, 0, Qt::AlignCenter);
+    pMainLayout->addStretch();
+
+    // 让窗口整体大小比卡片稍大一点（透明区域）
+    int dialogW = iWidth + 80 * m_fScaleX;
+    int dialogH = cardFrame->sizeHint().height() + 80 * m_fScaleY;
+    resize(dialogW, dialogH);
+
+    // 关闭按钮信号
+    connect(pCloseButton, &QPushButton::clicked, this, &CustomMessageBox::close);
 }
 
-QString CustomMessageBox::getUserResponse()
+/********************************************************************************/
+/* FUNC    : ~CustomMessageBox                                                   */
+/* IN      : None                                                                */
+/* OUT     : None                                                                */
+/* RETURN  : void                                                                */
+/* AUTHOR  : 2025-12-26 Create by lxh for CustomMessageBox class                 */
+/* NOTE    : 析构函数，负责清理 CustomMessageBox 对象的动态分配资源           */
+/*          - 删除按钮列表中的每个按钮对象                                     */
+/*          - 释放布局和其他控件                                                 */
+/********************************************************************************/
+
+CustomMessageBox::~CustomMessageBox()
 {
-    return userResponse;
+    // 清理按钮列表中的每个按钮对象
+    for (QPushButton *button : vecBtnList) {
+        delete button;  // 删除动态分配的按钮
+    }
+
+    // 释放布局和其他控件（如果有需要）
+    delete m_pIconLabel;
+    delete m_pMessageLabel;
+    delete m_pButtonLayout;
+}
+
+/********************************************************************************/
+/* FUNC    : GetUserResponse                                                    */
+/* IN      : None                                                                */
+/* OUT     : None                                                                */
+/* RETURN  : QString                                                             */
+/* AUTHOR  : 2025-12-26 Create by lxh for CustomMessageBox class                 */
+/* NOTE    : 获取用户操作的响应（如“是”或“否”）                                 */
+/********************************************************************************/
+
+QString CustomMessageBox::GetUserResponse()
+{
+    return strUserResponse;
 }

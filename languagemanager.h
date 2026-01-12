@@ -38,6 +38,7 @@ class LanguageManager : public QObject
     Q_OBJECT
 
 public:
+    //单例接口
     static LanguageManager& instance();
 
     // 切换语言
@@ -46,12 +47,19 @@ public:
     // 获取当前语言代码
     QString currentLanguage() const;
 
+    ~ LanguageManager();
+
 signals:
     void languageChanged(const QString& languageCode);  // 广播语言切换信号
 
 private:
+    //私有构造函数
     explicit LanguageManager(QObject *parent = nullptr);
-    QTranslator translator;
+    // 禁止拷贝
+    LanguageManager(const LanguageManager&) = delete;
+
+private:
+    QTranslator *translator;
     QString currentLangCode;
 };
 

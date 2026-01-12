@@ -1,4 +1,4 @@
-#include "ImplantRegistrationWidget.h"
+#include "implantregistrationwidget.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
@@ -6,14 +6,15 @@
 #include <QGraphicsBlurEffect>
 #include <QEvent>
 #include <QMessageBox>
-#include "CustomMessagebox.h"
+#include "custommessagebox.h"
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
-#include "CloseOnlyWindow.h"
+#include "closeonlywindow.h"
 #include <QGuiApplication>
 #include <QScreen>
-#include "MedicalLogger.h"
+#include "medicallogger.h"
+
 
 ImplantRegistrationWidget::ImplantRegistrationWidget(QWidget *parent)
     : FramelessWindow(parent)
@@ -109,37 +110,43 @@ ImplantRegistrationWidget::ImplantRegistrationWidget(QWidget *parent)
     checksumInput->setFixedSize(400*scaleX, 50*scaleY);
     checksumInput->setPlaceholderText(tr("请输入校准码"));
 
-    implantDoctorLabel = new QLabel(tr("植入医生"));
+    implantDoctorLabel = new QLabel(tr("植入医生(选填)"));
     implantDoctorLabel->setFixedSize(180*scaleX,40*scaleY);
     implantDoctorLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
     implantDoctorInput = new QLineEdit();
     implantDoctorInput->setFixedSize(400*scaleX, 50*scaleY);
-    implantDoctorInput->setPlaceholderText(tr("请输入植入医生姓名"));
+    implantDoctorInput->setPlaceholderText(tr("请输入植入医生姓名(选填)"));
 
-    treatDoctorLabel = new QLabel(tr("治疗医生"));
+    treatDoctorLabel = new QLabel(tr("治疗医生(选填)"));
     treatDoctorLabel->setFixedSize(180*scaleX, 40*scaleY);
     treatDoctorLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
+
     treatDoctorInput = new QLineEdit();
     treatDoctorInput->setFixedSize(400*scaleX, 50*scaleY);
-    treatDoctorInput->setPlaceholderText(tr("请输入治疗医生姓名"));
+    treatDoctorInput->setPlaceholderText(tr("请输入治疗医生姓名(选填)"));
 
     dateLabel = new QLabel(tr("植入日期"));
     dateLabel->setFixedSize(180*scaleX, 40*scaleY);
     dateLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
-    implantDateInput = new QDateEdit(this);
-    implantDateInput->setCalendarPopup(true);
-    implantDateInput->setDate(QDate(2025, 1, 1));    // 设置默认日期为2025年1月1日
 
+    implantDateInput = new TouchDateEdit();
+    implantDateInput->setDate(QDate(2025, 1, 1));
     implantDateInput->setFixedSize(400*scaleX, 50*scaleY);
-    implantDateInput->setCalendarPopup(true);
 
-    currentKeyboard = CustomKeyboard::instance(this);
+    // 应用触控样式
+    implantDateInput->applyTouchStyle(scaleX, scaleY,
+                                      380,
+                                      300,
+                                      15,
+                                      14 );
 
-    // 给每个 QLineEdit 注册一次偏移
-    currentKeyboard->registerEdit(serialInput);
-    currentKeyboard->registerEdit(checksumInput);
-    currentKeyboard->registerEdit(implantDoctorInput);
-    currentKeyboard->registerEdit(treatDoctorInput);
+//    currentKeyboard = CustomKeyboard::instance(this);
+
+//    // 给每个 QLineEdit 注册一次偏移
+//    currentKeyboard->registerEdit(serialInput);
+//    currentKeyboard->registerEdit(checksumInput);
+//    currentKeyboard->registerEdit(implantDoctorInput);
+//    currentKeyboard->registerEdit(treatDoctorInput);
 
     QGridLayout *formLayout = new QGridLayout();
     formLayout->addWidget(serialLabel, 0, 0);
@@ -386,7 +393,8 @@ void ImplantRegistrationWidget::showImplantationSiteWidget(const QString &serial
     );
 
     // 5. 阻塞显示
-    int result = dlg.exec();
+    dlg.exec();
+    QString clickedBtn = dlg.getUserResponse();
 
     // 6. 清除遮罩和模糊
     this->setGraphicsEffect(nullptr);
@@ -394,7 +402,7 @@ void ImplantRegistrationWidget::showImplantationSiteWidget(const QString &serial
     overlay->deleteLater();
 
     // 7. 如果点击下一步，跳转到植入窗口
-    if (result == QDialog::Accepted) {
+    if (clickedBtn == tr("下一步")) {
         ImplantationSite* implantationSite = new ImplantationSite(this,serial);
 //        qDebug() << "ImplantationSite constructed.";
         implantationSite->setWindowFlags(Qt::Window);
@@ -407,34 +415,33 @@ void ImplantRegistrationWidget::showImplantationSiteWidget(const QString &serial
                 MedicalLogger::LOG_INFO,
                 "Returning to ImplantRegistrationWidget interface",
                 " ",   // 目前没有登录时用占位符
-                "UI"                 // 这里是 UI 相关操作
-            );
+                        "UI"                 // 这里是 UI 相关操作
+                        );
             implantationSite->deleteLater();
-//            qDebug() << "ImplantationSite deleteLater triggered.";
+            //            qDebug() << "ImplantationSite deleteLater triggered.";
         });
         implantationSite->show();
         MedicalLogger::instance()->writeLog(
-            "implantationSite",
-            MedicalLogger::LOG_AUDIT,
-            "ImplantationSite window opened (user accepted)",
-            "UnknownOperator",
-            "UI"
-        );
+                    "implantationSite",
+                    MedicalLogger::LOG_AUDIT,
+                    "ImplantationSite window opened (user accepted)",
+                    "UnknownOperator",
+                    "UI"
+                    );
         QTimer::singleShot(200, this, [this]() {
             this->hide();            // 隐藏当前窗口
         });
-    }else {
-            // 用户取消/返回
-//            qDebug() << "User canceled implantation step.";
+    }else if (clickedBtn == tr("返 回")){
+        emit implantReturnLogin();
 
-            // 日志：用户取消植入操作
-            MedicalLogger::instance()->writeLog(
-                "implantationSite",
-                MedicalLogger::LOG_AUDIT,
-                "ImplantationSite canceled by user",
-                " ",
-                "UI"
-            );
+        // 日志：用户取消植入操作
+        MedicalLogger::instance()->writeLog(
+                    "implantationSite",
+                    MedicalLogger::LOG_AUDIT,
+                    "ImplantationSite canceled by user",
+                    " ",
+                    "UI"
+                    );
     }
 }
 
@@ -522,13 +529,19 @@ bool ImplantRegistrationWidget::insertNewSensor()
             :loc
         )
     )");
+
+    // 读取选填并决定是否写 NULL
+    const QString pdoc = implantDoctorInput->text().trimmed();
+    const QString tdoc = treatDoctorInput->text().trimmed();
+    const QString date = implantDateInput->text().trimmed();
+
     insertQ.bindValue(":id",    m_serial);
     insertQ.bindValue(":code",  calib);
-    insertQ.bindValue(":pdoc",  implantDoctorInput->text().trimmed());
-    insertQ.bindValue(":tdoc",  treatDoctorInput->text().trimmed());
+    insertQ.bindValue(":pdoc",  pdoc.isEmpty()?QVariant():QVariant(pdoc));
+    insertQ.bindValue(":tdoc",  tdoc.isEmpty()?QVariant():QVariant(tdoc));
     // SQLite 中可以用 ISO 格式字符串存日期
-    insertQ.bindValue(":date",  implantDateInput->text().trimmed());
-    insertQ.bindValue(":loc",  QStringLiteral(""));
+    insertQ.bindValue(":date",  date);
+    insertQ.bindValue(":loc",  QVariant());
 
     if (!insertQ.exec()) {
         QString errMsg = insertQ.lastError().text();
@@ -571,4 +584,3 @@ void ImplantRegistrationWidget::changeEvent(QEvent *event)
         continueButton->setText(tr("继续"));
     }
 }
-

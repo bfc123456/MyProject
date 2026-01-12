@@ -9,13 +9,13 @@
 #include <qwt_scale_draw.h>
 #include <QVector>
 #include <QDateTime>
-#include "MeasurementData.h"
+#include "measurementdata.h"
 #include <QLabel>
 #include <QPushButton>
-#include "SettingsWidget.h"
-#include "FramelessWindow.h"
+#include "settingswidget.h"
+#include "framelesswindow.h"
 #include <qwt_legend.h>
-#include "Global.h"
+#include "global.h"
 
 /**
  * @class TimeScaleDraw
