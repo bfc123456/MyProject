@@ -63,10 +63,13 @@ signals:
 private:
     QByteArray buildStartFrame() const;
     QByteArray buildStopFrame() const;
+    int extractCountFromPacket(const QByteArray& packet);
 
 private:
     AtomicState m_state;
     UdpManager* udpManager = nullptr;
+    int lastReceived = -1;   // 保存上一个接收到的计数
+    int expectedCount = 0;    // 预期接收到的包的计数值
 };
 
 

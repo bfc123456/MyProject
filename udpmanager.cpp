@@ -1,5 +1,8 @@
 #include "udpmanager.h"
 #include <QHostAddress>
+#include <QThread>
+#include <QNetworkDatagram>
+#include <QElapsedTimer>
 
 UdpManager::UdpManager(QObject *parent)
     : QObject(parent), udpSocket(new QUdpSocket(this)){
@@ -130,52 +133,110 @@ void UdpManager::stopListening(bool hard)
  */
 void UdpManager::onReadyRead()
 {
-    if (!udpSocket) return;
+    // 统计：限频打印用
+    static quint64 rxTotal = 0;
+    static quint64 rxPassed = 0;
+    static quint64 rxDroppedInactive = 0;
+    static quint64 rxDroppedWhitelist = 0;
+    static quint64 rxDroppedSize = 0;
 
-    while (udpSocket->hasPendingDatagrams()) {
-        QByteArray datagram;
-        datagram.resize(int(udpSocket->pendingDatagramSize()));
-        QHostAddress src; quint16 sport = 0;
+    // 每次 readyRead 最多处理的包数，防止某些极端情况下饿死事件循环
+    const int kMaxPerSignal = 512;
 
-        udpSocket->readDatagram(datagram.data(), datagram.size(), &src, &sport);
+    int processed = 0;
+    while (udpSocket->hasPendingDatagrams() && processed < kMaxPerSignal) {
+        ++processed;
 
-        // 1. 白名单检查
-        if (!whitelist_.isEmpty() && !whitelist_.contains(src)) {
-            qWarning() << "[UdpManager] 收到非白名单 IP:" << src.toString()
-                       << " 数据已丢弃";
-            continue;
-        }
+        QNetworkDatagram dg = udpSocket->receiveDatagram();
+        const QByteArray data = dg.data();
+        const QHostAddress srcIp = dg.senderAddress();
+        const quint16 srcPort = dg.senderPort();
 
-        // 2. 会话检查
+        ++rxTotal;
+
+        // 1) 会话未开启：也要“读出来”，但不往上抛
         if (!sessionActive_) {
-            ++idleDropCount_; // 计数，用于审计
-            if (allowFirstPacket_) {
-                allowFirstPacket_ = false;    // 只放行一次
-                qInfo() << "[UdpManager] 首包穿透 bytes=" << datagram.size()
-                        << " from " << src.toString() << ":" << sport;
-                emit dataReceived(datagram);
-            }
+            ++rxDroppedInactive;
             continue;
         }
 
-        // 3. 会话中 → 上抛
-        emit dataReceived(datagram);
+        // 2) 白名单过滤（仅当 whitelist 非空时生效）
+        if (!whitelist_.isEmpty() && !whitelist_.contains(srcIp)) {
+            ++rxDroppedWhitelist;
+            continue;
+        }
+
+        // 3) 包长过滤（可选：按你的协议）
+        // 你之前用 1472 / 492，这里建议放在 UdpManager 只做基本保护
+        if (data.isEmpty()) {
+            ++rxDroppedSize;
+            continue;
+        }
+
+        ++rxPassed;
+
+        // ⚠️ 不在这里做解析/FFT/数据库等重活，只转发
+        emit dataReceived(data);
     }
+
+    // 4) 限频日志：每秒打印一次即可
+    static QElapsedTimer t;
+    if (!t.isValid()) t.start();
+    if (t.elapsed() >= 1000) {
+        qInfo() << "[UdpManager] RX stats"
+                << "total=" << rxTotal
+                << "passed=" << rxPassed
+                << "drop(inactive)=" << rxDroppedInactive
+                << "drop(whitelist)=" << rxDroppedWhitelist
+                << "drop(size)=" << rxDroppedSize
+                << "thread=" << QThread::currentThreadId();
+        t.restart();
+    }
+
+    // 5) 如果单次 readyRead 有很多包，下次事件循环会再进来处理剩余的
+    // 不要在这里递归调用 onReadyRead()，让事件循环自然调度
 }
 
 /**
  * @brief 向下位机发送数据
  */
-bool UdpManager::sendData(const QByteArray &data) {
-    if (!udpSocket) return false;
+bool UdpManager::sendData(const QByteArray &data)
+{
+    if (!udpSocket) {
+        qCritical() << "[UdpManager] sendData: udpSocket is null";
+        return false;
+    }
+
+    // 关键：发之前把目标、长度、内容（前16字节）打印出来
+    qInfo() << "[UdpManager] TX thread=" << QThread::currentThreadId()
+            << "to=" << targetIp_.toString() << ":" << targetPort_
+            << "len=" << data.size()
+            << "hex(head16)=" << data.left(16).toHex(' ')
+            << "hex(all)=" << data.toHex(' ');
 
     qint64 n = udpSocket->writeDatagram(data, targetIp_, targetPort_);
+
+    // 关键：把 writeDatagram 的返回值和错误码一起打印
+    qInfo() << "[UdpManager] writeDatagram returned =" << n
+            << "socketErr=" << udpSocket->error()
+            << udpSocket->errorString();
+
     if (n < 0) {
         qWarning() << "[UdpManager] 发送失败:" << udpSocket->errorString();
         return false;
     }
+
+    // 关键：UDP 写成功也要确认写出的字节数是否等于 data.size()
+    if (n != data.size()) {
+        qWarning() << "[UdpManager] 发送字节数不完整, expected=" << data.size()
+                   << "actual=" << n;
+        // 这里你可以选择返回 false 或 true；我建议返回 false 更严格
+        return false;
+    }
+
     return true;
 }
+
 
 void UdpManager::armFirstPacket() {
     allowFirstPacket_ = true;

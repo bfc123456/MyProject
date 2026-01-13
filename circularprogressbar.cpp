@@ -1,61 +1,87 @@
-
 /********************************************************************************/
-/* 文件名    : CircularProgressBar.cpp                                            */
+/* 文件名    : CircularProgressBar.cpp                                          */
 /* 功能      : 圆形进度条控件（信号强度显示）                                   */
-/* 版本      : 1.0.0                                                            */
-/* 作者      :                                                        */
+/* 版本      : 1.0.1                                                            */
 /* 日期      : 2025-12-29                                                       */
-/* 说明      : 自定义圆形进度条类的实现，用于显示信号强度及阈值标记                     */
+/* 说明      : 自定义圆形进度条类实现：底环 + 渐变进度弧 + 阈值刻度 + 居中文字     */
 /********************************************************************************/
 
-//1) Project Headers
 #include "circularprogressbar.h"
-//2) Qt Headers
+
 #include <QPainter>
+#include <QFontMetrics>
 #include <QtMath>
+#include <algorithm>
 
-CircularProgressBar::CircularProgressBar(QWidget *parent)
-    : QWidget(parent), m_iProgress(0) // 初始化进度为 0
-{
-    setMinimumSize(100, 100); // 设置最小尺寸，避免过小导致绘制变形
-}
-
+// Qt drawArc 角度单位：1/16 度
 static inline int deg16(double deg) { return static_cast<int>(deg * 16.0); }
 
-/***********************************************************************************************
- * FUNC    : SetProgress
- * IN      : progress (int) - 当前进度/信号强度（期望范围：0~100）
- * OUT     : None
- * RETURN  : void
- * AUTHOR  : 2025-12-29 Create by lxh for CircularProgressBar class
- * NOTE    : 设置实时进度值（内部做 0~100 边界裁剪），并调用 update() 触发重绘
- ************************************************************************************************/
+/**
+ * @brief 根据目标矩形自动选择合适字号（像素字号更稳定，适配不同缩放/分辨率）
+ * @param sample    用来测量的样本文本（建议用最大宽高的字符串，如 "100%"）
+ * @param rect      允许绘制文字的区域
+ * @param family    字体
+ * @param bold      是否加粗
+ * @param margin    安全系数，0.9~0.98 之间越小越保守
+ */
+static QFont fitFontToRectPx(const QString& sample,
+                             const QRectF& rect,
+                             const QString& family = "Arial",
+                             bool bold = true,
+                             double margin = 0.95)
+{
+    QFont f(family);
+    f.setBold(bold);
+
+    int lo = 6;
+    int hi = 400;
+    int best = lo;
+
+    while (lo <= hi) {
+        const int mid = (lo + hi) / 2;
+        f.setPixelSize(mid);
+        const QFontMetrics fm(f);
+        const QRect br = fm.boundingRect(sample);
+
+        if (br.width() <= rect.width() * margin &&
+            br.height() <= rect.height() * margin) {
+            best = mid;
+            lo = mid + 1;
+        } else {
+            hi = mid - 1;
+        }
+    }
+
+    f.setPixelSize(best);
+    return f;
+}
+
+CircularProgressBar::CircularProgressBar(QWidget *parent)
+    : QWidget(parent)
+    , m_iProgress(0)
+    , m_iThreshold(50) // 给个默认阈值，避免未初始化
+{
+    setMinimumSize(100, 100);
+}
 
 void CircularProgressBar::setProgress(int progress)
 {
-    // 将 progress 限制在 0 ~ 100 之间
     m_iProgress = qBound(0, progress, 100);
-    update(); // 请求重新绘制（触发 paintEvent）
+    update();
 }
 
-/***********************************************************************************************
- * FUNC    : PaintEvent
- * IN      : (QPaintEvent*) - Qt 绘制事件参数（本实现未使用，故省略变量名）
- * OUT     : None
- * RETURN  : void
- * AUTHOR  : 2025-12-29 Create by lxh for CircularProgressBar class
- * NOTE    : 绘制圆形进度条：
- *           1) 绘制底环（track）
- *           2) 绘制渐变进度弧（progress arc）
- *           3) 绘制阈值标记（tick/短弧）
- *           4) 绘制中心文字（百分比）
- ************************************************************************************************/
+void CircularProgressBar::setThreshold(int t)
+{
+    m_iThreshold = qBound(0, t, 100);
+    update();
+}
 
 void CircularProgressBar::paintEvent(QPaintEvent *)
 {
-    const int side = qMin(width(), height());
-    const int thickness = qMax(6, static_cast<int>(side * 0.10)); // 圆环宽度≈10%
-    const int pad = thickness;
+    // ========== 0) 统一尺寸参数（只算一次） ==========
+    const int side      = qMin(width(), height());
+    const int thickness = qMax(6, static_cast<int>(side * 0.10)); // 环宽约 10%
+    const int pad       = thickness;
 
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing, true);
@@ -64,66 +90,67 @@ void CircularProgressBar::paintEvent(QPaintEvent *)
     const QRectF arcRect(-side/2.0 + pad, -side/2.0 + pad,
                          side - 2.0*pad,  side - 2.0*pad);
 
-    // 1) 底环
-    QPen pen(m_trackColor, thickness, Qt::SolidLine, Qt::FlatCap);
-    p.setPen(pen);
-    const int start = deg16(90);   // 以 12 点方向为起点
-    p.drawArc(arcRect, start, deg16(-360));
+    const int start = deg16(90);  // 12 点方向为起点（Qt里正角度是逆时针）
 
-    // 2) 渐变进度弧
-    QConicalGradient gradient(0, 0, 90); // 从顶部开始
-    gradient.setColorAt(0.00, QColor(0, 220, 180));
-    gradient.setColorAt(1.00, QColor(0, 180, 150));
-    QPen progressPen(QBrush(gradient), thickness, Qt::SolidLine, Qt::FlatCap);
-    p.setPen(progressPen);
-    const int span = deg16(-3.6 * m_iProgress); // 顺时针为负
-    p.drawArc(arcRect, start, span);
-
-    // 3) 阈值标记（短弧风格：更温和）
-//    {
-//        const double markDeg = 3.5;                     // 标记弧长（度）
-//        const double thDegFromTop = 360.0 * (m_iThreshold / 100.0);
-//        const int thStart = deg16(90.0 - thDegFromTop); // 从顶部沿顺时针
-//        QPen thPen(m_markColor, thickness, Qt::SolidLine, Qt::FlatCap);
-//        p.setPen(thPen);
-//        p.drawArc(arcRect, thStart, deg16(-markDeg));
-//    }
-    // 若想“刻度线”风格，改为下面这段，替换上面的短弧块：
+    // ========== 1) 底环 ==========
     {
-        const double radius = arcRect.width()/2.0;
+        QPen pen(m_trackColor, thickness, Qt::SolidLine, Qt::FlatCap);
+        p.setPen(pen);
+        p.drawArc(arcRect, start, deg16(-360));
+    }
+
+    // ========== 2) 进度弧 ==========
+    {
+        QConicalGradient gradient(0, 0, 90);
+        gradient.setColorAt(0.00, QColor(0, 220, 180));
+        gradient.setColorAt(1.00, QColor(0, 180, 150));
+
+        QPen progressPen(QBrush(gradient), thickness, Qt::SolidLine, Qt::FlatCap);
+        p.setPen(progressPen);
+
+        const int span = deg16(-3.6 * m_iProgress); // 顺时针为负
+        p.drawArc(arcRect, start, span);
+    }
+
+    // ========== 3) 阈值刻度线 ==========
+    {
+        const double radius = arcRect.width() / 2.0;
         const double thDegFromTop = 360.0 * (m_iThreshold / 100.0);
         const double rad = qDegreesToRadians(90.0 - thDegFromTop);
-        QPointF c(0,0);
-        QPointF a(c.x() + (radius - thickness*0.20) * std::cos(rad),
-                  c.y() - (radius - thickness*0.20) * std::sin(rad));
-        QPointF b(c.x() + (radius + thickness*0.20) * std::cos(rad),
-                  c.y() - (radius + thickness*0.20) * std::sin(rad));
-        QPen tickPen(m_markColor, 4, Qt::SolidLine, Qt::RoundCap);
+
+        const QPointF c(0, 0);
+
+        // 刻度线长度跟 thickness 挂钩，视觉随尺寸变化
+        const double inner = radius - thickness * 0.25;
+        const double outer = radius + thickness * 0.25;
+
+        const QPointF a(c.x() + inner * std::cos(rad),
+                        c.y() - inner * std::sin(rad));
+        const QPointF b(c.x() + outer * std::cos(rad),
+                        c.y() - outer * std::sin(rad));
+
+        QPen tickPen(m_markColor, qMax(3, thickness / 4), Qt::SolidLine, Qt::RoundCap);
         p.setPen(tickPen);
         p.drawLine(a, b);
     }
 
-    // 4) 中央文字
-    p.setPen(m_textColor);
-    QFont font("Arial", qMax(10, static_cast<int>(side * 0.18)), QFont::Bold);
-    p.setFont(font);
-    const QString text = QString::number(m_iProgress) + "%";
-    p.drawText(QRectF(-side/2.0, -side/2.0, side, side), Qt::AlignCenter, text);
+    // ========== 4) 中央文字（字号随圆环内径自适配） ==========
+    {
+        const QString text = QString::number(m_iProgress) + "%";
+
+        // 给文字留“安全边距”，避免触碰到环
+        const QRectF innerRect = arcRect.adjusted(
+            thickness * 0.90,
+            thickness * 0.90,
+           -thickness * 0.90,
+           -thickness * 0.90
+        );
+
+        // 用最大宽度样本来求字号，避免 9% → 100% 时溢出
+        QFont font = fitFontToRectPx("100%", innerRect, "Arial", true, 0.95);
+
+        p.setPen(m_textColor);
+        p.setFont(font);
+        p.drawText(innerRect, Qt::AlignCenter, text);
+    }
 }
-
-
-/***********************************************************************************************
- * FUNC    : SetThreshold
- * IN      : t (int) - 阈值（期望范围：0~100）
- * OUT     : None
- * RETURN  : void
- * AUTHOR  : 2025-12-29 Create by lxh for CircularProgressBar class
- * NOTE    : 设置阈值并触发重绘；阈值用于绘制圆环上的标记/刻度提示
- ************************************************************************************************/
-
-void CircularProgressBar::setThreshold(int t)
-{
-    m_iThreshold = qBound(0, t, 100);
-    update();                        // 触发重绘（如果你画了阈值刻度）
-}
-

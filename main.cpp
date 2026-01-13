@@ -25,15 +25,17 @@
 #include <QTranslator>
 #include <QDate>
 #include <QQmlApplicationEngine>
+#include <QStandardPaths>
 
 // ---- 顶部：声明一个统一收尾函数 ----
 static void GracefulShutdown() {
     // (A) 先让 worker 在各自线程里停止（真正关闭 socket/定时器/断信号）
     if (g_pDeviceAcquisitionWorkerPtr)
-        QMetaObject::invokeMethod(g_pDeviceAcquisitionWorkerPtr, "stop",
+        QMetaObject::invokeMethod(g_pDeviceAcquisitionWorkerPtr, "requestStop",
                                   Qt::BlockingQueuedConnection);
+
     if (g_pMeasurementDataProcessorPtr)
-        QMetaObject::invokeMethod(g_pMeasurementDataProcessorPtr, "stop",
+        QMetaObject::invokeMethod(g_pMeasurementDataProcessorPtr, "requestStop",
                                   Qt::BlockingQueuedConnection);
 
     // (B) 再停线程并等待
@@ -130,15 +132,22 @@ int main(int argc, char *argv[])
     QThread::msleep(300);
 
     //连接数据库
-    splash.UpdateStatus(QObject::tr("连接数据库…"), 60);
-    auto &dbMgr = DatabaseManager::instance(
-        "E:/software_personal/personal_program/MyProject/MyDatabase.db"
-    );
+    // 连接数据库
+    splash.UpdateStatus(QObject::tr("连接数据库…"), 50);
+
+    // 选择一个稳定可写的位置（不会随 build/debug 改变）
+    QString dbDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QDir(dbDir).mkpath(".");
+    QString dbPath = QDir(dbDir).filePath("MyDatabase.db");
+
+    qDebug() << "[DB] AppData dir =" << dbDir;
+    qDebug() << "[DB] dbPath =" << dbPath;
+
+    // 让 DatabaseManager 统一走这个路径（第一次就定死）
+    auto &dbMgr = DatabaseManager::instance(dbPath);
     if (!dbMgr.openDatabase()) {
-        return -1; // 直接退出
+        return -1;
     }
-    QCoreApplication::processEvents();
-    QThread::msleep(300);
 
     // 5. 安装翻译器
     splash.UpdateStatus(QObject::tr("加载翻译文件…"), 70);

@@ -108,16 +108,16 @@ DISTFILES += \
     translations/zh_CN.ts
 
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../qt_5_12_9/5.12.9/mingw73_64/lib/ -lqwt
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../qt_5_12_9/5.12.9/mingw73_64/lib/ -lqwtd
-else:unix: LIBS += -L$$PWD/../../qt_5_12_9/5.12.9/mingw73_64/lib/ -lqwt
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../../Qt/Qt5_12_9/5.12.9/mingw73_64/lib/ -lqwt
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../Qt/Qt5_12_9/5.12.9/mingw73_64/lib/ -lqwtd
+else:unix: LIBS += -L$$PWD/../../../Qt/Qt5_12_9/5.12.9/mingw73_64/lib/ -lqwt
 
-INCLUDEPATH += $$PWD/../../qt_5_12_9/5.12.9/mingw73_64/include/Qwt
-DEPENDPATH += $$PWD/../../qt_5_12_9/5.12.9/mingw73_64/include/Qwt
+INCLUDEPATH += $$PWD/../../../Qt/Qt5_12_9/5.12.9/mingw73_64/include/Qwt
+DEPENDPATH += $$PWD/../../../Qt/Qt5_12_9/5.12.9/mingw73_64/include/Qwt
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../qt_5_12_9/5.12.9/mingw73_64/lib/ -lqwt
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../qt_5_12_9/5.12.9/mingw73_64/lib/ -lqwtd
-else:unix: LIBS += -L$$PWD/../../qt_5_12_9/5.12.9/mingw73_64/lib/ -lqwt
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../../Qt/Qt5_12_9/5.12.9/mingw73_64/lib/ -lqwt
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../Qt/Qt5_12_9/5.12.9/mingw73_64/lib/ -lqwtd
+else:unix: LIBS += -L$$PWD/../../../Qt/Qt5_12_9/5.12.9/mingw73_64/lib/ -lqwt
 
-INCLUDEPATH += $$PWD/../../qt_5_12_9/5.12.9/mingw73_64/include/Qwt
-DEPENDPATH += $$PWD/../../qt_5_12_9/5.12.9/mingw73_64/include/Qwt
+INCLUDEPATH += $$PWD/../../../Qt/Qt5_12_9/5.12.9/mingw73_64/include/Qwt
+DEPENDPATH += $$PWD/../../../Qt/Qt5_12_9/5.12.9/mingw73_64/include/Qwt

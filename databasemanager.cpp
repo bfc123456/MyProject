@@ -1,7 +1,9 @@
-#include "databasemanager.h"
+#include "DatabaseManager.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDebug>
+#include <QStandardPaths>
+#include <QDir>
 
 DatabaseManager::DatabaseManager(const QString &dbPath)
     : dbPath(dbPath)
@@ -13,17 +15,58 @@ DatabaseManager::DatabaseManager(const QString &dbPath)
 DatabaseManager& DatabaseManager::instance(const QString& dbPath)
 {
     static DatabaseManager* inst = nullptr;
+    static QString chosenPath;   // 记录首次确定的最终路径
 
+    // 1) 计算这次调用“想要”的最终路径（但不一定会生效）
+    QString finalPath;
+
+    if (dbPath.isEmpty()) {
+        finalPath = ":/database/MyDatabase.db";
+    } else {
+        finalPath = dbPath;
+    }
+
+    // 2) 如果是资源路径，复制到可写目录
+    if (finalPath.startsWith(":/")) {
+        const QString writablePath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        QDir(writablePath).mkpath(".");
+        const QString localDbPath = QDir(writablePath).filePath("MyDatabase.db");
+
+        if (!QFile::exists(localDbPath)) {
+            if (!QFile::copy(finalPath, localDbPath)) {
+                qWarning() << "[DB] Failed to copy db from resource to:" << localDbPath;
+                qWarning() << "[DB] Resource path =" << finalPath;
+            } else {
+                QFile::setPermissions(localDbPath, QFile::ReadUser | QFile::WriteUser);
+            }
+        }
+
+        finalPath = localDbPath;
+    }
+
+    // 3) 第一次创建实例
     if (!inst) {
-        QString finalPath = dbPath;
-        if (finalPath.isEmpty()) {
-            finalPath = "E:/software_personal/personal_program/MyProject/MyDatabase.db"; // 默认路径
-        }
+        chosenPath = finalPath;
+        qDebug() << "[DB] Create singleton with path:" << chosenPath;
 
-        inst = new DatabaseManager(finalPath);
-        if (!inst->db.isOpen()) {
-            inst->openDatabase();
+        inst = new DatabaseManager(chosenPath);
+        if (!inst->openDatabase()) {
+            qWarning() << "[DB] openDatabase failed at create, path =" << chosenPath;
         }
+        return *inst;
+    }
+
+    // 4) 之后再次调用：如果传入不同路径，提示“冲突”，不允许悄悄换
+    if (!dbPath.isEmpty() && finalPath != chosenPath) {
+        qWarning() << "[DB] DatabaseManager::instance called with DIFFERENT path!";
+        qWarning() << "[DB] Ignored new path =" << finalPath;
+        qWarning() << "[DB] Using chosenPath =" << chosenPath;
+    }
+
+    // 5) 防御：如果意外关闭了，重新打开（可选）
+    if (!inst->db.isOpen()) {
+        qWarning() << "[DB] db is closed, reopen. path =" << chosenPath;
+        inst->openDatabase();
     }
 
     return *inst;

@@ -16,15 +16,27 @@ MeasurementDataProcessor::~MeasurementDataProcessor()
 
 void MeasurementDataProcessor::requestStart()
 {
-    if (!m_state.is(ThreadWorkState::Idle))
-        return;
+    qInfo() << "[Processor] === requestStart ===";
+    qInfo() << "[Processor] 当前状态：" << static_cast<int>(m_state.get());
+    qInfo() << "[Processor] 线程ID：" << QThread::currentThreadId();
 
-    m_state.set(ThreadWorkState::Working);
+    if (!m_state.is(ThreadWorkState::Idle)) {
+        qWarning() << "[Processor] 状态不是Idle，无法启动";
+        return;
+    }
+
+    m_state.set(ThreadWorkState::Starting);  // 先设置为Starting
+    qInfo() << "[Processor] 状态设置为Starting";
 
     resetSession();
     m_sessionClock.start();
-    m_uiClock.invalidate();  // 第一次flush时再start
+    m_uiClock.invalidate();
 
+    // TODO: 这里应该通知 DeviceAcquisitionWorker 开始采集
+    // 例如：emit startAcquisitionRequested();
+
+    m_state.set(ThreadWorkState::Working);  // 最后设置为Working
+    qInfo() << "[Processor] 状态设置为Working";
     qInfo() << "[Processor] start processing";
 }
 

@@ -95,7 +95,6 @@ ImplantMonitor::ImplantMonitor(QWidget *parent, const QString &sensorId) : Frame
     //采样率输入方式（数值手动输入，单位下拉选择）
     m_pSampleRateLabel = new QLabel(tr("采样率： "),controlBarwidget);
     QFont sampleFont = m_pSampleRateLabel->font();
-    sampleFont.setPointSizeF(8*m_fScaleX);
     //保持原字体缩放
     sampleFont.setBold(true);
     m_pSampleRateLabel->setFont(sampleFont);
@@ -491,7 +490,7 @@ void ImplantMonitor::SlotExportCurrentData()
     QQueue<QByteArray> rawPackets;
     QQueue<QByteArray> fftPackets;
 
-    // ⚠️ 跨线程调用，安全
+    // 跨线程调用，安全
     QMetaObject::invokeMethod(
         g_pMeasurementDataProcessorPtr,
         [&]() {
