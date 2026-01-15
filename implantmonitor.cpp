@@ -348,13 +348,13 @@ void ImplantMonitor::setupDataPipelineOnce()
     if (inited) return;
     inited = true;
 
-    QObject::connect(g_pDeviceAcquisitionWorkerPtr, &DeviceAcquisitionWorker::rawPacketReceived,
-                     g_pMeasurementDataProcessorPtr, &MeasurementDataProcessor::onRawPacketArrived,
-                     Qt::QueuedConnection);
+//    QObject::connect(g_pDeviceAcquisitionWorkerPtr, &DeviceAcquisitionWorker::rawPacketReceived,
+//                     g_pMeasurementDataProcessorPtr, &MeasurementDataProcessor::onRawPacketArrived,
+//                     Qt::QueuedConnection);
 
-    QObject::connect(g_pDeviceAcquisitionWorkerPtr, &DeviceAcquisitionWorker::fftPacketReceived,
-                     g_pMeasurementDataProcessorPtr, &MeasurementDataProcessor::onFftPacketArrived,
-                     Qt::QueuedConnection);
+//    QObject::connect(g_pDeviceAcquisitionWorkerPtr, &DeviceAcquisitionWorker::fftPacketReceived,
+//                     g_pMeasurementDataProcessorPtr, &MeasurementDataProcessor::onFftPacketArrived,
+//                     Qt::QueuedConnection);
 
     QObject::connect(g_pMeasurementDataProcessorPtr, &MeasurementDataProcessor::waveformUpdated,
                      this, &ImplantMonitor::SlotUpdateWaveformFrame,
@@ -679,13 +679,13 @@ void ImplantMonitor::SlotOpenCOClicked() {
 }
 
 void ImplantMonitor::SlotOpenRHCClicked() {
-    MedicalLogger::instance()->writeLog(
-        "RHCInputDialog",                      // 模块：与测量相关
-        MedicalLogger::LOG_INFO,            // 日志等级：信息
-        "RHC Input dialog opened",          // 日志内容：打开 RHC 输入对话框
-        " ",                  // 操作员 ID（未登录时使用占位符）
-        "UI"                                // 来源：UI 操作
-    );
+//    MedicalLogger::instance()->writeLog(
+//        "RHCInputDialog",                      // 模块：与测量相关
+//        MedicalLogger::LOG_INFO,            // 日志等级：信息
+//        "RHC Input dialog opened",          // 日志内容：打开 RHC 输入对话框
+//        " ",                  // 操作员 ID（未登录时使用占位符）
+//        "UI"                                // 来源：UI 操作
+//    );
     QWidget *overlay = new QWidget(this);
     overlay->setStyleSheet("background: rgba(0,0,0,100);");
     overlay->setAttribute(Qt::WA_TransparentForMouseEvents, false);
