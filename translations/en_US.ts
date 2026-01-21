@@ -390,16 +390,19 @@ Debugging</translation>
 <context>
     <name>ImplantMonitor</name>
     <message>
+        <location filename="../implantmonitor.cpp" line="668"/>
         <source>新植入物</source>
-        <translation type="vanished">New Implant</translation>
+        <translation>New Implant</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="294"/>
+        <location filename="../implantmonitor.cpp" line="229"/>
+        <location filename="../implantmonitor.cpp" line="685"/>
         <source>左</source>
         <translation>Lift</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="301"/>
+        <location filename="../implantmonitor.cpp" line="234"/>
+        <location filename="../implantmonitor.cpp" line="687"/>
         <source>右</source>
         <translation>Right</translation>
     </message>
@@ -422,184 +425,215 @@ Debugging</translation>
 75</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="328"/>
+        <location filename="../implantmonitor.cpp" line="254"/>
+        <location filename="../implantmonitor.cpp" line="673"/>
         <source>读数记录</source>
         <translation>Read-record</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="319"/>
-        <location filename="../implantmonitor.cpp" line="476"/>
+        <location filename="../implantmonitor.cpp" line="245"/>
+        <location filename="../implantmonitor.cpp" line="605"/>
+        <location filename="../implantmonitor.cpp" line="679"/>
+        <location filename="../implantmonitor.cpp" line="681"/>
         <source>血压
 0.00/0.00</source>
         <translation>Blood pressure
 0.00/0.00</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="62"/>
-        <location filename="../implantmonitor.cpp" line="909"/>
+        <location filename="../implantmonitor.cpp" line="55"/>
         <source> --- 新植入物 --- </source>
         <translation>--- New Implant ---</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="111"/>
-        <location filename="../implantmonitor.cpp" line="915"/>
+        <location filename="../implantmonitor.cpp" line="96"/>
         <source>采样率： </source>
         <translation>Sampling：</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="145"/>
+        <location filename="../implantmonitor.cpp" line="123"/>
         <source>过滤范围： </source>
         <translation>Filter：</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="149"/>
+        <location filename="../implantmonitor.cpp" line="125"/>
+        <location filename="../implantmonitor.cpp" line="676"/>
         <source>启动</source>
         <translation>Enable</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="200"/>
+        <location filename="../implantmonitor.cpp" line="164"/>
         <source>X轴单位：</source>
         <translation>X unit:</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="222"/>
+        <location filename="../implantmonitor.cpp" line="179"/>
         <source>Y轴单位：</source>
         <translation>Y unit:</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="322"/>
-        <location filename="../implantmonitor.cpp" line="477"/>
+        <location filename="../implantmonitor.cpp" line="248"/>
+        <location filename="../implantmonitor.cpp" line="606"/>
         <source>平均
 0.00</source>
         <translation>Average
 0.00</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="325"/>
-        <location filename="../implantmonitor.cpp" line="478"/>
+        <location filename="../implantmonitor.cpp" line="251"/>
+        <location filename="../implantmonitor.cpp" line="607"/>
         <source>心率
 0.00</source>
         <translation>Heart rate
 0.00</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="378"/>
-        <location filename="../implantmonitor.cpp" line="507"/>
-        <location filename="../implantmonitor.cpp" line="555"/>
-        <location filename="../implantmonitor.cpp" line="578"/>
-        <location filename="../implantmonitor.cpp" line="642"/>
-        <location filename="../implantmonitor.cpp" line="911"/>
+        <location filename="../implantmonitor.cpp" line="290"/>
+        <location filename="../implantmonitor.cpp" line="619"/>
+        <location filename="../implantmonitor.cpp" line="669"/>
         <source>开始测量</source>
         <translation>Start measuring</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="379"/>
+        <location filename="../implantmonitor.cpp" line="291"/>
+        <location filename="../implantmonitor.cpp" line="671"/>
         <source>输入心输出量</source>
         <translation>Input cardiac output</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="380"/>
-        <location filename="../implantmonitor.cpp" line="913"/>
+        <location filename="../implantmonitor.cpp" line="292"/>
+        <location filename="../implantmonitor.cpp" line="672"/>
         <source>输入RHC</source>
         <translation>Enter RHC</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="381"/>
-        <location filename="../implantmonitor.cpp" line="910"/>
+        <location filename="../implantmonitor.cpp" line="293"/>
+        <location filename="../implantmonitor.cpp" line="670"/>
         <source>导出数据</source>
         <translation>Export data</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="914"/>
+        <location filename="../implantmonitor.cpp" line="441"/>
+        <source>错误</source>
+        <translation>Error</translation>
+    </message>
+    <message>
+        <location filename="../implantmonitor.cpp" line="501"/>
+        <source>当前无原始数据可导出</source>
+        <translation>There is no original data available for export at present.</translation>
+    </message>
+    <message>
+        <location filename="../implantmonitor.cpp" line="510"/>
+        <source>选择导出目录</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../implantmonitor.cpp" line="531"/>
+        <source>已导出 RAW(%1 包) 和 FFT(%2 包) 数据</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../implantmonitor.cpp" line="674"/>
+        <source>采样率</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../implantmonitor.cpp" line="675"/>
+        <source>过滤范围</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../implantmonitor.cpp" line="677"/>
+        <source>x轴单位</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../implantmonitor.cpp" line="680"/>
+        <source>心率
+0.00/0.00</source>
+        <translation type="unfinished">Heart rate
+0.00/0.00</translation>
+    </message>
+    <message>
         <source>审计界面</source>
-        <translation>Audit interface</translation>
+        <translation type="vanished">Audit interface</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="916"/>
         <source>X轴单位</source>
-        <translation>Unit of X</translation>
+        <translation type="vanished">Unit of X</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="917"/>
+        <location filename="../implantmonitor.cpp" line="678"/>
         <source>Y轴单位</source>
         <translation>Unit of Y</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="918"/>
         <source>启用</source>
-        <translation>Enable</translation>
+        <translation type="vanished">Enable</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="936"/>
         <source>当前无测量数据可导出</source>
-        <translation>There are no measurement data available for export at present.</translation>
+        <translation type="vanished">There are no measurement data available for export at present.</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="952"/>
         <source>导出波形数据</source>
-        <translation>Export waveform data</translation>
+        <translation type="vanished">Export waveform data</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="954"/>
         <source>CSV文件 (*.csv)</source>
-        <translation>CSV file (*.csv)</translation>
+        <translation type="vanished">CSV file (*.csv)</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="967"/>
         <source>保存失败</source>
-        <translation>Failed to save</translation>
+        <translation type="vanished">Failed to save</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="968"/>
         <source>无法打开文件：%1</source>
-        <translation>Cannot open file: %1</translation>
+        <translation type="vanished">Cannot open file: %1</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="979"/>
         <source>时间(s),压力(mmHg)
 </source>
-        <translation>Time (s), Pressure (mmHg)</translation>
+        <translation type="vanished">Time (s), Pressure (mmHg)</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="994"/>
+        <location filename="../implantmonitor.cpp" line="530"/>
         <source>导出成功</source>
         <translation>Export successful</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="995"/>
         <source>波形数据已保存至：
 %1</source>
-        <translation>The waveform data has been saved to: %1</translation>
+        <translation type="vanished">The waveform data has been saved to: %1</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="479"/>
+        <location filename="../implantmonitor.cpp" line="610"/>
         <source>测量中...</source>
         <translation>Measuring...</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="611"/>
+        <location filename="../implantmonitor.cpp" line="415"/>
         <source>血压
 %1/%2</source>
         <translation>Blood pressure
 %1/%2</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="614"/>
+        <location filename="../implantmonitor.cpp" line="417"/>
         <source>平均
 %1</source>
         <translation>Average
 %1</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="617"/>
+        <location filename="../implantmonitor.cpp" line="419"/>
         <source>心率
 %1</source>
         <translation>Heart rate %1</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="912"/>
         <source>导出本次数据</source>
-        <translation>Export this batch of data</translation>
+        <translation type="vanished">Export this batch of data</translation>
     </message>
     <message>
         <source>测量完成</source>
@@ -610,7 +644,7 @@ Debugging</translation>
         <translation type="vanished">The measurement has been completed. Do you want to save the data?</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="659"/>
+        <location filename="../implantmonitor.cpp" line="430"/>
         <source>取 消</source>
         <translation>Cancel</translation>
     </message>
@@ -619,22 +653,22 @@ Debugging</translation>
         <translation type="vanished">Save</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="658"/>
-        <location filename="../implantmonitor.cpp" line="715"/>
-        <location filename="../implantmonitor.cpp" line="935"/>
+        <location filename="../implantmonitor.cpp" line="429"/>
+        <location filename="../implantmonitor.cpp" line="478"/>
+        <location filename="../implantmonitor.cpp" line="501"/>
         <source>提示</source>
         <translation>Information</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="658"/>
-        <location filename="../implantmonitor.cpp" line="716"/>
+        <location filename="../implantmonitor.cpp" line="429"/>
+        <location filename="../implantmonitor.cpp" line="478"/>
         <source>数据保存成功</source>
         <translation>The data was saved successfully</translation>
     </message>
     <message>
-        <location filename="../implantmonitor.cpp" line="659"/>
-        <location filename="../implantmonitor.cpp" line="717"/>
-        <location filename="../implantmonitor.cpp" line="937"/>
+        <location filename="../implantmonitor.cpp" line="430"/>
+        <location filename="../implantmonitor.cpp" line="441"/>
+        <location filename="../implantmonitor.cpp" line="478"/>
         <source>确 认</source>
         <translation>Confirmation</translation>
     </message>
@@ -1511,47 +1545,47 @@ Do you want to start the measurement?</translation>
         <translation type="vanished">System initialization in progress...</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="106"/>
+        <location filename="../main.cpp" line="108"/>
         <source>加载本地配置…</source>
         <translation>Loading local configuration...</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="114"/>
+        <location filename="../main.cpp" line="116"/>
         <source>检查更新…</source>
         <translation>check for updates...</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="120"/>
+        <location filename="../main.cpp" line="122"/>
         <source>检测到软件更新: %1</source>
         <translation>Detected software update: %1</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="122"/>
+        <location filename="../main.cpp" line="124"/>
         <source>未检测到软件更新</source>
         <translation>No software update was detected.</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="126"/>
+        <location filename="../main.cpp" line="128"/>
         <source>读取信号强度…</source>
         <translation>Reading signal strength...</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="133"/>
+        <location filename="../main.cpp" line="136"/>
         <source>连接数据库…</source>
         <translation>Connecting to the database...</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="144"/>
+        <location filename="../main.cpp" line="153"/>
         <source>加载翻译文件…</source>
         <translation>Loading translation file...</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="153"/>
+        <location filename="../main.cpp" line="162"/>
         <source>初始化网络通信…</source>
         <translation>Initializing network communication...</translation>
     </message>
     <message>
-        <location filename="../main.cpp" line="184"/>
+        <location filename="../main.cpp" line="193"/>
         <source>准备主界面…</source>
         <translation>Preparing the main interface...</translation>
     </message>

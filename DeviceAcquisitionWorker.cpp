@@ -4,6 +4,7 @@
 DeviceAcquisitionWorker::DeviceAcquisitionWorker(QObject* parent)
     : QObject(parent)
 {
+    m_workingBatch.reserve(8192);
     qInfo() << "[DeviceWorker] ctor thread=" << QThread::currentThreadId();
 }
 
@@ -25,6 +26,7 @@ void DeviceAcquisitionWorker::initUdpManager()
     if (udpManager_) return;
 
     udpManager_ = new UdpManager(this);
+
     if (!udpManager_->startListening()) {
         emit acquisitionError("UDP bind/listen failed");
         state_ = State::Error;
@@ -45,41 +47,30 @@ void DeviceAcquisitionWorker::initUdpManager()
 
 void DeviceAcquisitionWorker::requestStart()
 {
-    printf(">> [STEP 1] Entering requestStart\n"); fflush(stdout);
+
     if (state_ != State::Idle) return;
+
     if (!udpManager_) {
-        printf(">> [STEP 1-Error] UDP Manager is null\n"); fflush(stdout);
+
+        // 如果这里是野指针但非空，下面就会崩
         emit acquisitionError("UDP not initialized");
         state_ = State::Error;
         return;
     }
-    printf(">> [STEP 2] Preparing to send data...\n"); fflush(stdout);
 
     QByteArray startCmd = buildStartFrame();
-        printf(">> [STEP 2.5] Frame built. Size: %d\n", startCmd.size()); fflush(stdout);
 
-        bool sendResult = udpManager_->sendData(startCmd);
+    bool ret = udpManager_->sendData(startCmd);
 
-        printf(">> [STEP 3] sendData returned: %d\n", sendResult); fflush(stdout);
+    if (ret) {
 
-        if (!sendResult) {
-            printf(">> [STEP 3-Error] Send failed\n"); fflush(stdout);
-            emit acquisitionError("Send START failed");
-            state_ = State::Error;
-            return;
-        }
+        udpManager_->setSessionActive(true);
 
-    udpManager_->setSessionActive(true);
+        state_ = State::Working;
 
-    // reset
-    seqInited_ = false;
-    expectedSeq_ = 0;
-    lossEvents_ = lostTotal_ = outOfOrder_ = badHeader_ = badLen_ = 0;
-    statTimer_.invalidate();
-
-    state_ = State::Working;
-    printf(">> [STEP 4] SUCCESS! Acquisition started.\n"); fflush(stdout);
-    qInfo() << "[DeviceWorker] acquisition started";
+        // 保留一个 Qt 日志以便查看信号槽关联
+        qInfo() << "[DeviceWorker] acquisition started";
+    }
 }
 
 void DeviceAcquisitionWorker::requestStop()
@@ -90,21 +81,33 @@ void DeviceAcquisitionWorker::requestStop()
     udpManager_->setSessionActive(false);
 
     state_ = State::Idle;
-    emit acquisitionStopped();
+    emit stopAcquisitionRequested();
     qInfo() << "[DeviceWorker] acquisition stopped";
 }
 
 bool DeviceAcquisitionWorker::isValidFrame(const QByteArray& p) const
 {
-    return p.size() >= kPayloadOff &&
-           (uint8_t)p[0] == H0 &&
-           (uint8_t)p[1] == H1 &&
-           (uint8_t)p[2] == H2;
+    if (p.size() != kFullPacketSize) return false;
+
+    uint8_t h0 = (uint8_t)p[0];
+    uint8_t h1 = (uint8_t)p[1];
+
+    // 同时兼容 ADC(bbd0) 和 FFT(bbd1)
+    bool isAdc = (h0 == kAdcHeader0 && h1 == kAdcHeader1);
+    bool isFft = (h0 == kFftHeader0 && h1 == kFftHeader1);
+
+    return isAdc || isFft;
 }
 
+// 对应协议：标志(2字节) + ADC计数(1字节) + UDP计数(1字节)
+// 所以 UDP 计数位的偏移量是 3
 uint8_t DeviceAcquisitionWorker::getCount(const QByteArray& p) const
 {
-    return (uint8_t)p[kCountOff];
+    // 确保安全访问，防止空包或短包导致越界崩溃
+    if (p.size() < 4) return 0;
+
+    // 返回第四个字节作为丢包校验的主序号
+    return (uint8_t)p[3];
 }
 
 int8_t DeviceAcquisitionWorker::diff8(uint8_t curr, uint8_t expected)
@@ -114,109 +117,93 @@ int8_t DeviceAcquisitionWorker::diff8(uint8_t curr, uint8_t expected)
 
 void DeviceAcquisitionWorker::drainPackets()
 {
+    Q_ASSERT(QThread::currentThread() == this->thread());
     if (state_ != State::Working || !udpManager_) return;
 
-    QVector<QByteArray> batch;
-    batch.reserve(8192);
+    m_workingBatch.clear();
 
-    // 建议：每次回调尽量把队列清掉（或加时间预算）
+    // 1. 批量消纳数据包
     while (true) {
-        int got = udpManager_->popBatch(batch, 8192);
+        int got = udpManager_->popBatch(m_workingBatch, 4096);
         if (got <= 0) break;
 
-        for (int i = 0; i < batch.size(); ++i) {
-            handleFrame(batch[i]);
+        for (int i = 0; i < m_workingBatch.size(); ++i) {
+            handleFrame(m_workingBatch[i]); // 在这里面累计各计数器
         }
-        batch.clear();
+        m_workingBatch.clear();
     }
 
-    // 1s统计（你现在是每秒打印一次，而且每秒清零，这是对的）
-    if (!statTimer_.isValid()) statTimer_.start();
+    // 2. 严格控制频率：每秒仅打印一次汇总日志
     if (statTimer_.elapsed() >= 1000) {
-        qInfo() << "[DeviceWorker][1s]"
-                << "lossEvents=" << lossEvents_
-                << "lostTotal="  << lostTotal_
-                << "outOfOrder=" << outOfOrder_
-                << "badHeader="  << badHeader_
-                << "badLen="     << badLen_
-                << "dropQueue="  << udpManager_->droppedByQueue()
-                << "qSize="      << udpManager_->queueSize()
-                << "thread="     << QThread::currentThreadId();
+        // 获取实时队列余量，用于判断 dropQueue
+        uint32_t qSize = udpManager_->queueSize();
 
-        lossEvents_ = lostTotal_ = outOfOrder_ = badHeader_ = badLen_ = 0;
+        // 格式化输出您要求的核心指标
+        qInfo() << QString("[Health Report] lossEvents=%1 lostTotal=%2 outOfOrder=%3 badHeader=%4 badLen=%5 dropQueue=%6")
+                   .arg(lossEvents_)
+                   .arg(lostTotal_)
+                   .arg(outOfOrder_) // 若 handleFrame 中检测到乱序可填入
+                   .arg(badHeader_)
+                   .arg(badLen_)
+                   .arg(qSize); // 这里用队列大小来直观反映是否有溢出风险
+
+        // 3. 统计清零，开始新一秒的监测
+        lossEvents_ = lostTotal_ = badHeader_ = badLen_ = outOfOrder_ = 0;
         statTimer_.restart();
     }
 }
 
 void DeviceAcquisitionWorker::handleFrame(const QByteArray& packet)
 {
-    if (!isValidFrame(packet)) {
+    // 1. 物理长度监测 (保持原有逻辑)
+    const int actualSize = packet.size();
+    if (actualSize != kFullPacketSize) {
+        badLen_++;
+        return;
+    }
+
+    const uchar* rawPtr = reinterpret_cast<const uchar*>(packet.constData());
+    int headerPos = -1;
+
+    // 2. 动态找头并识别类型
+    bool isAdc = false;
+    bool isFft = false;
+
+    for (int i = 0; i < 10; ++i) {
+        if (rawPtr[i] == 0xBB) {
+            if (rawPtr[i+1] == 0xD0) {
+                headerPos = i;
+                isAdc = true;
+                break;
+            } else if (rawPtr[i+1] == 0xD1) {
+                headerPos = i;
+                isFft = true;
+                break;
+            }
+        }
+    }
+
+    if (headerPos == -1) {
         badHeader_++;
         return;
     }
 
-    // 计数（第4字节）
-    const uint8_t curr = getCount(packet);
-
+    // 3. 序号校验 (保持原有逻辑，确保监测丢包)
+    uint8_t currUdpSeq = rawPtr[headerPos + 3];
     if (!seqInited_) {
-        expectedSeq_ = (uint8_t)(curr + 1);
+        expectedSeq_ = (uint8_t)(currUdpSeq + 1);
         seqInited_ = true;
     } else {
-        // curr/expected 都是 uint8_t
-        uint8_t d = uint8_t(curr - expectedSeq_);   // mod 256
-
-        if (d == 0) {
-            // 正常：正好收到了 expectedSeq_
-            expectedSeq_ = uint8_t(curr + 1);
-        } else if (d < 128) {
-            // curr 比 expected 超前 d -> 中间缺了 d 个包
+        if (currUdpSeq != expectedSeq_) {
+            int gap = (uint8_t)(currUdpSeq - expectedSeq_);
+            lostTotal_ += gap;
             lossEvents_++;
-            lostTotal_ += d;
-            expectedSeq_ = uint8_t(curr + 1);       // 追上最新
-        } else {
-            // d>=128：更像乱序/重复/回绕附近的倒退
-            outOfOrder_++;
-            // 关键：乱序不要改 expectedSeq_，否则会“带偏”后续统计
         }
+        expectedSeq_ = (uint8_t)(currUdpSeq + 1);
     }
 
-//    // payload 解析（每包固定）
-//    const int payloadBytes = packet.size() - kPayloadOff;
-//    if (payloadBytes <= 0 || (payloadBytes % kBytesPerPoint) != 0) {
-//        badLen_++;
-//        return;
-//    }
-
-//    const char* payload = packet.constData() + kPayloadOff;
-//        const int n = payloadBytes / kBytesPerPoint; // 数据点个数
-
-//        if constexpr (kBytesPerPoint == 2) {
-//            // --- 修正后的 int16 处理 ---
-//            for (int i = 0; i < n; ++i) {
-//                int16_t sample;
-//                // 【安全拷贝】不管地址对不对齐，memcpy 都能正确读出 2 个字节
-//                memcpy(&sample, payload + i * sizeof(int16_t), sizeof(int16_t));
-
-//                // 如果涉及大小端转换（假设网络是大端，本机是小端）：
-//                // sample = qFromBigEndian(sample);
-
-//                // TODO: 将 sample 入队
-//                // m_fftQueue.enqueue(sample);
-//            }
-//        } else {
-//            // --- 修正后的 float 处理 ---
-//            for (int i = 0; i < n; ++i) {
-//                float binValue;
-//                // 【安全拷贝】即使地址是 0x1003，memcpy 也能安全读出 4 个字节的 float
-//                memcpy(&binValue, payload + i * sizeof(float), sizeof(float));
-
-//                // 调试用：打印第一个值看看对不对
-//                // if (i == 0) qDebug() << "First Bin:" << binValue;
-
-//                // TODO: 将 binValue 入队处理
-//                // 注意：不要在这里直接做复杂的 UI 更新，只做数据入队
-//            }
-//        }
+    int type = isAdc ? 0 : 1;
+    emit rawPacketArrived(type, packet);
 }
 
 QByteArray DeviceAcquisitionWorker::buildStartFrame() const

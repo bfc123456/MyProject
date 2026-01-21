@@ -21,6 +21,7 @@ SOURCES += \
     cardiacoutputdialog.cpp \
     circularprogressbar.cpp \
     customcombobox.cpp \
+    customexportdatadialog.cpp \
     customkeyboard.cpp \
     custommessagebox.cpp \
     customyscaledraw.cpp \
@@ -54,6 +55,7 @@ HEADERS += \
     circularprogressbar.h \
     closeonlywindow.h \
     customcombobox.h \
+    customexportdatadialog.h \
     customkeyboard.h \
     custommessagebox.h \
     customyscaledraw.h \
@@ -109,16 +111,15 @@ DISTFILES += \
 
 
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../qt_5_12_9/5.12.9/mingw73_64/lib/ -lqwt
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../qt_5_12_9/5.12.9/mingw73_64/lib/ -lqwtd
-else:unix: LIBS += -L$$PWD/../../qt_5_12_9/5.12.9/mingw73_64/lib/ -lqwt
+# 定义项目内相对路径
+QWT_ROOT = $$PWD/3rdparty/Qwt
 
-INCLUDEPATH += $$PWD/../../qt_5_12_9/5.12.9/mingw73_64/include/Qwt
-DEPENDPATH += $$PWD/../../qt_5_12_9/5.12.9/mingw73_64/include/Qwt
+# 头文件搜索路径
+INCLUDEPATH += $$QWT_ROOT/include
+DEPENDPATH  += $$QWT_ROOT/include
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../qt_5_12_9/5.12.9/mingw73_64/lib/ -lqwt
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../qt_5_12_9/5.12.9/mingw73_64/lib/ -lqwtd
-else:unix: LIBS += -L$$PWD/../../qt_5_12_9/5.12.9/mingw73_64/lib/ -lqwt
-
-INCLUDEPATH += $$PWD/../../qt_5_12_9/5.12.9/mingw73_64/include/Qwt
-DEPENDPATH += $$PWD/../../qt_5_12_9/5.12.9/mingw73_64/include/Qwt
+# 库文件链接 (明确指向 64 位 lib 目录)
+win32 {
+    CONFIG(release, debug|release): LIBS += -L$$QWT_ROOT/lib -lqwt
+    else:win32:CONFIG(debug, debug|release): LIBS += -L$$QWT_ROOT/lib -lqwtd
+}

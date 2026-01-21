@@ -1,224 +1,180 @@
 #include "measurementdataprocessor.h"
-#include <algorithm>
-#include <QDebug>
 #include <QtEndian>
+#include <QDebug>
 
-MeasurementDataProcessor::MeasurementDataProcessor(QObject* parent)
-    : QObject(parent)
-{
-    qDebug() << "[Processor] ctor, thread:" << QThread::currentThreadId();
+MeasurementDataProcessor::MeasurementDataProcessor(QObject* parent) : QObject(parent) {
+    // 必须放在构造函数里，程序运行到这里才会执行注册
+    qRegisterMetaType<QVector<quint16>>("QVector<quint16>");
+    qRegisterMetaType<QVector<quint32>>("QVector<quint32>");
+
+    m_adcPool.reserve(1000000);
+    m_fftPool.reserve(100000);
 }
 
-MeasurementDataProcessor::~MeasurementDataProcessor()
+void MeasurementDataProcessor::onRawPacketArrived(int /*externalType*/, const QByteArray& data)
 {
-    qDebug() << "[Processor] dtor";
+    // 1. 基础检查
+    if (!m_status.is(ThreadWorkState::Working)) return;
+    if (data.size() < 8) return;
+    if ((uchar)data.at(0) != 0xBB) return;
+
+    uchar typeFlag = (uchar)data.at(1);
+    quint8 currentSeq = (quint8)data.at(3); // 读取 UDP 包计数
+
+    // =================================================================
+    // 【核心修复 1】：全局维护序号
+    // 不管是 ADC(D0) 还是 FFT(D1)，只要包到了，就说明链路没断
+    // =================================================================
+    if (!m_firstSeqReceived) {
+        m_firstSeqReceived = true;
+        m_lastSeq = currentSeq;
+    } else {
+        // 计算差值
+        int diff = (currentSeq - m_lastSeq + 256) % 256;
+
+        // 正常情况 diff 应该等于 1 (连续)
+        // 如果 diff > 1，说明真有包在网络里丢了
+        if (diff > 1) {
+            int lost = diff - 1;
+            // 只打印警告，不再瞎补时间，防止出现"平顶怪线"
+            // qWarning() << "[Network] 真实丢包侦测! 丢失数量:" << lost;
+        }
+        m_lastSeq = currentSeq; // 更新上一帧序号
+    }
+
+    const int HEADER_LEN = 4;
+    const uchar* purePayloadPtr = reinterpret_cast<const uchar*>(data.constData() + HEADER_LEN);
+
+    QMutexLocker lock(&m_dataMutex);
+
+    // ================== ADC 处理 (D0) ==================
+    if (typeFlag == 0xD0) {
+        int count = 500;
+        if (data.size() < HEADER_LEN + count * 2) return;
+
+        if (m_adcPool.size() + count > MAX_POOL_SIZE) m_adcPool.clear();
+        int oldSize = m_adcPool.size();
+        m_adcPool.resize(oldSize + count);
+        for (int i = 0; i < count; ++i) {
+            m_adcPool[oldSize + i] = qFromBigEndian<quint16>(purePayloadPtr + i * 2);
+        }
+    }
+    // ================== FFT 处理 (D1) ==================
+    else if (typeFlag == 0xD1) {
+        // 【核心修复 2】：移除时间补偿逻辑
+        // 既然无法确定丢的是什么包，就严格按收到的数据画图，保证波形连续美观
+        const double FIXED_STEP = 0.5;
+        int count = 41;
+
+        if (data.size() < HEADER_LEN + count * 4) return;
+
+        QVector<QPointF> batchPoints;
+        batchPoints.reserve(count);
+
+        for (int i = 0; i < count; ++i) {
+            quint32 val = qFromBigEndian<quint32>(purePayloadPtr + i * 4);
+
+            // 无条件存储
+            m_fftPool.append(val);
+
+            // 构造点
+            batchPoints.append(QPointF(m_totalElapsedTime, static_cast<double>(val)));
+            m_totalElapsedTime += FIXED_STEP;
+        }
+
+        emit waveformUpdated(batchPoints);
+    }
+}
+
+Q_INVOKABLE void MeasurementDataProcessor::getAndClearPools(QVector<quint16>& adcOut, QVector<quint32>& fftOut)
+{
+    QMutexLocker lock(&m_dataMutex);
+    qDebug() << "[Processor-Export] 收到提取请求, 当前池子容量 - ADC:" << m_adcPool.size()
+             << " FFT:" << m_fftPool.size();
+
+    if (!m_fftPool.isEmpty()) {
+        qDebug() << "[Processor-Export] FFT 样例数据(应为25M级整数):" << m_fftPool.last();
+    }
+
+    adcOut.swap(m_adcPool);
+    fftOut.swap(m_fftPool);
+
+    m_adcPool.reserve(5 * 1024 * 1024);
+    m_fftPool.reserve(500 * 1024);
+    qDebug() << "[Processor-Export] 数据交换(swap)完成";
 }
 
 void MeasurementDataProcessor::requestStart()
 {
-    qInfo() << "[Processor] === requestStart ===";
-    qInfo() << "[Processor] 当前状态：" << static_cast<int>(m_state.get());
-    qInfo() << "[Processor] 线程ID：" << QThread::currentThreadId();
+    // A. 先检查状态
+    if (m_status.is(ThreadWorkState::Working)) return;
 
-    if (!m_state.is(ThreadWorkState::Idle)) {
-        qWarning() << "[Processor] 状态不是Idle，无法启动";
-        return;
-    }
+    // B. 执行清空和预分配
+    resetPools();
 
-    m_state.set(ThreadWorkState::Starting);  // 先设置为Starting
-    qInfo() << "[Processor] 状态设置为Starting";
-
-    resetSession();
+    // C. 启动时钟
     m_sessionClock.start();
-    m_uiClock.invalidate();
 
-    // TODO: 这里应该通知 DeviceAcquisitionWorker 开始采集
-    // 例如：emit startAcquisitionRequested();
+    // D. 通知 Worker 开始采集
+    emit startAcquisitionRequested();
 
-    m_state.set(ThreadWorkState::Working);  // 最后设置为Working
-    qInfo() << "[Processor] 状态设置为Working";
-    qInfo() << "[Processor] start processing";
+    m_status.set(ThreadWorkState::Working);
+}
+
+void MeasurementDataProcessor::resetPools()
+{
+    QMutexLocker lock(&m_dataMutex);
+
+    // 1. 彻底释放旧内存并清空
+    m_adcPool.clear();
+    m_fftPool.clear();
+    m_cycleBuffer.clear();
+    m_timeBuffer.clear();
+    m_totalElapsedTime = 0.0;
+
+    // 2. 预分配空间（根据您的采样率预估，比如预留 20 秒的数据量）
+    // ADC: 5000包/秒 * 500点/包 = 2.5M点/秒
+    m_adcPool.reserve(5 * 1024 * 1024);
+
+    // FFT: 只有164字节有效，内存压力小，但也预留一些
+    m_fftPool.reserve(500 * 1024);
+
+    // 3. 重置解析相关的状态位
+    m_firstPacket = true;
+    m_lostCount = 0;
+    m_firstSeqReceived = false; // 重置序号状态
+    m_lastSeq = 0;
 }
 
 void MeasurementDataProcessor::requestStop()
 {
-    // Busy=Working/Stopping 都算忙，你之前用 ThreadWorkStateIsBusy 也行
-    if (!ThreadWorkStateIsBusy(m_state.get()))
-        return;
+    // 1. 检查状态，防止重复停止
+    if (!m_status.is(ThreadWorkState::Working)) return;
 
-    m_state.set(ThreadWorkState::Stopping);
+    // 2. 修改状态位，停止 onRawPacketArrived 的继续写入
+    m_status.set(ThreadWorkState::Idle);
 
-    // 结束前最后flush一次UI缓冲（可选但推荐）
-    tryFlushUiFrame();
+    // 3. (可选) 如果需要通知 Worker 线程物理停止 UDP 接收，可以发信号
+    // emit stopAcquisitionRequested();
 
-    WaveParams params = calculateFinalParams();
+//    qInfo() << "[Processor] 停止量测，当前 ADC 池点数:" << m_adcPool.size();
 
-    MeasurementData result;
-    result.sensorSystolic  = QString::number(params.maxSPAP, 'f', 2);
-    result.sensorDiastolic = QString::number(params.minDPAP, 'f', 2);
-    result.sensorAvg       = QString::number(params.avgMPAP, 'f', 2);
-    result.heartRate       = QString::number(params.heartRate, 'f', 1);
-
-    // 这里放用于“最终展示/保存”的波形（如果你只抽样显示，建议用别的字段存）
-    result.points = m_waveformForParams;
-
-    m_state.set(ThreadWorkState::Idle);
-    emit measureFinished(result);
-
-    qInfo() << "[Processor] processing stopped";
+    // 4. 发出完成信号，可以带上当前的数据结果统计
+//    emit measureFinished(result);
 }
 
-void MeasurementDataProcessor::resetSession()
-{
-    QMutexLocker lock(&m_mutex);
-    m_rawQueue.clear();
-    m_fftQueue.clear();
+// 在处理函数中实现
+void MeasurementDataProcessor::processSignal(double timestamp, double rawValue) {
+    // 1. 构造单个数据点：X为全局累计毫秒，Y为原始Hz数值
+    // 注意：这里不再除以 1000000.0，保持后端原始 Hz 发送
+    QPointF currentPoint(timestamp, rawValue);
 
-    m_uiBuffer.clear();
-    m_waveformForParams.clear();
-}
+    // 2. 构造一个临时的 QVector。
+    // 因为 UI 端的 setSimpleData 接口接收的是数组，这样可以保持兼容性
+    QVector<QPointF> pointData;
+    pointData.append(currentPoint);
 
-void MeasurementDataProcessor::storeRawPacket(const QByteArray& data)
-{
-    QMutexLocker lock(&m_mutex);
-    m_rawQueue.enqueue(data);  // QByteArray隐式共享，入队很轻
-}
-
-void MeasurementDataProcessor::storeFftPacket(const QByteArray& data)
-{
-    QMutexLocker lock(&m_mutex);
-    m_fftQueue.enqueue(data);
-}
-
-void MeasurementDataProcessor::onRawPacketArrived(const QByteArray& data)
-{
-    if (!m_state.is(ThreadWorkState::Working))
-        return;
-
-    // 1) 全量存储（导出用）
-    storeRawPacket(data);
-}
-
-void MeasurementDataProcessor::onFftPacketArrived(const QByteArray& data)
-{
-    if (!m_state.is(ThreadWorkState::Working))
-        return;
-
-    // 1) 全量存储（导出用）
-    storeFftPacket(data);
-
-    // 2) 从FFT抽样生成用于UI显示的点（新对象，不影响存储）
-    const QVector<QPointF> pts = sampleFftForUi(data);
-    if (!pts.isEmpty())
-        appendUiPointsAndMaybeFlush(pts);
-
-    // 3) 如果你最终参数也要基于“显示波形”，你可以同时维护一份用于参数的波形
-    // 注意：这份是抽样波形，不一定适合算血压心率（真实项目应从RAW解析）
-    m_waveformForParams += pts;
-}
-
-QVector<QPointF> MeasurementDataProcessor::sampleFftForUi(const QByteArray& fftPkt) const
-{
-    QVector<QPointF> out;
-    if (fftPkt.size() < 4) return out;
-
-    // 假设FFT是16-bit序列
-    const int n = fftPkt.size() / 2;
-
-    // 端序你一定要确认：下位机发的是小端还是大端
-    // 这里先按小端
-    auto readU16 = [&](int idx) -> quint16 {
-        const uchar* p = reinterpret_cast<const uchar*>(fftPkt.constData() + idx * 2);
-        return qFromLittleEndian<quint16>(p);
-    };
-
-    const double t = m_sessionClock.isValid() ? (m_sessionClock.elapsed() / 1000.0) : 0.0;
-
-    // 抽样策略：固定选几个bin（你可换成“每隔step取一个”）
-    static const int bins[] = { 5, 10, 20, 30, 40, 60, 80, 100 };
-
-    out.reserve(int(sizeof(bins)/sizeof(bins[0])));
-    for (int b : bins) {
-        if (b >= 0 && b < n) {
-            const double y = double(readU16(b));
-            out.append(QPointF(t, y));
-        }
-    }
-    return out;
-}
-
-void MeasurementDataProcessor::appendUiPointsAndMaybeFlush(const QVector<QPointF>& pts)
-{
-    // 这几个slot都在Processor线程执行，所以m_uiBuffer不需要锁
-    m_uiBuffer += pts;
-    tryFlushUiFrame();
-}
-
-void MeasurementDataProcessor::tryFlushUiFrame()
-{
-    if (m_uiBuffer.isEmpty())
-        return;
-
-    // 第一次触发时启动节流计时
-    if (!m_uiClock.isValid())
-        m_uiClock.start();
-
-    const bool timeOk  = (m_uiClock.elapsed() >= UI_PUSH_MS);
-    const bool countOk = (m_uiBuffer.size() >= UI_PUSH_N);
-
-    if (!(timeOk || countOk))
-        return;
-
-    QVector<QPointF> frame;
-    frame.swap(m_uiBuffer);     // swap：几乎零拷贝，不影响存储
-    m_uiClock.restart();
-
-    emit waveformUpdated(frame); // UI线程Queued接收
-}
-
-void MeasurementDataProcessor::takeAllQueues(QQueue<QByteArray>& outRaw, QQueue<QByteArray>& outFft)
-{
-    QMutexLocker lock(&m_mutex);
-    outRaw.swap(m_rawQueue);
-    outFft.swap(m_fftQueue);
-}
-
-// ===================== 最终参数计算（沿用你原来的思路） =====================
-
-WaveParams MeasurementDataProcessor::calculateFinalParams()
-{
-    WaveParams r;
-    if (m_waveformForParams.isEmpty())
-        return r;
-
-    QVector<float> v;
-    v.reserve(m_waveformForParams.size());
-    for (const auto& p : m_waveformForParams)
-        v.push_back(float(p.y()));
-
-    r.maxSPAP = *std::max_element(v.begin(), v.end());
-    r.minDPAP = *std::min_element(v.begin(), v.end());
-    r.avgMPAP = r.minDPAP + (r.maxSPAP - r.minDPAP) / 3.f;
-
-    QList<int> peaks = detectPeaks(m_waveformForParams);
-    if (peaks.size() >= 2) {
-        double total = 0.0;
-        for (int i = 1; i < peaks.size(); ++i)
-            total += (m_waveformForParams[peaks[i]].x() - m_waveformForParams[peaks[i-1]].x());
-
-        const double avgCycle = total / double(peaks.size() - 1);
-        if (avgCycle > 1e-6)
-            r.heartRate = float(60.0 / avgCycle);
-    }
-    return r;
-}
-
-QList<int> MeasurementDataProcessor::detectPeaks(const QVector<QPointF>& w)
-{
-    QList<int> peaks;
-    for (int i = 2; i < w.size() - 2; ++i) {
-        if (w[i].y() > w[i-1].y() && w[i].y() > w[i+1].y())
-            peaks << i;
-    }
-    return peaks;
+    // 3. 实时发射。UI 端的扫描棒会随着每个点位数据的到来即时向右推进
+    // 这将完美配合 120ms 的扫描窗口实现示波器效果
+    emit waveformUpdated(pointData);
 }

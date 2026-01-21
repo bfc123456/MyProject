@@ -1,43 +1,38 @@
-// 1) Project Headers
 #include "customyscaledraw.h"
-// 2)包含小数优化所需的头文件
-#include <cmath>
-// 3)Qt Headers
 #include <QString>
+#include <QtGlobal>
+#include <QColor>
 
-/**
- * @brief 构造函数实现：初始化小数位数
- */
-CustomYScaleDraw::CustomYScaleDraw(int decimalDigits)
-    : m_decimalDigits(decimalDigits)
-{
-    // 初始化时确保小数位数在合理范围（0~6）
+CustomYScaleDraw::CustomYScaleDraw(int decimalDigits) {
     setDecimalDigits(decimalDigits);
 }
 
-/**
- * @brief 重写 label 方法：强制十进制格式
- */
-QwtText CustomYScaleDraw::label(double value) const
-{
-    // 核心逻辑：用 QString::number 强制十进制，'f' 表示固定小数位格式
+QwtText CustomYScaleDraw::label(double value) const {
+    // 1. 强制使用十进制格式 'f'
     QString labelText = QString::number(value, 'f', m_decimalDigits);
 
-    // 可选优化：若小数位数为 0，移除末尾多余的 ".0"（如 100.0 → 100）
-    if (m_decimalDigits == 0)
-    {
-        labelText.remove(".0");
+    // 2. 若设为 0 位小数，移除末尾可能出现的 .0
+    if (m_decimalDigits == 0 && labelText.contains('.')) {
+        QStringList parts = labelText.split('.');
+        if (!parts.isEmpty()) {
+            labelText = parts.at(0);
+        }
     }
 
-    // 将 QString 包装为 QwtText 并返回（Qwt 轴标签需要 QwtText 类型）
-    return QwtText(labelText);
+    // 3. 构造白色文字
+    QwtText text(labelText);
+    text.setColor(Qt::white);
+    text.setFont(QFont("Arial", 10));
+    return text;
 }
 
-/**
- * @brief 设置小数位数：限制范围为 0~6，避免不合理值
- */
-void CustomYScaleDraw::setDecimalDigits(int digits)
-{
-    // qBound：将 digits 钳位在 0~6 之间（小于 0 取 0，大于 6 取 6）
-    m_decimalDigits = qBound(0, digits, 6);
+void CustomYScaleDraw::setDecimalDigits(int digits) {
+    int newDigits = qBound(0, digits, 8);
+
+    if (m_decimalDigits != newDigits) {
+        m_decimalDigits = newDigits;
+
+        // 告诉 Qwt：“我的格式变了，下次画刻度时别用旧缓存，重新算一遍”
+        invalidateCache();
+    }
 }

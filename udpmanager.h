@@ -81,6 +81,9 @@ private:
     uint64_t rxDropSize_ = 0;
     quint64 rxBytesTotal_ = 0;
     quint64 rxBytesPassed_ = 0;
+    std::atomic<uint64_t> m_rawInputCount{0};   // 成功从 Socket 读出的物理包数
+    std::atomic<uint64_t> m_queueDropCount{0};  // 队列溢出导致的丢弃数
+    static const int kMaxPacketsPerRead = 256;
 };
 
 

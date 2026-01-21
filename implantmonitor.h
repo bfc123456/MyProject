@@ -29,6 +29,7 @@
 #include <QMessageBox>
 
 #include "measurementdataprocessor.h"
+#include "customexportdatadialog.h"
 #include "framelesswindow.h"
 #include "global.h"
 
@@ -53,7 +54,7 @@ private slots:
     void SlotStopMeasurement();
 
     // Processor -> UI（实时帧）
-    void SlotUpdateWaveformFrame(const QVector<QPointF>& frame);
+    void SlotUpdateWaveformFrame(const QVector<QPointF> &data);
 
     // Processor -> UI（最终结果）
     void onMeasureFinished(const MeasurementData& result);
@@ -127,6 +128,7 @@ private:
     QList<MeasurementData> m_lstMeasurements;
 
     ReadoutRecordDialog* m_pReadoutDialog = nullptr;
+    CustomExportDataDialog* m_pExportDataDialog = nullptr;
     BlurOverlayGuard* m_pBlurGuard = nullptr;
 
     // 你原来用的采样间隔常量（示例：1ms）

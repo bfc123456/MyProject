@@ -24,15 +24,24 @@ bool UdpManager::startListening()
     if (!udpSocket_) return false;
 
     if (!isBound_) {
-        // 尽可能拉大接收缓冲（Windows 可能被上限截断，但设置更大通常仍有收益）
-        udpSocket_->setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption,
-                                    64 * 1024 * 1024); // 64MB
-
-        // 绑定
+        // 1. 必须先绑定！绑定后 Socket 才有真实的系统资源
         if (!udpSocket_->bind(localIp_, localPort_)) {
             emit initFailed(udpSocket_->errorString());
             return false;
         }
+
+        // 2. 绑定成功后，立即拉大内核接收缓冲区
+        // 5MB/s 速率下，建议直接给到 128MB，对抗启动时的系统调度延迟
+        udpSocket_->setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption,
+                                    128 * 1024 * 1024);
+
+        // 3. 微小延时，确保操作系统完成非分页内存的分配
+        QThread::msleep(50);
+
+        // 4. 读取真实分配值进行验证
+        int actualBuf = udpSocket_->socketOption(QAbstractSocket::ReceiveBufferSizeSocketOption).toInt();
+        qInfo() << "[Performance Check] 系统真正分配的内核缓冲区大小:"
+                << (actualBuf / 1024 / 1024) << "MB";
 
         isBound_ = true;
         qInfo() << "[UdpManager] bind OK"
@@ -41,6 +50,7 @@ bool UdpManager::startListening()
     }
 
     if (!readyReadConnected_) {
+        // 使用 UniqueConnection 防止重复连接
         bool ok = connect(udpSocket_, &QUdpSocket::readyRead,
                           this, &UdpManager::onReadyRead,
                           Qt::UniqueConnection);
@@ -75,12 +85,24 @@ void UdpManager::setSessionActive(bool on)
     sessionActive_ = on;
 }
 
+
 bool UdpManager::sendData(const QByteArray& data)
 {
-    if (!udpSocket_) return false;
-    qint64 n = udpSocket_->writeDatagram(data, targetIp_, targetPort_);
-    qInfo() << "[DEBUG] Sending to:" << targetIp_ << ":" << targetPort_;
-    return (n == data.size());
+
+    Q_ASSERT(QThread::currentThread() == this->thread());
+
+    if (!udpSocket_) {
+        return false;
+    }
+
+    // 3. 执行发送
+    const qint64 n = udpSocket_->writeDatagram(data, targetIp_, targetPort_);
+
+    // 4. 打印结果日志
+    // 获取错误信息
+    QString errStr = udpSocket_->errorString();
+
+    return n == data.size();
 }
 
 uint32_t UdpManager::queueSize() const
@@ -129,64 +151,25 @@ int UdpManager::popBatch(QVector<QByteArray>& out, int maxBatch)
 
 void UdpManager::onReadyRead()
 {
-    // 用 thread_local 复用丢弃包的缓存，避免每个丢弃包都 new QByteArray
-    static thread_local QByteArray trash;
+    // 1. 预分配固定大小的栈空间或预分配 QByteArray
+    static thread_local char buffer[2048];
 
     while (udpSocket_->hasPendingDatagrams()) {
-        const qint64 sz = udpSocket_->pendingDatagramSize();
+        qint64 sz = udpSocket_->pendingDatagramSize();
         if (sz <= 0) break;
 
-        QHostAddress srcIp;
-        quint16 srcPort = 0;
-
-        // 先用 trash 读一遍拿到 srcIp/srcPort？——不行，readDatagram 读完就没了
-        // 所以策略是：先读到 trash，再根据过滤条件决定是否“转正”为入队数据。
-        trash.resize(int(sz));                 // 这一步不会每次重新分配（容量够就复用）
-        const qint64 rd = udpSocket_->readDatagram(trash.data(), trash.size(), &srcIp, &srcPort);
+        // 2. 直接读取到预分配内存，避免 resize 的内存分配开销
+        qint64 rd = udpSocket_->readDatagram(buffer, sizeof(buffer));
         if (rd <= 0) continue;
 
-        rxTotal_++;
-        rxBytesTotal_ += (quint64)rd;
+        m_rawInputCount++; // 【新增】统计进入应用的物理包数
 
-        // 会话未开启：读空但不入队
-        if (!sessionActive_) { rxDropInactive_++; continue; }
-
-        // 固定对端过滤
-        if (srcIp != targetIp_ || srcPort != targetPort_) { rxDropPeer_++; continue; }
-
-        // rd 才是有效长度
-        if (rd <= 0) { rxDropSize_++; continue; }
-
-        // 只有真正要入队时，才分配“可移动”的 QByteArray
-        QByteArray data(int(rd), Qt::Uninitialized);
-        memcpy(data.data(), trash.constData(), size_t(rd));
-
-        if (pushPacket(std::move(data))) {
-            rxPassed_++;
-            rxBytesPassed_ += (quint64)rd;
+        if (sessionActive_) {
+            // 3. 只有入队这一个动作，尽量减少锁竞争
+            QByteArray data(buffer, int(rd));
+            if (!pushPacket(std::move(data))) {
+                m_queueDropCount++; // 【新增】统计入队失败
+            }
         }
-        // pushPacket 失败（队列满）在 pushPacket 内部已统计 droppedByQueue_
-    }
-
-    // 每秒汇总一次
-    if (!statTimer_.isValid()) statTimer_.start();
-    if (statTimer_.elapsed() >= 1000) {
-        const double mbTotal  = rxBytesTotal_  / (1024.0 * 1024.0);
-        const double mbPassed = rxBytesPassed_ / (1024.0 * 1024.0);
-
-        qInfo() << "[UdpManager][1s]"
-                << "total=" << rxTotal_ << "(" << mbTotal << "MB/s)"
-                << "passed=" << rxPassed_ << "(" << mbPassed << "MB/s)"
-                << "dropInactive=" << rxDropInactive_
-                << "dropPeer=" << rxDropPeer_
-                << "dropSize=" << rxDropSize_
-                << "dropQueue=" << droppedByQueue_.load(std::memory_order_relaxed)
-                << "qSize=" << queueSize()
-                << "thread=" << QThread::currentThreadId();
-
-        rxTotal_ = rxPassed_ = rxDropInactive_ = rxDropPeer_ = rxDropSize_ = 0;
-        rxBytesTotal_ = rxBytesPassed_ = 0;
-        statTimer_.restart();
     }
 }
-

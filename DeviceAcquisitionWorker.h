@@ -6,6 +6,7 @@
 #include <QElapsedTimer>
 #include <QVector>
 #include <cstdint>
+#include <QPointer>
 
 #include "udpmanager.h"
 
@@ -23,8 +24,10 @@ public slots:
     void requestStop();
 
 signals:
+    // 定义转发给 Processor 的原始包信号
+    void rawPacketArrived(int type, const QByteArray& packet);
     void acquisitionError(const QString& err);
-    void acquisitionStopped();
+    void stopAcquisitionRequested();
 
     // 如果你需要把解析后的点发给后续处理线程，可以启用这个信号（注意：别每包发给 UI）
     // void rawSamplesReady(QVector<int16_t> samples);
@@ -36,15 +39,16 @@ private:
     QByteArray buildStartFrame() const;
     QByteArray buildStopFrame() const;
 
-    // 协议常量：88 66 86 + count(1B)
-    static constexpr uint8_t H0 = 0x88;
-    static constexpr uint8_t H1 = 0x66;
-    static constexpr uint8_t H2 = 0x86;
-    static constexpr int kCountOff = 3;
-    static constexpr int kPayloadOff = 4;
+    // --- 协议常量重定义 ---
+    static const int kFullPacketSize = 1004;  // 总长 1004 字节
+    static const int kHeaderSize     = 2;     // 标志位长度
+    static const int kPayloadOffset  = 4;     // 标志(2) + ADC计(1) + UDP计(1)
 
-    // 选择你的 payload 格式：2=采集原始点；4=FFT float/int32
-    static constexpr int kBytesPerPoint = 2;
+    // 标志位定义
+    static const uint8_t kAdcHeader0 = 0xBB;
+    static const uint8_t kAdcHeader1 = 0xD0;
+    static const uint8_t kFftHeader0 = 0xBB;
+    static const uint8_t kFftHeader1 = 0xD1;
 
     inline bool isValidFrame(const QByteArray& p) const;
     inline uint8_t getCount(const QByteArray& p) const;
@@ -53,7 +57,7 @@ private:
     void handleFrame(const QByteArray& packet);
 
 private:
-    UdpManager* udpManager_ = nullptr;
+    QPointer<UdpManager> udpManager_;
     QTimer* drainTimer_ = nullptr;
 
     enum class State { Idle, Working, Error };
@@ -70,6 +74,9 @@ private:
     uint64_t badLen_     = 0;
 
     QElapsedTimer statTimer_;
+
+    // 【新增】类成员缓冲区，避免重复分配内存
+    QVector<QByteArray> m_workingBatch;
 };
 
 #endif // DEVICEACQUISITIONWORKER_H
